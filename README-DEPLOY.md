@@ -36,10 +36,16 @@ a private task manager backed by Neon Postgres and Neon Auth.
 
 | Name | Value | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) |
-| `NEON_AUTH_BASE_URL` | from Neon | the project's Neon Auth base URL |
-| `NEON_AUTH_JWKS_URL` | from Neon | JWKS endpoint for verifying sign-in tokens |
+| `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
+| `NEON_AUTH_BASE_URL` | `https://ep-shy-unit-zaoq9skj.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth` | this project's Neon Auth URL (public) |
+| `NEON_AUTH_JWKS_URL` | `https://ep-shy-unit-zaoq9skj.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth/.well-known/jwks.json` | verified live |
 | `ALLOWED_EMAILS` | optional | comma-separated owner emails; defaults to `umitbozdag@googlemail.com` |
+
+**Trusted origins (required for sign-in):** in the Neon console → this project →
+Auth, add every origin the site runs on — e.g. your `https://….vercel.app` test
+URL, `https://umitbozdag.com` and `https://www.umitbozdag.com`. Localhost is
+allowed by default. Without this, the browser's sign-in request is rejected
+("Missing or null Origin" / untrusted origin).
 
 Until these are set, the public site works fully and `/backstage` shows a
 "not connected yet" notice instead of the sign-in.
