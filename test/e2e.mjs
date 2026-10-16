@@ -10,6 +10,18 @@ if (!siteBase || !authUrl || !email || !password) {
 }
 const apiBase = siteBase.replace(/\/+$/, "") + "/api/backstage";
 
+// Neon Auth requires an Origin header (browsers always send one; Node's
+// fetch doesn't). Attach the site origin to every auth-server request.
+const siteOrigin = new URL(siteBase).origin;
+const realFetch = globalThis.fetch;
+globalThis.fetch = (input, init = {}) => {
+  const url = typeof input === "string" ? input : input.url;
+  if (url && url.startsWith(authUrl)) {
+    init = { ...init, headers: { ...(init.headers || {}), Origin: siteOrigin } };
+  }
+  return realFetch(input, init);
+};
+
 let failures = 0;
 const step = (name, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? " — " + detail : ""}`);
