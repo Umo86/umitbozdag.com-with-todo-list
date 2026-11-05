@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/auth";
 import {
+  cleanList,
+  cleanPosition,
   cleanTitle,
+  cleanWhen,
   DATE,
   PRIORITIES,
   STATUSES,
@@ -69,9 +72,38 @@ export async function PATCH(req: Request, ctx: Ctx) {
           : null;
       add("project_id = ?", pid);
     }
+    if (body.list !== undefined) {
+      const l = cleanList(body.list);
+      if (!l) {
+        return NextResponse.json({ error: "Unknown list." }, { status: 400 });
+      }
+      add("list = ?", l);
+    }
+    if (body.remind_at !== undefined) {
+      if (body.remind_at === null) {
+        add("remind_at = ?", null);
+      } else {
+        const when = cleanWhen(body.remind_at);
+        if (!when) {
+          return NextResponse.json(
+            { error: "A reminder needs a date and time with a time zone." },
+            { status: 400 }
+          );
+        }
+        add("remind_at = ?", when);
+      }
+    }
+    if (body.position !== undefined) {
+      const p = cleanPosition(body.position);
+      if (p === null) {
+        return NextResponse.json({ error: "Position must be a number." }, { status: 400 });
+      }
+      add("position = ?", p);
+    }
     if (!sets.length) {
       return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
     }
+    sets.push("updated_at = now()");
 
     const r = await db().query(
       `update tasks set ${sets.join(", ")} where id = $1 returning ${TASK_COLS}`,

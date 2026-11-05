@@ -40,6 +40,7 @@ a private task manager backed by Neon Postgres and Neon Auth.
 | `NEON_AUTH_BASE_URL` | `https://ep-shy-unit-zaoq9skj.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth` | this project's Neon Auth URL (public) |
 | `NEON_AUTH_JWKS_URL` | `https://ep-shy-unit-zaoq9skj.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth/.well-known/jwks.json` | verified live |
 | `ALLOWED_EMAILS` | optional | comma-separated owner emails; defaults to `umitbozdag@googlemail.com` |
+| `HELPER_EMAILS` | optional | comma-separated emails of helpers (e.g. a partner). A helper signs up at `/backstage` with that email and can see the **Personal** list and add tasks to it — nothing else |
 
 **Trusted origins (required for sign-in):** in the Neon console → this project →
 Auth, add every origin the site runs on — e.g. your `https://….vercel.app` test

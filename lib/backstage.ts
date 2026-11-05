@@ -5,6 +5,8 @@ export const UUID =
 export const DATE = /^\d{4}-\d{2}-\d{2}$/;
 export const STATUSES = new Set(["todo", "doing", "done"]);
 export const PRIORITIES = new Set(["low", "normal", "high"]);
+// The board's two lists. Tasks Claude adds by voice land in these too.
+export const LISTS = new Set(["personal", "work"]);
 
 export function cleanTitle(v: unknown, max = 500): string | null {
   if (typeof v !== "string") return null;
@@ -12,8 +14,30 @@ export function cleanTitle(v: unknown, max = 500): string | null {
   return t.length > 0 && t.length <= max ? t : null;
 }
 
-export const TASK_COLS = `id, project_id, title, notes, status, priority,
-  to_char(due_date, 'YYYY-MM-DD') as due_date, created_at, completed_at`;
+export function cleanList(v: unknown): string | null {
+  return typeof v === "string" && LISTS.has(v) ? v : null;
+}
+
+// A reminder time: an ISO 8601 date-time that states its time zone
+// ("…Z" or "…+01:00", e.g. from Date.toISOString()). Returned in UTC.
+const ZONED = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/i;
+export function cleanWhen(v: unknown): string | null {
+  if (typeof v !== "string" || !ZONED.test(v)) return null;
+  const t = Date.parse(v);
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
+
+// Sort key within a column (lower = higher up). Fractions let a card be
+// dropped between two others without renumbering the column.
+export function cleanPosition(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+export const TASK_COLS = `id, project_id, list, title, notes, status, priority,
+  to_char(due_date, 'YYYY-MM-DD') as due_date, remind_at, added_by, position,
+  calendar_ref, created_at, updated_at, completed_at`;
+
+export const TASK_ORDER = `order by position asc, created_at desc`;
 
 const SEED_PROJECTS: Array<[string, string]> = [
   ["UK Construction Week", "#a61c2b"],

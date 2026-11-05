@@ -141,10 +141,20 @@ step("api: create project", pr.status === 201 && !!pr.data.id, pr.data.error || 
 const t1 = await api("/tasks", "POST", {
   title: "E2E task",
   project_id: pr.data.id,
+  list: "work",
   due_date: "2026-10-30",
+  remind_at: "2026-10-30T09:00:00Z",
   priority: "high",
 });
 step("api: create task", t1.status === 201 && !!t1.data.id, t1.data.error || t1.data.id);
+step("api: task lands on the Work list", t1.data.list === "work", t1.data.list);
+step("api: reminder stored", !!t1.data.remind_at, String(t1.data.remind_at));
+
+const tl = await api(`/tasks/${t1.data.id}`, "PATCH", { list: "personal" });
+step("api: move task to Personal", tl.status === 200 && tl.data.list === "personal");
+
+const badList = await api("/tasks", "POST", { title: "Nope", list: "shopping" });
+step("api: rejects unknown list", badList.status === 400);
 
 const t2 = await api(`/tasks/${t1.data.id}`, "PATCH", { status: "doing" });
 step("api: start task", t2.status === 200 && t2.data.status === "doing");
