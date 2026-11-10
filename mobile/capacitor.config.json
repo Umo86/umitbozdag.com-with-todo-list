@@ -1,0 +1,20 @@
+{
+  "appId": "com.umitbozdag.backstage",
+  "appName": "Backstage",
+  "webDir": "www",
+  "server": {
+    "url": "https://umitbozdag.com",
+    "androidScheme": "https",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "appendUserAgent": "BackstageApp/1",
+    "backgroundColor": "#f5f6fb"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_backstage",
+      "iconColor": "#1a47ff"
+    }
+  }
+}

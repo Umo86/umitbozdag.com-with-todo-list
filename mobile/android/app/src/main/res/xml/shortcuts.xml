@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="speak"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_mic"
+        android:shortcutShortLabel="@string/shortcut_speak"
+        android:shortcutLongLabel="@string/shortcut_speak_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="backstage://capture"
+            android:targetPackage="com.umitbozdag.backstage"
+            android:targetClass="com.umitbozdag.backstage.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="today"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_today"
+        android:shortcutShortLabel="@string/shortcut_today"
+        android:shortcutLongLabel="@string/shortcut_today">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="backstage://today"
+            android:targetPackage="com.umitbozdag.backstage"
+            android:targetClass="com.umitbozdag.backstage.MainActivity" />
+    </shortcut>
+</shortcuts>
