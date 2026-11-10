@@ -10,6 +10,13 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: "/:path((?!api/).*)",
+        has: [{ type: "host", value: "umitbozdag-com-with-todo-list.vercel.app" }],
+        missing: [{ type: "header", key: "user-agent", value: ".*BackstageApp.*" }],
+        destination: "https://umitbozdag.com/:path",
+        permanent: true,
+      },
+      {
         source: "/",
         has: [{ type: "header", key: "user-agent", value: ".*BackstageApp.*" }],
         destination: "/backstage",

@@ -3,7 +3,7 @@
   "appName": "Backstage",
   "webDir": "www",
   "server": {
-    "url": "https://umitbozdag-com-with-todo-list.vercel.app",
+    "url": "https://umitbozdag.com",
     "androidScheme": "https",
     "errorPath": "offline.html"
   },

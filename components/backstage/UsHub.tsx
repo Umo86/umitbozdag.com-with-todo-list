@@ -4,7 +4,7 @@
 // dinner (swipe until you match), date-night roulette, the memory jar and a
 // private gift-ideas list.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DISHES, shuffleForDay } from "@/lib/dishes";
+import { DATE_IDEAS, DISHES, shuffleForDay } from "@/lib/dishes";
 import { ymd } from "@/lib/parse";
 import Chat from "./Chat";
 import { Confetti, nextYearly } from "./Fun";
@@ -226,25 +226,31 @@ function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Perso
 
 // ——— date night roulette ———
 function Dates({ bs, onPlan }: { bs: Backstage; onPlan: (t: string, d: string, time: string) => void }) {
-  const ideas = bs.us.filter((x) => x.kind === "idea" && x.list === "date");
+  const own = bs.us.filter((x) => x.kind === "idea" && x.list === "date");
+  // your own ideas plus 50 built-in ones
+  const ideas = useMemo<Array<{ title: string; emoji: string }>>(
+    () => [...own.map((i) => ({ title: i.title, emoji: i.emoji ?? "💘" })), ...DATE_IDEAS],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [own.map((i) => i.id).join(",")]
+  );
   const [spin, setSpin] = useState<string | null>(null);
-  const [result, setResult] = useState<UsItem | null>(null);
+  const [result, setResult] = useState<{ title: string; emoji: string } | null>(null);
+  const [browse, setBrowse] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => () => void (timer.current && clearInterval(timer.current)), []);
   const go = () => {
-    if (!ideas.length) return;
     setResult(null);
     let n = 0;
     const final = ideas[Math.floor(Math.random() * ideas.length)];
     timer.current = setInterval(() => {
       n++;
-      setSpin(ideas[n % ideas.length].title);
-      if (n > 14 + ideas.length) {
+      setSpin(ideas[Math.floor(Math.random() * ideas.length)].title);
+      if (n > 22) {
         clearInterval(timer.current!);
         setSpin(null);
         setResult(final);
       }
-    }, 90);
+    }, 85);
   };
   const sat = (() => {
     const d = new Date();
@@ -255,10 +261,10 @@ function Dates({ bs, onPlan }: { bs: Backstage; onPlan: (t: string, d: string, t
     <div className="bs-dates">
       <div className="bs-roulette">
         {result && <Confetti />}
-        <span className="e">{result ? result.emoji ?? "💘" : "🎲"}</span>
-        <p className="big">{spin ?? result?.title ?? (ideas.length ? "What shall we do?" : "Add some date ideas first")}</p>
+        <span className="e">{result ? result.emoji : "🎲"}</span>
+        <p className="big">{spin ?? result?.title ?? "What shall we do?"}</p>
         <div className="bs-row-btns center">
-          <button className="btn" onClick={go} disabled={!ideas.length || !!spin}>
+          <button className="btn" onClick={go} disabled={!!spin}>
             {result ? "Spin again" : "Spin"}
           </button>
           {result && (
@@ -267,10 +273,25 @@ function Dates({ bs, onPlan }: { bs: Backstage; onPlan: (t: string, d: string, t
             </button>
           )}
         </div>
+        <p className="quiet small">Spins through {ideas.length} ideas: {DATE_IDEAS.length} of ours plus yours.</p>
       </div>
-      <h3 className="bs-sub">Date ideas</h3>
-      <IdeaAdder bs={bs} list="date" placeholder="Add a date idea (picnic in Greenwich, cooking class…)" />
-      <IdeaList bs={bs} items={ideas} />
+      <h3 className="bs-sub">Your own date ideas</h3>
+      <IdeaAdder bs={bs} list="date" placeholder="Add a date idea (that new place in Soho…)" />
+      <IdeaList bs={bs} items={own} />
+      <button className="bs-fold" aria-expanded={browse} onClick={() => setBrowse((v) => !v)}>
+        {browse ? "Hide" : "See"} all {DATE_IDEAS.length} built-in ideas <span aria-hidden="true">{browse ? "▴" : "▾"}</span>
+      </button>
+      {browse && (
+        <ul className="bs-chips">
+          {DATE_IDEAS.map((d) => (
+            <li key={d.title}>
+              <button className="bs-link" onClick={() => onPlan(`Date night: ${d.title}`, sat, "19:00")} title="Book it for Saturday">
+                {d.emoji} {d.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

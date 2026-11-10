@@ -124,12 +124,6 @@ export default function Gate({ bs }: { bs: Backstage }) {
           </form>
         )}
       </div>
-      <p className="bs-gate-foot">
-        <a className="bs-back" href="/">
-          Back to the site
-        </a>
-      </p>
-      <p className="bs-gate-help">Forgotten your password? Umit can set a new one.</p>
     </div>
   );
 }

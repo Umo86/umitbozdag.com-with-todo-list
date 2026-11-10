@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { SiteFooter, SiteNav } from "@/components/SiteChrome";
 import { latestRelease } from "@/lib/app-download";
+import { SITE_URL } from "@/lib/site";
 import changelog from "@/lib/changelog.json";
 
 export const revalidate = 300;
@@ -33,8 +34,7 @@ const FIXES: Array<[string, React.ReactNode]> = [
 
 export default async function AppPage() {
   const rel = await latestRelease();
-  const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://umitbozdag-com-with-todo-list.vercel.app";
-  const qr = await QRCode.toString(`${site}${DOWNLOAD}`, { type: "svg", margin: 0, color: { dark: "#0b0b0c", light: "#ffffff" } });
+  const qr = await QRCode.toString(`${SITE_URL}${DOWNLOAD}`, { type: "svg", margin: 0, color: { dark: "#0b0b0c", light: "#ffffff" } });
   return (
     <>
       <SiteNav />

@@ -2,16 +2,19 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 // Your private calendar link (for Google / Samsung Calendar). GET makes one
 // the first time; POST makes a new one, so the old link stops working.
 const newToken = () => randomBytes(24).toString("base64url");
+// Always on umitbozdag.com, even when asked from the app's older address.
+// (Locally, the address you're on, so tests can follow it.)
 const feedUrl = (req: Request, token: string) => {
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? new URL(req.url).host;
-  const proto = req.headers.get("x-forwarded-proto") ?? new URL(req.url).protocol.replace(":", "");
-  return `${proto}://${host}/api/calendar/${token}`;
+  const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  return `${local ? `http://${host}` : SITE_URL}/api/calendar/${token}`;
 };
 
 export async function GET(req: Request) {
