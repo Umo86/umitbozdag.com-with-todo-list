@@ -135,9 +135,19 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
                   )}
                   {mine && myLast?.id === m.id && seen ? " · Seen" : ""}
                 </span>
-                {open === m.id && m.kind === "text" && (
+                {open === m.id && (
                   <div className="acts">
-                    <button
+                    {mine && !m.pending && (
+                      <button
+                        onClick={() => {
+                          bs.deleteChat(m.id);
+                          setOpen(null);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                    {m.kind === "text" && <button
                       onClick={() => {
                         const drafts = parseTasks(m.body, { others: users.filter((u) => u.id !== me.id) });
                         if (!drafts.length) return;
@@ -151,15 +161,15 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
                       }}
                     >
                       + Joint to-do
-                    </button>
-                    <button
+                    </button>}
+                    {m.kind === "text" && <button
                       onClick={() => {
                         navigator.clipboard?.writeText(m.body).then(() => bs.say("Copied."), () => bs.say("Couldn't copy.", "error"));
                         setOpen(null);
                       }}
                     >
                       Copy
-                    </button>
+                    </button>}
                   </div>
                 )}
               </div>

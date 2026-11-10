@@ -342,6 +342,13 @@ export function useBackstage() {
     [api, me, say]
   );
   const dropChat = useCallback((id: string) => setChat((prev) => prev.filter((m) => m.id !== id)), []);
+  const deleteChat = useCallback(
+    (id: string) => {
+      setChat((prev) => prev.filter((m) => m.id !== id));
+      api(`/chat/${id}`, { method: "DELETE" }).catch((e: Error) => say(e.message, "error"));
+    },
+    [api, say]
+  );
   const markChatRead = useCallback(async () => {
     setChatUnread(0);
     await api("/chat/read", { method: "POST", body: {} }).catch(() => {});
@@ -474,6 +481,7 @@ export function useBackstage() {
     pollChat,
     sendChat,
     dropChat,
+    deleteChat,
     markChatRead,
     say,
     ai,

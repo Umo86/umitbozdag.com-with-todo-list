@@ -283,6 +283,11 @@ if (password2) {
   const st = await asUmit("/state");
   step("chat: unread count in state", typeof st.data.chat_unread === "number" && st.data.chat_unread >= 1);
   await asUmit("/chat/read", "POST", {});
+  const delOther = await asUmit(`/chat/${hrt.data.id}`, "DELETE");
+  step("chat: you can't delete the other person's message", delOther.status === 404);
+  const d1 = await asUmit(`/chat/${c1.data.id}`, "DELETE");
+  const d2 = await asDil(`/chat/${hrt.data.id}`, "DELETE");
+  step("chat: you can delete your own", d1.status === 200 && d2.status === 200);
 
   // tidy up
   for (const id of [evP.data.id, evJ.data.id, evA.data.id]) {

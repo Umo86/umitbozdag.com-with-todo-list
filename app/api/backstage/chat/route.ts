@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   try {
     const [msgs, unread] = await Promise.all([
       afterOk
-        ? db().query(`select ${COLS} from chat_messages where created_at > $1 order by created_at limit 200`, [after])
+        ? db().query(`select ${COLS} from chat_messages where date_trunc('milliseconds', created_at) > $1::timestamptz order by created_at limit 200`, [after])
         : db().query(`select * from (select ${COLS} from chat_messages order by created_at desc limit 300) m order by created_at`),
       db().query(`select count(*)::int as n from chat_messages where sender <> $1 and read_at is null`, [auth.me.id]),
     ]);
