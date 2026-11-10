@@ -78,8 +78,56 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .phases button:focus-visible{outline-color:#fff}
 .phase-note{font-size:17px;line-height:1.45;color:rgba(255,255,255,.82);margin-top:10px;min-height:1.5em}
 
+/* ---------- where I've worked: the world map ---------- */
+.world{padding:96px 0 0}
+.world__head{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:48px;align-items:end;margin-bottom:44px}
+.world__head .h2{max-width:560px}
+.world__lead{color:var(--muted);font-size:17px;line-height:1.55;max-width:400px;justify-self:end;padding-bottom:6px}
+.flag{width:20px;height:15px;border-radius:3px;object-fit:cover;flex:none;box-shadow:0 0 0 1px rgba(11,13,18,.12)}
+.map{position:relative}
+.map__svg{width:100%;height:auto;display:block;overflow:visible}
+.map__dots{fill:none;stroke:rgba(11,13,18,.14);stroke-width:4.2;stroke-linecap:round}
+.map__routes path{fill:none;stroke:var(--accent);stroke-width:1.3;stroke-linecap:round;stroke-dasharray:1000;stroke-dashoffset:1000;opacity:.8;transition:opacity .3s,stroke-width .3s}
+.map.is-visible .map__routes path{animation:draw 2s var(--ease) forwards;animation-delay:calc(var(--i)*.22s + .3s)}
+@keyframes draw{to{stroke-dashoffset:0}}
+.city{opacity:0;transition:opacity .5s;transition-delay:calc(var(--i)*.22s + 1.1s)}
+.city--hq{transition-delay:0s}
+.map.is-visible .city{opacity:1}
+.city__dot{fill:var(--accent);stroke:#fff;stroke-width:2}
+.city--hq .city__dot{fill:var(--text)}
+.city__pulse{fill:none;stroke:var(--accent);stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:pulse 3s ease-out infinite;animation-delay:calc(var(--i)*.35s)}
+.city--hq .city__pulse{stroke:var(--text)}
+@keyframes pulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(5);opacity:0}}
+.map__labels{position:absolute;inset:0;pointer-events:none}
+.map__label{position:absolute;transform:translate(10px,-150%);display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text);white-space:nowrap;background:rgba(255,255,255,.94);padding:3px 7px 3px 4px;border-radius:6px;box-shadow:0 1px 4px rgba(11,13,18,.1);opacity:0;pointer-events:auto;cursor:pointer;transition:opacity .5s,background .2s,color .2s;transition-delay:calc(var(--i)*.22s + 1.3s),0s,0s}
+.map__label .flag{width:16px;height:12px;border-radius:2px}
+.map__label--left{transform:translate(calc(-100% - 10px),-150%)}
+.map__label--below{transform:translate(10px,40%)}
+.map__label--left.map__label--below{transform:translate(calc(-100% - 10px),40%)}
+.map__label--hq{color:#fff;background:var(--text)}
+.map.is-visible .map__label{opacity:1}
+.map.has-hot .city:not(.is-hot):not(.city--hq),.map.has-hot .map__routes path:not(.is-hot){opacity:.18}
+.map.has-hot .map__routes path.is-hot{stroke-width:2.2;opacity:1}
+.map.has-hot .map__label:not(.is-hot):not(.map__label--hq){opacity:.25}
+.map.has-hot .map__label.is-hot{opacity:1;color:#fff;background:var(--accent);z-index:2}
+.world__cities{list-style:none;margin:22px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.world__city{display:inline-flex;align-items:center;gap:8px;padding:7px 12px 7px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);transition:color .2s,border-color .2s,background .2s}
+.world__city small{font-size:10px;color:var(--soft);letter-spacing:.08em}
+.world__city:hover,.world__city.is-hot{color:var(--text);border-color:var(--text)}
+.world__city.is-picked{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.world__panel{margin-top:18px;border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-height:132px}
+.world__where{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.world__where .flag{width:28px;height:21px;border-radius:4px}
+.world__where strong{font:700 18px var(--display);letter-spacing:-.01em}
+.world__where span{font-size:14px;color:var(--muted)}
+.world__events{list-style:none;display:flex;flex-wrap:wrap;gap:10px 18px}
+.world__events a{display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:500}
+.world__events a:hover{color:var(--accent)}
+.world__events .evt__logo{width:48px;height:36px;padding:5px;flex:none}
+.world__evname{max-width:22ch}
+
 /* ---------- numbers ---------- */
-.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;padding:56px 0;border-bottom:1px solid var(--line)}
+.nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;margin-top:48px;padding-top:32px;border-top:1px solid var(--line)}
 .nums strong{display:block;font:700 44px/1 var(--display);letter-spacing:-.035em}
 .nums span{display:block;font-size:14px;color:var(--muted);margin-top:10px;line-height:1.45}
 
@@ -274,6 +322,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
+  .map__routes path{stroke-dashoffset:0}.city,.map__label{opacity:1}
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
 
@@ -298,7 +347,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .hall-labels{display:none}
   .phases button{font-size:10.5px;letter-spacing:.05em;padding-right:2px}
   .phase-note{font-size:16px;min-height:3em}
-  .nums{grid-template-columns:1fr 1fr;gap:24px;padding:40px 0}.nums strong{font-size:36px}
+  .nums{grid-template-columns:1fr 1fr;gap:24px;margin-top:36px;padding-top:26px}.nums strong{font-size:36px}
+  .world{padding-top:60px}.world__head{grid-template-columns:1fr;gap:14px;margin-bottom:28px}.world__lead{justify-self:start;padding-bottom:0;font-size:16px}
+  .map__label{display:none}.map__label--hq,.map.has-hot .map__label.is-hot{display:inline-flex;font-size:10px}
+  .world__city{font-size:11px;padding:6px 10px 6px 8px}
+  .world__evname{max-width:none}
   .about{grid-template-columns:1fr;gap:28px}
   .facts,.orgs__grid{grid-template-columns:1fr 1fr;gap:24px}
   .facts{margin-top:48px}.orgs{margin-top:48px}

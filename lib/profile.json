@@ -1033,5 +1033,80 @@
       "desktop": "https://videos.pexels.com/video-files/6099374/6099374-hd_1280_720_60fps.mp4",
       "large": "https://videos.pexels.com/video-files/6099374/6099374-hd_1920_1080_30fps.mp4"
     }
-  }
+  },
+  "worldLead": "Exhibitions and conferences delivered or supported on four continents, from a base in London.",
+  "cities": [
+    {
+      "name": "London",
+      "lat": 51.5,
+      "lon": -0.12,
+      "hq": true,
+      "label": "left",
+      "flag": "gb",
+      "country": "United Kingdom"
+    },
+    {
+      "name": "Rotterdam",
+      "lat": 51.92,
+      "lon": 4.48,
+      "hq": false,
+      "label": "",
+      "flag": "nl",
+      "country": "Netherlands"
+    },
+    {
+      "name": "Milan",
+      "lat": 45.46,
+      "lon": 9.19,
+      "hq": false,
+      "label": "below",
+      "flag": "it",
+      "country": "Italy"
+    },
+    {
+      "name": "Istanbul",
+      "lat": 41.01,
+      "lon": 28.98,
+      "hq": false,
+      "label": "",
+      "flag": "tr",
+      "country": "Türkiye"
+    },
+    {
+      "name": "Dublin",
+      "lat": 53.35,
+      "lon": -6.26,
+      "hq": false,
+      "label": "left below",
+      "flag": "ie",
+      "country": "Ireland"
+    },
+    {
+      "name": "New Delhi",
+      "lat": 28.61,
+      "lon": 77.21,
+      "hq": false,
+      "label": "",
+      "flag": "in",
+      "country": "India"
+    },
+    {
+      "name": "Houston",
+      "lat": 29.76,
+      "lon": -95.37,
+      "hq": false,
+      "label": "",
+      "flag": "us",
+      "country": "United States"
+    },
+    {
+      "name": "Cape Town",
+      "lat": -33.92,
+      "lon": 18.42,
+      "hq": false,
+      "label": "",
+      "flag": "za",
+      "country": "South Africa"
+    }
+  ]
 }

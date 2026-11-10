@@ -4,6 +4,7 @@ import HallBuild from "@/components/HallBuild";
 import HeroFilm from "@/components/HeroFilm";
 import Reveal from "@/components/Reveal";
 import ShowCycle from "@/components/ShowCycle";
+import WorldMap from "@/components/WorldMap";
 import { SiteFooter, SiteNav, WaIcon } from "@/components/SiteChrome";
 import { COUNTRIES, PROFILE as p, SITE } from "@/lib/content";
 
@@ -35,8 +36,18 @@ export default function Home() {
       <main id="top">
         <HeroFilm />
 
-        <section aria-label="In numbers">
+        <section className="world" id="world" aria-label="Where I have worked">
           <div className="wrap">
+            <div className="world__head">
+              <div>
+                <span className="kicker">Where I&rsquo;ve worked</span>
+                <h2 className="h2">
+                  From London to {COUNTRIES === 8 ? "eight" : COUNTRIES} countries.
+                </h2>
+              </div>
+              <p className="world__lead">{p.worldLead}</p>
+            </div>
+            <WorldMap />
             <div className="nums">
               {p.stats.map((s) => (
                 <div key={s.label}>
