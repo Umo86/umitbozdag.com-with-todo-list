@@ -419,3 +419,21 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .appdl__news h3{font-size:17px;font-weight:700;margin-bottom:6px}
 .appdl__news ul{margin-left:18px;color:var(--body);font-size:15px;display:flex;flex-direction:column;gap:4px}
 @media (max-width:760px){.appdl__news>li{grid-template-columns:1fr;gap:6px}}
+.applock{min-height:72vh;display:grid;place-items:center;padding:60px 16px;background:linear-gradient(180deg,#f3f5ff,#fff);transition:background .4s}
+.applock.wrong{background:radial-gradient(ellipse at center,#2a0a0e 0%,#0b0b0c 70%);color:#f3e9ea}
+.applock__card{width:100%;max-width:420px;text-align:center}
+.applock__eye{font-size:54px;display:block;margin-bottom:14px}
+.applock.wrong .applock__eye{animation:applock-stare 2.4s ease-in-out infinite}
+.applock h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+.applock.wrong h1{animation:applock-shake .5s ease-in-out 1;color:#ff4d5e}
+.applock p{color:var(--muted);margin-bottom:22px}
+.applock__creepy{color:#e9c9cd!important;font-style:italic}
+.applock__form{display:flex;gap:10px}
+.applock__form input{flex:1;min-width:0;height:50px;border-radius:999px;border:1px solid var(--line);padding:0 20px;font-size:16px;background:#fff;color:#0b0b0c}
+.applock__form button{height:50px;padding:0 24px;border-radius:999px;background:#0b0b0c;color:#fff;font-weight:700;border:0;cursor:pointer}
+.applock.wrong .applock__form input{border-color:#ff4d5e}
+.applock.wrong .applock__form button{background:#ff4d5e}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+@keyframes applock-shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+@keyframes applock-stare{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.applock.wrong h1,.applock.wrong .applock__eye{animation:none}}

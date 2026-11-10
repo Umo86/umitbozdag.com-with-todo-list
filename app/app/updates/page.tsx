@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { SiteFooter, SiteNav } from "@/components/SiteChrome";
 import { latestRelease } from "@/lib/app-download";
 import changelog from "@/lib/changelog.json";
+import { cookies } from "next/headers";
+import AppLock from "@/components/AppLock";
+import { appAccess } from "@/lib/auth";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Backstage app updates",
@@ -15,7 +18,8 @@ export const metadata: Metadata = {
 const day = (d: string) =>
   new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
-export default async function UpdatesPage() {
+export default async function UpdatesPage({ searchParams }: { searchParams: Promise<{ nope?: string }> }) {
+  if (!(await appAccess((await cookies()).toString()))) return <AppLock next="/app/updates" nope={(await searchParams).nope} />;
   const rel = await latestRelease();
   const features = changelog.reduce((n, c) => n + c.items.length, 0);
   return (

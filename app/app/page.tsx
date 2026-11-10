@@ -3,9 +3,12 @@ import QRCode from "qrcode";
 import { SiteFooter, SiteNav } from "@/components/SiteChrome";
 import { latestRelease } from "@/lib/app-download";
 import { SITE_URL } from "@/lib/site";
+import { cookies } from "next/headers";
+import AppLock from "@/components/AppLock";
+import { appAccess } from "@/lib/auth";
 import changelog from "@/lib/changelog.json";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 const DOWNLOAD = "/app/download";
 
 export const metadata: Metadata = {
@@ -32,7 +35,8 @@ const FIXES: Array<[string, React.ReactNode]> = [
   ["I have an iPhone", <>The app is Android only. On iPhone, open <a href="/backstage">umitbozdag.com/backstage</a> in Safari, tap Share › <strong>Add to Home Screen</strong>: it works the same, but reminders only appear while it&rsquo;s open.</>],
 ];
 
-export default async function AppPage() {
+export default async function AppPage({ searchParams }: { searchParams: Promise<{ nope?: string }> }) {
+  if (!(await appAccess((await cookies()).toString()))) return <AppLock next="/app" nope={(await searchParams).nope} />;
   const rel = await latestRelease();
   const qr = await QRCode.toString(`${SITE_URL}${DOWNLOAD}`, { type: "svg", margin: 0, color: { dark: "#0b0b0c", light: "#ffffff" } });
   return (

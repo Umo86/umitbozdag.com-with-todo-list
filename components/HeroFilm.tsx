@@ -73,9 +73,6 @@ export default function HeroFilm() {
           {here.name}
           <span>{here.country}</span>
         </p>
-        <p className="hero__eyebrow">
-          {p.title}, {p.company}, London
-        </p>
         <h1>
           {p.firstName}
           <br />

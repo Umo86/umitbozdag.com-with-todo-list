@@ -168,3 +168,36 @@ export async function requireAdmin(req: Request): Promise<AuthResult> {
   if (a.ok && !a.me.admin) return refuse(403, "Only Umit can see this.");
   return a;
 }
+
+// ——— the app download pages (/app): locked with Umit's Backstage password ———
+// Signed in to Backstage on this device? Then they're open too.
+export const APP_PASS_COOKIE = "app_pass";
+
+export async function issueAppPass(): Promise<string> {
+  return new SignJWT({ pv: "app" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject("app-page")
+    .setIssuedAt()
+    .setExpirationTime(`${MAX_AGE_SECONDS}s`)
+    .sign(signingKey());
+}
+
+export function appPassCookie(req: Request, token: string): string {
+  return `${APP_PASS_COOKIE}=${token}; Path=/app; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE_SECONDS}${isHttps(req) ? "; Secure" : ""}`;
+}
+
+/** Can whoever sent these cookies see the app pages? */
+export async function appAccess(cookieHeader: string): Promise<boolean> {
+  const req = new Request("https://umitbozdag.com/app", { headers: { cookie: cookieHeader } });
+  const pass = readCookie(req, APP_PASS_COOKIE);
+  if (pass) {
+    try {
+      const { payload } = await jwtVerify(pass, signingKey(), { algorithms: ["HS256"] });
+      if (payload.sub === "app-page") return true;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (!readCookie(req, SESSION_COOKIE)) return false;
+  return (await requireUser(req)).ok;
+}

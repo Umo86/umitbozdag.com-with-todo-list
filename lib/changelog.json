@@ -1,6 +1,14 @@
 [
   {
     "date": "2026-11-10",
+    "title": "Private app page",
+    "items": [
+      "The app download and updates pages now ask for a password",
+      "Signed in to Backstage on the device? They open straight away"
+    ]
+  },
+  {
+    "date": "2026-11-10",
     "title": "50 date ideas, 50 dishes, all on umitbozdag.com",
     "items": [
       "Date roulette now spins through 50 date ideas plus your own",
