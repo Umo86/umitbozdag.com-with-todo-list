@@ -74,24 +74,67 @@ const su = await authRequest("/sign-up/email", {
 const suOk = su.status === 200 || /exist/i.test(su.json?.message ?? "");
 step("auth: sign-up (or already exists)", suOk, su.json?.message ?? `status ${su.status}`);
 
-const si = await authRequest("/sign-in/email", {
-  method: "POST",
-  body: { email, password },
-});
-step("auth: sign-in", si.status === 200, si.json?.message ?? `status ${si.status}`);
-if (si.status !== 200) {
-  if (/verif/i.test(JSON.stringify(si.json))) {
-    console.log(
-      "     Sign-in blocked by email verification. Verify the address (or set emailVerified in neon_auth.\"user\") and rerun."
-    );
-  }
-  process.exit(1);
+// Backstage only admits verified email addresses. A fresh account must be
+// kept out: either Neon Auth refuses the sign-in, or our API answers 403.
+const tokenFor = async () => (await authRequest("/token")).json?.token;
+const rawState = async (tok) =>
+  fetch(apiBase + "/state", { headers: { Authorization: `Bearer ${tok}` } });
+
+let si = await authRequest("/sign-in/email", { method: "POST", body: { email, password } });
+if (si.status === 200) {
+  const early = await tokenFor();
+  const r = early ? await rawState(early) : { status: 0 };
+  const body = early ? await r.json().catch(() => ({})) : {};
+  const alreadyVerified = r.status === 200 || (r.status === 403 && body.code !== "unverified");
+  step(
+    "auth: unverified account is kept out by the API",
+    alreadyVerified || (r.status === 403 && body.code === "unverified"),
+    alreadyVerified ? "account was already verified" : `status ${r.status} ${body.code ?? ""}`
+  );
+} else {
+  step(
+    "auth: unverified account is refused at sign-in",
+    /verif/i.test(JSON.stringify(si.json)),
+    si.json?.message ?? `status ${si.status}`
+  );
 }
 
-const tk = await authRequest("/token");
-const token = tk.json?.token;
-step("auth: JWT issued", typeof token === "string" && token.length > 20, `status ${tk.status}`);
-if (!token) process.exit(1);
+// A test run can't read the emailed code. With E2E_DATABASE_URL set, the test
+// marks its own account verified in Neon Auth's table and removes it at the end.
+const dbUrl = process.env.E2E_DATABASE_URL;
+let pgClient = null;
+if (dbUrl) {
+  const { default: pg } = await import("pg");
+  pgClient = new pg.Client({ connectionString: dbUrl });
+  await pgClient.connect();
+  await pgClient.query(`update neon_auth."user" set "emailVerified" = true where email = $1`, [email]);
+  jar.clear();
+  si = await authRequest("/sign-in/email", { method: "POST", body: { email, password } });
+}
+const finish = async (code) => {
+  if (pgClient) {
+    const u = (await pgClient.query(`select id from neon_auth."user" where email = $1`, [email])).rows[0];
+    if (u) {
+      for (const t of ["session", "account", "member"]) {
+        await pgClient.query(`delete from neon_auth."${t}" where "userId" = $1`, [u.id]).catch(() => {});
+      }
+      await pgClient.query(`delete from neon_auth."user" where id = $1`, [u.id]);
+      console.log("     test account removed");
+    }
+    await pgClient.end();
+  }
+  process.exit(code);
+};
+
+step("auth: sign-in once verified", si.status === 200, si.json?.message ?? `status ${si.status}`);
+if (si.status !== 200) {
+  console.log("     Verify the test address first, or set E2E_DATABASE_URL so the test can.");
+  await finish(1);
+}
+
+const token = await tokenFor();
+step("auth: JWT issued", typeof token === "string" && token.length > 20);
+if (!token) await finish(1);
 
 // ——— site + API checks ———
 const api = async (path, method = "GET", body) => {
@@ -126,9 +169,9 @@ const st = await api("/state");
 step("api: GET /state", st.status === 200, `status ${st.status} ${st.data.error ?? ""}`);
 if (st.status === 403) {
   console.log("     (owner lock working — this email is not in ALLOWED_EMAILS)");
-  process.exit(failures ? 1 : 0);
+  await finish(failures ? 1 : 0);
 }
-if (st.status !== 200) process.exit(1);
+if (st.status !== 200) await finish(1);
 step(
   "api: seeded starter projects",
   (st.data.projects || []).length > 0,
@@ -168,10 +211,21 @@ step(
 const bad = await api("/tasks", "POST", { title: "" });
 step("api: rejects empty title", bad.status === 400);
 
+const t4 = await api("/tasks", "POST", { title: "E2E second task", list: "work", project_id: pr.data.id });
+const mv = await api(`/tasks/${t4.data.id}`, "PATCH", { position: 41.5, status: "doing" });
+step("api: move and reorder a card", mv.status === 200 && mv.data.position === 41.5 && mv.data.status === "doing");
+
+const pc = await api(`/projects/${pr.data.id}`, "PATCH", { color: "#1f6f6b" });
+step("api: recolour project", pc.status === 200 && pc.data.color === "#1f6f6b");
+
 const delT = await api(`/tasks/${t1.data.id}`, "DELETE");
 step("api: delete task", delT.status === 200);
 const delP = await api(`/projects/${pr.data.id}`, "DELETE");
 step("api: delete project", delP.status === 200);
+const after = await api("/state");
+const kept = (after.data.tasks || []).find((t) => t.id === t4.data.id);
+step("api: deleting a project keeps its tasks", !!kept && kept.project_id === null);
+await api(`/tasks/${t4.data.id}`, "DELETE");
 
 console.log(failures ? `\n${failures} step(s) failed.` : "\nAll end-to-end steps passed.");
-process.exit(failures ? 1 : 0);
+await finish(failures ? 1 : 0);

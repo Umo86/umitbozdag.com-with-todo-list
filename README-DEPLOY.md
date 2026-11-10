@@ -17,8 +17,10 @@ a private task manager backed by Neon Postgres and Neon Auth.
 | Path | What it is |
 | --- | --- |
 | `app/` | Pages: `/` (home), `/cv`, `/backstage`, plus the API under `/api/backstage/*` |
-| `components/` | Floorplan hero animation, scroll reveals, ticker, print button |
-| `lib/` | Postgres pool, Neon Auth JWT verification + owner lock, task queries |
+| `components/` | Hero hall animation, show-cycle chart, lanyard badge, scroll reveals, ticker |
+| `components/backstage/` | The Backstage board: sign-in gate, columns with drag and drop, task drawer, projects |
+| `lib/content.ts` | All public-page content (roles, shows, facts) in one place |
+| `lib/` | Postgres pool, Neon Auth token check + owner/helper roles (verified emails only), task queries |
 | `scripts/migrate.mjs` | Creates the `settings` / `projects` / `tasks` tables (run once) |
 | `test/e2e.mjs` | End-to-end test: sign-in → JWT → task CRUD |
 
@@ -61,9 +63,22 @@ Until these are set, the public site works fully and `/backstage` shows a
 
 ## First sign-in
 
-Open `/backstage` → **Create the owner account** with the email in
-`ALLOWED_EMAILS`. Any other account can sign in to Neon Auth but is refused by
-Backstage ("limited to its owner").
+Open `/backstage` and either **Continue with Google** (using the address in
+`ALLOWED_EMAILS`) or **Create account** with a password and enter the 6-digit
+code Neon emails you. Backstage only admits **verified** email addresses, so
+nobody can get in by registering your address with their own password. Any
+other verified account is refused ("limited to its owner") unless it is listed
+in `HELPER_EMAILS`.
+
+## Backstage in brief
+
+- Two lists, **Work** and **Personal**, each a board of To do / In progress / Done.
+- Drag cards between columns or reorder them (mouse, touch or keyboard); open a
+  card to edit notes, project, priority, due date and reminder.
+- Reminders show on the page (and as a browser alert if you allow it) while
+  Backstage is open. **Add to calendar** downloads an `.ics` file so your phone
+  can alert you when it is not.
+- Deleting a project keeps its tasks.
 
 ## Local commands
 
@@ -73,4 +88,6 @@ npm run build     # production build
 npm start         # serve on $PORT (default 3000)
 npm run migrate   # apply the database schema
 npm run test:e2e  # node test/e2e.mjs <siteUrl> <authUrl> <email> <password>
+                  # set E2E_DATABASE_URL (direct connection) so the test can
+                  # verify and afterwards remove its own test account
 ```

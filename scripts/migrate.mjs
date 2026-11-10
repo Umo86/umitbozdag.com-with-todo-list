@@ -67,6 +67,11 @@ alter table tasks add column if not exists calendar_ref text;
 alter table tasks add column if not exists updated_at   timestamptz not null default now();
 
 create index if not exists tasks_list_status_idx on tasks (list, status, position);
+
+-- Deleting a project keeps its tasks (they just lose the project label).
+alter table tasks drop constraint if exists tasks_project_id_fkey;
+alter table tasks add constraint tasks_project_id_fkey
+  foreign key (project_id) references projects(id) on delete set null;
 `;
 
 const client = new Client({ connectionString: url });

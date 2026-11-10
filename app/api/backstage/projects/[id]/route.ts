@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/auth";
-import { cleanTitle, UUID } from "@/lib/backstage";
+import { cleanTitle, COLOR, UUID } from "@/lib/backstage";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +20,20 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (body.name !== undefined && !name) {
       return NextResponse.json({ error: "Give the project a name." }, { status: 400 });
     }
+    let color: string | null = null;
+    if (body.color !== undefined) {
+      if (typeof body.color !== "string" || !COLOR.test(body.color)) {
+        return NextResponse.json({ error: "Unknown colour." }, { status: 400 });
+      }
+      color = body.color;
+    }
+    if (name === undefined && color === null) {
+      return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
+    }
     const r = await db().query(
-      `update projects set name = coalesce($2, name) where id = $1
-       returning id, name, color, position`,
-      [id, name ?? null]
+      `update projects set name = coalesce($2, name), color = coalesce($3, color)
+       where id = $1 returning id, name, color, position`,
+      [id, name ?? null, color]
     );
     if (!r.rows.length) {
       return NextResponse.json({ error: "Unknown project." }, { status: 404 });

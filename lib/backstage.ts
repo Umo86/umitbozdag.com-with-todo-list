@@ -8,6 +8,8 @@ export const PRIORITIES = new Set(["low", "normal", "high"]);
 // The board's two lists. Tasks Claude adds by voice land in these too.
 export const LISTS = new Set(["personal", "work"]);
 
+export const COLOR = /^#[0-9a-f]{6}$/i;
+
 export function cleanTitle(v: unknown, max = 500): string | null {
   if (typeof v !== "string") return null;
   const t = v.trim();
@@ -48,9 +50,16 @@ const SEED_PROJECTS: Array<[string, string]> = [
   ["ATESP", "#6d3b8e"],
 ];
 
+// Seeds the starter projects exactly once. The 'seeded' row is claimed first,
+// so two first visits at the same moment can't both insert the projects.
 export async function seedIfFirstRun(): Promise<void> {
-  const r = await db().query(`select value from settings where key = 'seeded'`);
-  if (r.rows.length) return;
+  const claimed = await db().query(
+    `insert into settings (key, value) values ('seeded', 'true')
+     on conflict (key) do nothing returning key`
+  );
+  if (!claimed.rows.length) return;
+  const existing = await db().query(`select 1 from projects limit 1`);
+  if (existing.rows.length) return;
   for (let i = 0; i < SEED_PROJECTS.length; i++) {
     const [name, color] = SEED_PROJECTS[i];
     await db().query(
@@ -58,8 +67,4 @@ export async function seedIfFirstRun(): Promise<void> {
       [name, color, i]
     );
   }
-  await db().query(
-    `insert into settings (key, value) values ('seeded', 'true')
-     on conflict (key) do nothing`
-  );
 }
