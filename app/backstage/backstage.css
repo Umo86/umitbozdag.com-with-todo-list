@@ -38,6 +38,10 @@
 .bs-card .sub{color:var(--muted);font-size:14.5px;margin-bottom:24px}
 .bs-card form .btn{margin-top:6px}
 .bs-card .or{text-align:center;color:var(--muted);font-size:13.5px;margin:18px 0 -4px}
+.bs-pass{position:relative}
+.bs-pass input{padding-right:46px}
+.bs-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:38px;height:38px;display:grid;place-items:center;color:var(--muted);border-radius:8px}
+.bs-eye:hover,.bs-eye[aria-pressed="true"]{color:var(--accent)}
 .bs-card .error-line{color:var(--bad);font-size:14px;min-height:22px;margin-top:10px}
 .bs-card .switch{margin-top:18px;font-size:14px;color:var(--muted);text-align:center}
 .bs-card .switch button{color:var(--ink);border-bottom:1px solid var(--line)}

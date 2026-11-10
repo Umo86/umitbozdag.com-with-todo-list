@@ -17,7 +17,7 @@ a private task manager behind one password, storing its data in Neon Postgres.
 | Path | What it is |
 | --- | --- |
 | `app/` | Pages: `/` (home), `/cv`, `/backstage`, plus the API under `/api/backstage/*` |
-| `components/` | London film hero, hall blueprint animation, show-cycle chart, badge contact form, events list |
+| `components/` | cities film hero (rendered by `scripts/hero-film/render.py`), hall blueprint animation, show-cycle chart, badge contact form, events list |
 | `components/backstage/` | The Backstage board: sign-in gate, columns with drag and drop, task drawer, projects |
 | `lib/profile.json` | All public-page content: roles, dates, the 24 shows, press links, contact details. Edit this to change what the site says |
 | `app/shows/[id]/` | One page per show, generated from `profile.json` |

@@ -1,0 +1,280 @@
+<!doctype html>
+<!-- The hero film: an illustrated night journey through every city on the
+     site's map, drawn on one canvas. draw(t) is deterministic and loops
+     seamlessly after DURATION seconds; render.py films it frame by frame. -->
+<meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>
+"use strict";
+const W = 1280, H = 720, HORIZON = 548, TAU = Math.PI * 2;
+const GAP = 1900;            // world distance between city centres
+const DWELL = 2.5, TRAVEL = 1.9, SEG = DWELL + TRAVEL;
+const ORDER = ["London", "Dublin", "Rotterdam", "Milan", "Istanbul", "New Delhi", "Cape Town", "Houston"];
+const N = ORDER.length, DURATION = N * SEG;
+const CX = 760;              // where a city's centre sits on screen (right of the name)
+
+const C = {
+  skyTop: "#020512", skyMid: "#061a52", skyLow: "#0d3fd1", horizon: "#3f74ff",
+  far: "#0b2068", mid: "#07133d", near: "#040a22", light: "210,226,255", water: "#040d2e",
+};
+const ctx = document.getElementById("c").getContext("2d");
+
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const ease = (p) => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+const loop = (t, k = 1, ph = 0) => Math.sin(TAU * (k * t / DURATION + ph)); // periodic over the film
+
+function camera(t) {
+  const i = Math.floor(t / SEG), u = t - i * SEG;
+  if (u < DWELL) return i * GAP + (u / DWELL - 0.5) * 70;
+  return i * GAP + 35 + ease((u - DWELL) / TRAVEL) * (GAP - 70);
+}
+
+// ——— drawing helpers: x from the city centre, y up from the waterline ———
+let ox = 0;                                    // screen x of the current city's centre
+const X = (x) => ox + x, Y = (y) => HORIZON - y;
+function box(x, w, h, y0 = 0) { ctx.fillRect(X(x - w / 2), Y(y0 + h), w, h); }
+function poly(pts) { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.closePath(); ctx.fill(); }
+function line(pts, w) { ctx.lineWidth = w; ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))); ctx.stroke(); }
+function disc(x, y, r) { ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, TAU); ctx.fill(); }
+function dome(x, y, r, squash = 1) { ctx.beginPath(); ctx.ellipse(X(x), Y(y), r, r * squash, 0, Math.PI, 0); ctx.closePath(); ctx.fill(); }
+function lights(x, y0, w, h, cols, rows, seed, t, size = 3) {
+  const r = rng(seed);
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const on = r(), ph = r();
+    if (on < 0.42) continue;
+    const a = 0.45 + 0.4 * on + 0.15 * loop(t, 6 + Math.floor(ph * 5), ph);
+    ctx.fillStyle = `rgba(${C.light},${Math.max(0.15, Math.min(1, a)).toFixed(2)})`;
+    ctx.fillRect(X(x - w / 2 + (i + 0.5) * w / cols) - size / 2, Y(y0 + (j + 0.5) * h / rows) - size / 2, size, size * 1.4);
+  }
+}
+const ink = (c) => { ctx.fillStyle = c; ctx.strokeStyle = c; };
+const glow = (a = 0.9) => { ctx.fillStyle = `rgba(${C.light},${a})`; ctx.strokeStyle = `rgba(${C.light},${a})`; };
+
+function wheel(x, y, r, t, turns, pods) {
+  ink(C.near); line([[x - r * 0.42, 0], [x, y], [x + r * 0.42, 0]], Math.max(4, r * 0.05));
+  ctx.strokeStyle = `rgba(${C.light},.85)`; ctx.lineWidth = Math.max(2, r * 0.028);
+  ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, TAU); ctx.stroke();
+  const a0 = TAU * turns * t / DURATION;
+  ctx.strokeStyle = `rgba(${C.light},.4)`; ctx.lineWidth = 1;
+  for (let k = 0; k < pods; k++) { const a = a0 + k * TAU / pods; ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x) + Math.cos(a) * r, Y(y) + Math.sin(a) * r); ctx.stroke(); }
+  glow(0.95);
+  for (let k = 0; k < pods; k++) { const a = a0 + k * TAU / pods; ctx.beginPath(); ctx.ellipse(X(x) + Math.cos(a) * r, Y(y) + Math.sin(a) * r, r * 0.05, r * 0.035, 0, 0, TAU); ctx.fill(); }
+  ink(C.near); disc(x, y, r * 0.07);
+}
+function minaret(x, h, w = 9) {
+  box(x, w, h); box(x, w + 8, 5, h * 0.55); box(x, w + 8, 5, h * 0.78);
+  poly([[x - w / 2 - 1, h], [x + w / 2 + 1, h], [x, h + 34]]);
+}
+function skyline(seed, x0, x1, hMin, hMax, t, lit = true) {
+  const r = rng(seed); let x = x0;
+  while (x < x1) {
+    const w = 34 + r() * 60, h = hMin + r() * (hMax - hMin);
+    ctx.fillRect(X(x), Y(h), w, h);
+    if (lit && h > 40) { const keep = ctx.fillStyle; lights(x + w / 2, 8, w - 10, h - 16, Math.max(2, Math.floor(w / 13)), Math.max(2, Math.floor(h / 15)), seed * 31 + Math.floor(x), t, 2.4); ctx.fillStyle = keep; }
+    x += w + 4 + r() * 16;
+  }
+}
+
+// ——— the cities ———
+const CITIES = {
+  London(t) {
+    ink(C.mid); skyline(11, -640, 640, 30, 120, t);
+    ink(C.near);
+    // Palace of Westminster and the Elizabeth Tower
+    box(-420, 300, 78); for (let k = 0; k < 9; k++) poly([[-560 + k * 35, 78], [-548 + k * 35, 78], [-554 + k * 35, 104]]);
+    box(-250, 46, 250); box(-250, 58, 56, 232); poly([[-279, 288], [-221, 288], [-250, 372]]);
+    lights(-420, 10, 280, 56, 20, 3, 5, t);
+    glow(0.95); disc(-250, 260, 19); ink(C.near); line([[-250, 260], [-250, 273]], 2); line([[-250, 260], [-241, 256]], 2);
+    wheel(60, 196, 172, t, 1, 28);
+    // Tower Bridge
+    ink(C.near);
+    for (const x of [330, 520]) { box(x, 58, 214); poly([[x - 29, 214], [x + 29, 214], [x, 276]]); poly([[x - 29, 214], [x - 21, 214], [x - 25, 246]]); poly([[x + 29, 214], [x + 21, 214], [x + 25, 246]]); }
+    box(425, 190, 14, 168); box(425, 190, 8, 150); box(425, 420, 12, 56);
+    ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(300), Y(200)); ctx.quadraticCurveTo(X(240), Y(80), X(180), Y(62)); ctx.moveTo(X(550), Y(200)); ctx.quadraticCurveTo(X(610), Y(80), X(670), Y(62)); ctx.stroke();
+    lights(330, 70, 40, 130, 3, 7, 7, t); lights(520, 70, 40, 130, 3, 7, 8, t);
+  },
+  Dublin(t) {
+    ink(C.mid); skyline(21, -640, 640, 28, 96, t);
+    ink(C.near);
+    // the Spire
+    poly([[-392, 0], [-380, 0], [-386, 400]]); glow(0.95); disc(-386, 398, 2.5);
+    // Custom House
+    ink(C.near); box(330, 330, 62); box(330, 90, 26, 62); box(330, 56, 44, 88); dome(330, 132, 30, 1.25); box(330, 5, 26, 168);
+    lights(330, 10, 310, 40, 22, 2, 23, t);
+    // Samuel Beckett Bridge: a harp on its side
+    ink(C.near); box(-60, 520, 12, 54);
+    ctx.lineWidth = 15; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(X(-200), Y(60)); ctx.quadraticCurveTo(X(-150), Y(280), X(60), Y(330)); ctx.stroke(); ctx.lineCap = "butt";
+    ctx.strokeStyle = `rgba(${C.light},.55)`; ctx.lineWidth = 1.2;
+    for (let k = 0; k < 22; k++) { const p = k / 21, q = 1 - p; const px = q * q * -200 + 2 * q * p * -150 + p * p * 60, py = q * q * 60 + 2 * q * p * 280 + p * p * 330; ctx.beginPath(); ctx.moveTo(X(px), Y(py)); ctx.lineTo(X(-150 + k * 16), Y(66)); ctx.stroke(); }
+    ink(C.near); box(-210, 16, 60); box(180, 14, 56);
+  },
+  Rotterdam(t) {
+    ink(C.mid); skyline(31, -640, 640, 40, 150, t);
+    ink(C.near);
+    // De Rotterdam: stacked, shifted blocks
+    for (const [x, y, w, h] of [[-470, 0, 70, 130], [-455, 130, 70, 120], [-390, 0, 70, 150], [-378, 150, 70, 110], [-312, 0, 70, 120], [-325, 120, 70, 125]]) box(x, w, h, y);
+    lights(-392, 10, 220, 240, 16, 15, 33, t, 2.6);
+    // Euromast
+    ink(C.near); box(390, 16, 250); box(390, 62, 22, 176); poly([[362, 198], [418, 198], [398, 214], [382, 214]]); box(390, 6, 150, 250); glow(0.9); disc(390, 400, 3);
+    lights(390, 180, 56, 14, 9, 1, 34, t);
+    // Erasmus Bridge: the bent "swan" pylon and its fan of cables
+    ink(C.near); box(40, 620, 12, 50);
+    poly([[-36, 50], [-8, 50], [-52, 196], [-138, 356], [-158, 350], [-80, 190]]);
+    ctx.strokeStyle = `rgba(${C.light},.6)`; ctx.lineWidth = 1.2;
+    for (let k = 0; k < 16; k++) { ctx.beginPath(); ctx.moveTo(X(-140 + k * 3.2), Y(350 - k * 9)); ctx.lineTo(X(20 + k * 20), Y(60)); ctx.stroke(); }
+    for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.moveTo(X(-146), Y(350 - k * 14)); ctx.lineTo(X(-200 - k * 12), Y(60)); ctx.stroke(); }
+  },
+  Milan(t) {
+    ink(C.mid); skyline(41, -640, 640, 34, 110, t);
+    ink(C.near);
+    // Unicredit Tower and its spire
+    poly([[-500, 0], [-430, 0], [-430, 250], [-452, 290], [-500, 270]]); box(-448, 5, 110, 285); lights(-465, 12, 56, 230, 5, 16, 43, t, 2.6);
+    // Torre Velasca: wider at the top
+    ink(C.near); box(470, 60, 170); box(470, 84, 86, 170); for (const dx of [-36, -12, 12, 36]) line([[470 + dx * 0.8, 150], [470 + dx, 172]], 3); lights(470, 14, 46, 230, 4, 15, 44, t, 2.6);
+    // the Duomo
+    ink(C.near);
+    poly([[-230, 0], [230, 0], [230, 120], [150, 150], [60, 208], [0, 232], [-60, 208], [-150, 150], [-230, 120]]);
+    for (let k = -7; k <= 7; k++) { const x = k * 31, base = 232 - Math.abs(k) * 15.5 - (Math.abs(k) > 5 ? 8 : 0), hh = k === 0 ? 150 : 52 + (k % 2 ? 0 : 16); poly([[x - 5, base - 6], [x + 5, base - 6], [x, base + hh]]); }
+    for (const x of [-228, 228]) poly([[x - 6, 100], [x + 6, 100], [x, 190]]);
+    glow(0.85); disc(0, 384, 3);
+    glow(0.8);
+    for (const [x, h, y] of [[-170, 46, 18], [-95, 62, 18], [0, 82, 18], [95, 62, 18], [170, 46, 18]]) { ctx.beginPath(); ctx.moveTo(X(x - 13), Y(y)); ctx.lineTo(X(x - 13), Y(y + h - 14)); ctx.quadraticCurveTo(X(x), Y(y + h + 12), X(x + 13), Y(y + h - 14)); ctx.lineTo(X(x + 13), Y(y)); ctx.closePath(); ctx.fill(); }
+    glow(0.7); disc(0, 158, 15);
+  },
+  Istanbul(t) {
+    ink(C.mid); skyline(51, -640, 640, 26, 84, t);
+    ink(C.near);
+    // Galata Tower
+    box(-470, 62, 190); box(-470, 74, 12, 176); poly([[-506, 190], [-434, 190], [-470, 282]]); box(-470, 3, 26, 280); lights(-470, 110, 46, 60, 4, 3, 53, t);
+    // a great mosque: cascading domes and six minarets
+    ink(C.near);
+    box(40, 400, 70); box(40, 300, 46, 70); box(40, 190, 40, 116);
+    dome(40, 156, 96, 0.92); dome(-92, 116, 58); dome(172, 116, 58); dome(-170, 70, 40); dome(250, 70, 40); dome(-34, 116, 34); dome(114, 116, 34);
+    box(40, 4, 26, 244); glow(0.9); disc(40, 272, 3); ink(C.near);
+    for (const [x, h] of [[-196, 250], [276, 250], [-128, 330], [208, 330], [-250, 200], [330, 200]]) minaret(x, h);
+    lights(40, 14, 380, 40, 26, 2, 54, t); lights(40, 122, 170, 20, 12, 1, 55, t);
+    // a ferry on the Bosphorus
+    const fx = 420 + 60 * loop(t, 1);
+    poly([[fx - 60, 0], [fx + 66, 0], [fx + 54, 16], [fx - 52, 16]]); box(fx, 70, 14, 16); box(fx + 8, 10, 14, 30); lights(fx, 18, 64, 10, 9, 1, 56, t, 2.4);
+  },
+  "New Delhi"(t) {
+    ink(C.mid); skyline(61, -640, 640, 22, 70, t);
+    ink(C.near);
+    // Qutub Minar: tapering, banded
+    poly([[-432, 0], [-378, 0], [-392, 360], [-418, 360]]); for (const [y, w] of [[110, 62], [196, 54], [268, 46], [322, 40]]) box(-405, w, 9, y); poly([[-416, 360], [-394, 360], [-405, 382]]);
+    // Lotus Temple: overlapping petals
+    for (const [x, w, h] of [[430, 150, 150], [372, 110, 124], [488, 110, 124], [328, 84, 92], [532, 84, 92], [400, 70, 164], [460, 70, 164]]) {
+      ctx.beginPath(); ctx.moveTo(X(x - w / 2), Y(0)); ctx.quadraticCurveTo(X(x - w / 2), Y(h * 0.7), X(x), Y(h)); ctx.quadraticCurveTo(X(x + w / 2), Y(h * 0.7), X(x + w / 2), Y(0)); ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = `rgba(${C.light},.35)`; ctx.lineWidth = 1.2;
+    for (const [x, w, h] of [[372, 110, 124], [488, 110, 124], [430, 150, 150]]) { ctx.beginPath(); ctx.moveTo(X(x - w / 2), Y(0)); ctx.quadraticCurveTo(X(x - w / 2), Y(h * 0.7), X(x), Y(h)); ctx.quadraticCurveTo(X(x + w / 2), Y(h * 0.7), X(x + w / 2), Y(0)); ctx.stroke(); }
+    // India Gate
+    ink(C.near);
+    ctx.beginPath();
+    ctx.moveTo(X(-112), Y(0)); ctx.lineTo(X(-112), Y(196)); ctx.lineTo(X(-124), Y(196)); ctx.lineTo(X(-124), Y(214)); ctx.lineTo(X(-92), Y(214)); ctx.lineTo(X(-92), Y(250)); ctx.lineTo(X(-58), Y(250)); ctx.lineTo(X(-58), Y(268)); ctx.lineTo(X(58), Y(268)); ctx.lineTo(X(58), Y(250)); ctx.lineTo(X(92), Y(250)); ctx.lineTo(X(92), Y(214)); ctx.lineTo(X(124), Y(214)); ctx.lineTo(X(124), Y(196)); ctx.lineTo(X(112), Y(196)); ctx.lineTo(X(112), Y(0));
+    ctx.lineTo(X(46), Y(0)); ctx.lineTo(X(46), Y(118)); ctx.arc(X(0), Y(118), 46, 0, Math.PI, true); ctx.lineTo(X(-46), Y(0)); ctx.closePath(); ctx.fill();
+    dome(0, 268, 26, 0.6);
+    glow(0.5); ctx.fillRect(X(-96), Y(232), 192, 3); glow(0.9); disc(0, 30, 5);
+    // lamp-lit avenue
+    for (let k = -6; k <= 6; k++) if (Math.abs(k) > 1) { ink(C.near); box(k * 46, 2, 30); glow(0.85); disc(k * 46, 32, 2.6); }
+  },
+  "Cape Town"(t) {
+    // Table Mountain, Devil's Peak and Lion's Head behind the waterfront
+    ink(C.far);
+    poly([[-700, 0], [-600, 150], [-520, 214], [-470, 300], [-430, 240], [-390, 306], [-330, 318], [150, 322], [210, 300], [250, 236], [300, 190], [352, 250], [384, 330], [408, 262], [470, 180], [560, 150], [620, 96], [700, 0]]);
+    ctx.fillStyle = "rgba(255,255,255,.07)"; ctx.beginPath(); ctx.ellipse(X(-90), Y(334), 300, 16, 0, 0, TAU); ctx.fill(); // the "tablecloth" of cloud
+    ink(C.mid); skyline(71, -640, 640, 22, 76, t);
+    ink(C.near);
+    // V&A Waterfront: clock tower, wheel, masts
+    box(-340, 34, 96); box(-340, 44, 10, 96); poly([[-362, 106], [-318, 106], [-340, 146]]); glow(0.9); disc(-340, 80, 7);
+    wheel(120, 110, 86, t, 2, 18);
+    ink(C.near);
+    for (const [x, h] of [[330, 120], [372, 96], [420, 132], [470, 88]]) { box(x, 3, h); poly([[x + 2, h - 6], [x + 2, 26], [x + 34, 26]]); poly([[x - 26, 0], [x + 30, 0], [x + 22, 12], [x - 20, 12]]); }
+    box(-140, 220, 40); lights(-140, 8, 200, 26, 16, 2, 73, t);
+  },
+  Houston(t) {
+    ink(C.mid); skyline(81, -640, 640, 60, 190, t);
+    ink(C.near);
+    // Saturn V at the space centre
+    box(-520, 22, 150); poly([[-531, 150], [-509, 150], [-514, 176], [-526, 176]]); box(-520, 12, 44, 176); poly([[-526, 220], [-514, 220], [-520, 250]]); poly([[-531, 0], [-548, 0], [-531, 34]]); poly([[-509, 0], [-492, 0], [-509, 34]]);
+    box(-470, 6, 190); for (let k = 0; k < 5; k++) box(-486, 28, 3, 40 + k * 36);
+    // downtown towers
+    ink(C.near);
+    box(-300, 92, 300); poly([[-346, 300], [-254, 300], [-270, 332], [-330, 332]]);                       // five-sided tower
+    box(-170, 80, 230); for (let k = 0; k < 3; k++) poly([[-210 + k * 27, 230], [-183 + k * 27, 230], [-196.5 + k * 27, 262 + k * 16]]); // stepped gables
+    box(-50, 84, 372); box(-50, 60, 22, 372); box(-50, 30, 20, 394); box(-50, 4, 46, 414);            // the tall one
+    box(80, 96, 270); poly([[32, 270], [128, 270], [128, 300], [80, 322], [32, 300]]);
+    box(210, 78, 330); box(210, 54, 18, 330);
+    box(330, 90, 220); poly([[285, 220], [375, 220], [352, 250], [308, 250]]);
+    box(450, 70, 280); box(450, 3, 40, 280);
+    for (const [x, w, h, s] of [[-300, 78, 280, 1], [-170, 66, 212, 2], [-50, 70, 352, 3], [80, 82, 252, 4], [210, 64, 312, 5], [330, 76, 204, 6], [450, 56, 262, 7]]) lights(x, 12, w, h, Math.floor(w / 9), Math.floor(h / 13), 800 + s, t, 2.6);
+    glow(0.95); disc(-50, 462, 3);
+  },
+};
+
+function draw(t) {
+  t = ((t % DURATION) + DURATION) % DURATION;
+  const cam = camera(t);
+  // sky
+  let g = ctx.createLinearGradient(0, 0, 0, HORIZON);
+  g.addColorStop(0, C.skyTop); g.addColorStop(0.45, C.skyMid); g.addColorStop(0.86, C.skyLow); g.addColorStop(1, C.horizon);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, HORIZON);
+  // stars
+  const sr = rng(3);
+  for (let k = 0; k < 110; k++) { const x = sr() * W, y = sr() * HORIZON * 0.6, ph = sr(); ctx.fillStyle = `rgba(${C.light},${(0.25 + 0.25 * loop(t, 8 + (k % 7), ph)).toFixed(2)})`; ctx.fillRect(x, y, 1.6, 1.6); }
+  // moon
+  g = ctx.createRadialGradient(980, 150, 4, 980, 150, 190);
+  g.addColorStop(0, "rgba(225,235,255,.55)"); g.addColorStop(0.16, "rgba(160,190,255,.2)"); g.addColorStop(1, "rgba(120,160,255,0)");
+  ctx.fillStyle = g; ctx.fillRect(760, -60, 440, 420);
+  ctx.fillStyle = "rgba(236,242,255,.95)"; ctx.beginPath(); ctx.arc(980, 150, 26, 0, TAU); ctx.fill();
+  // clouds: two bands that repeat exactly over the loop
+  for (const [par, y, a, seed] of [[0.1, 190, 0.5, 91], [0.2, 300, 0.42, 92]]) {
+    const period = N * GAP * par, cr = rng(seed), shift = ((cam * par + t * 0) % period + period) % period;
+    for (let k = 0; k < 9; k++) {
+      const bx = cr() * period, w = 200 + cr() * 300, yy = y + (cr() - 0.5) * 110;
+      for (const rep of [-1, 0, 1]) {
+        const sx = bx - shift + rep * period;
+        if (sx < -w || sx > W + w) continue;
+        ctx.fillStyle = `rgba(3,8,32,${a})`;
+        ctx.beginPath(); ctx.ellipse(sx, yy, w / 2, 20, 0, 0, TAU); ctx.ellipse(sx + w * 0.16, yy - 14, w / 3.2, 18, 0, 0, TAU); ctx.ellipse(sx - w * 0.2, yy + 8, w / 3.6, 14, 0, 0, TAU); ctx.fill();
+      }
+    }
+  }
+  // a plane crosses while travelling between cities
+  const u = t % SEG;
+  if (u > DWELL - 0.3) {
+    const p = (u - DWELL + 0.3) / (TRAVEL + 0.3), px = -80 + p * (W + 160), py = 118 - Math.sin(p * Math.PI) * 34;
+    ctx.fillStyle = C.near; ctx.beginPath(); ctx.ellipse(px, py, 28, 4.6, -0.05, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px - 4, py); ctx.lineTo(px - 18, py + 15); ctx.lineTo(px - 9, py + 15); ctx.lineTo(px + 8, py); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px - 24, py); ctx.lineTo(px - 31, py - 11); ctx.lineTo(px - 25, py - 11); ctx.lineTo(px - 17, py); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = `rgba(${C.light},${Math.floor(t * 4) % 2 ? 0.95 : 0.25})`; ctx.fillRect(px + 22, py - 1.5, 3, 3);
+  }
+  // cities: the one in view and its neighbours (city N is London again)
+  const near = Math.round(cam / GAP);
+  for (let i = near - 1; i <= near + 1; i++) {
+    ox = CX + i * GAP - cam;
+    if (ox < -1300 || ox > W + 1300) continue;
+    CITIES[ORDER[((i % N) + N) % N]](t);
+  }
+  // quay
+  ctx.fillStyle = C.near; ctx.fillRect(0, HORIZON - 5, W, 8);
+  // water and reflections
+  g = ctx.createLinearGradient(0, HORIZON, 0, H);
+  g.addColorStop(0, "#0a2a8f"); g.addColorStop(0.18, C.water); g.addColorStop(1, "#01030c");
+  ctx.fillStyle = g; ctx.fillRect(0, HORIZON + 3, W, H - HORIZON);
+  ctx.save(); ctx.globalAlpha = 0.2; ctx.translate(0, HORIZON * 2 + 6); ctx.scale(1, -0.55);
+  ctx.drawImage(ctx.canvas, 0, HORIZON - 230, W, 230, 0, HORIZON - 230 + (HORIZON * 0.45) / 0.55 * 0, W, 230);
+  ctx.restore();
+  const wr = rng(5);
+  for (let k = 0; k < 70; k++) {
+    const y = HORIZON + 10 + wr() * (H - HORIZON - 14), w = 30 + wr() * 120, ph = wr(), x = ((wr() * (W + 300) + 26 * loop(t, 2 + (k % 3), ph)) % (W + 300)) - 150;
+    ctx.fillStyle = `rgba(${C.light},${(0.035 + 0.035 * (1 + loop(t, 4, ph))).toFixed(3)})`; ctx.fillRect(x, y, w, 1.4);
+  }
+  // soft vignette so the name reads over the film
+  g = ctx.createLinearGradient(0, 0, W * 0.6, 0); g.addColorStop(0, "rgba(2,5,18,.45)"); g.addColorStop(1, "rgba(2,5,18,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+window.FILM = { draw, DURATION, SEG, DWELL, TRAVEL, ORDER };
+draw(0);
+</script>

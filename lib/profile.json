@@ -1025,14 +1025,22 @@
     }
   ],
   "heroVideo": {
-    "poster": "/img/scenes/poster.jpg",
-    "credit": "Pexels",
-    "page": "https://www.pexels.com/video/aerial-view-of-a-city-6099374/",
+    "poster": "/img/scenes/cities-poster.jpg",
     "sources": {
-      "mobile": "https://videos.pexels.com/video-files/6099374/6099374-sd_960_540_30fps.mp4",
-      "desktop": "https://videos.pexels.com/video-files/6099374/6099374-hd_1280_720_60fps.mp4",
-      "large": "https://videos.pexels.com/video-files/6099374/6099374-hd_1920_1080_30fps.mp4"
-    }
+      "mobile": "/video/cities-mobile.mp4",
+      "desktop": "/video/cities.mp4"
+    },
+    "segment": 4.4,
+    "order": [
+      "London",
+      "Dublin",
+      "Rotterdam",
+      "Milan",
+      "Istanbul",
+      "New Delhi",
+      "Cape Town",
+      "Houston"
+    ]
   },
   "worldLead": "Exhibitions and conferences delivered or supported on four continents, from a base in London.",
   "cities": [
