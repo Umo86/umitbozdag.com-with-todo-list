@@ -128,9 +128,6 @@ export default function Gate({ bs }: { bs: Backstage }) {
         <a className="bs-back" href="/">
           Back to the site
         </a>
-        <a className="bs-back" href="/app">
-          Get the Android app
-        </a>
       </p>
       <p className="bs-gate-help">Forgotten your password? Umit can set a new one.</p>
     </div>

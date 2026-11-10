@@ -4,6 +4,7 @@
 // dinner (swipe until you match), date-night roulette, the memory jar and a
 // private gift-ideas list.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DISHES, shuffleForDay } from "@/lib/dishes";
 import { ymd } from "@/lib/parse";
 import Chat from "./Chat";
 import { Confetti, nextYearly } from "./Fun";
@@ -84,89 +85,139 @@ function IdeaList({ bs, items }: { bs: Backstage; items: UsItem[] }) {
   );
 }
 
-// ——— what's for dinner: both swipe, first match wins ———
+// ——— what's for dinner: both swipe the same deck, first dish you both like wins ———
+// Swipe LEFT = yes (green tick), swipe RIGHT = no (red cross).
+type Card = { key: string; title: string; emoji: string; ref?: string; mine?: boolean };
+
 function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Person[]; onPlan: (t: string, d: string, time: string) => void }) {
   const other = users.find((u) => u.id !== me.id);
   const ideas = bs.us.filter((x) => x.kind === "idea" && x.list === "dinner");
   const votes = bs.us.filter((x) => x.kind === "vote");
-  const myVotes = new Map(votes.filter((v) => v.added_by === me.id).map((v) => [v.ref, v.yes]));
-  const theirYes = new Set(votes.filter((v) => v.added_by !== me.id && v.yes).map((v) => v.ref));
-  const match = ideas.find((i) => myVotes.get(i.id) === true && theirYes.has(i.id));
-  const next = ideas.find((i) => !myVotes.has(i.id));
-  const theyVoted = votes.some((v) => v.added_by !== me.id);
+  const today = ymd(new Date());
+
+  // the deck: your own ideas first, then the built-in dishes, shuffled the
+  // same way for both of you today
+  const deck = useMemo<Card[]>(() => {
+    const own = ideas.map((i) => ({ key: i.id, title: i.title, emoji: i.emoji ?? "🍽️", ref: i.id, mine: true }));
+    const built = DISHES.map((d) => ({ key: `dish:${d.key}`, title: d.title, emoji: d.emoji }));
+    return [...shuffleForDay(own, today), ...shuffleForDay(built, today)];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ideas.map((i) => i.id).join(","), today]);
+
+  const keyOf = (v: UsItem) => v.ref ?? v.title;
+  const [local, setLocal] = useState<Map<string, boolean>>(new Map());
+  const myVotes = new Map(votes.filter((v) => v.added_by === me.id).map((v) => [keyOf(v), v.yes === true]));
+  for (const [k, y] of local) myVotes.set(k, y);
+  const theirYes = new Set(votes.filter((v) => v.added_by !== me.id && v.yes).map(keyOf));
+  const theirCount = votes.filter((v) => v.added_by !== me.id).length;
+  const match = deck.find((c) => myVotes.get(c.key) === true && theirYes.has(c.key));
+  const next = deck.find((c) => !myVotes.has(c.key));
+  const done = deck.filter((c) => myVotes.has(c.key)).length;
+
   const [drag, setDrag] = useState(0);
+  const [fly, setFly] = useState<0 | -1 | 1>(0);
   const start = useRef<number | null>(null);
 
   const vote = (yes: boolean) => {
-    if (!next) return;
-    setDrag(0);
-    void bs.addUs({ kind: "vote", ref: next.id, yes });
+    if (!next || fly) return;
+    const card = next;
+    setFly(yes ? -1 : 1);
+    window.setTimeout(() => {
+      setLocal((m) => new Map(m).set(card.key, yes));
+      setFly(0);
+      setDrag(0);
+    }, 220);
+    void bs.addUs(card.ref ? { kind: "vote", ref: card.ref, yes } : { kind: "vote", title: card.key, yes });
   };
+  const restart = () => {
+    setLocal(new Map());
+    void bs.clearUs("my-votes");
+  };
+
+  // left = yes, right = no
+  const leaning = fly ? (fly < 0 ? "yes" : "no") : drag < -30 ? "yes" : drag > 30 ? "no" : "";
+  const strength = fly ? 1 : Math.min(1, Math.abs(drag) / 110);
+  const x = fly ? fly * 480 : drag;
 
   return (
     <div className="bs-dinner">
       {match ? (
         <div className="bs-match">
           <Confetti />
-          <span className="e">{match.emoji ?? "🍽️"}</span>
+          <span className="e">{match.emoji}</span>
           <h3>It&rsquo;s a match!</h3>
           <p className="big">{match.title}</p>
+          <p className="quiet small">You and {other?.name} both said yes.</p>
           <div className="bs-row-btns">
-            <button className="btn" onClick={() => onPlan(`Dinner: ${match.title}`, ymd(new Date()), "19:30")}>
+            <button className="btn" onClick={() => onPlan(`Dinner: ${match.title}`, today, "19:30")}>
               Put it in the calendar
             </button>
-            <button className="btn ghost" onClick={() => bs.clearUs("my-votes")}>
-              Swipe again
+            <button className="btn ghost" onClick={restart}>
+              Play again
             </button>
           </div>
         </div>
       ) : next ? (
         <>
           <p className="quiet small center">
-            Swipe right (or ♥) if you fancy it. When you both say yes to the same thing, it&rsquo;s dinner.
-            {theyVoted ? ` ${other?.name} has started swiping.` : ""}
+            Swipe <strong className="ok">left for yes ✓</strong>, <strong className="nope">right for no ✕</strong>. The first
+            dish you both say yes to is dinner.
+            {theirCount ? ` ${other?.name} has swiped ${theirCount}.` : ` ${other?.name} hasn't started yet.`}
           </p>
-          <div
-            className="bs-swipe"
-            style={{ transform: `translateX(${drag}px) rotate(${drag / 18}deg)`, borderColor: drag > 40 ? "#06d6a0" : drag < -40 ? "#e5383b" : undefined }}
-            onPointerDown={(e) => {
-              start.current = e.clientX;
-              (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-            }}
-            onPointerMove={(e) => start.current !== null && setDrag(e.clientX - start.current)}
-            onPointerUp={() => {
-              start.current = null;
-              if (drag > 90) vote(true);
-              else if (drag < -90) vote(false);
-              else setDrag(0);
-            }}
-          >
-            <span className="e">{next.emoji ?? "🍽️"}</span>
-            <strong>{next.title}</strong>
-            <small>added by {nameOf(next.added_by)}</small>
+          <div className="bs-deck">
+            <div className="bs-swipe under" aria-hidden="true" />
+            <div
+              className={`bs-swipe${leaning ? ` ${leaning}` : ""}${fly ? " fly" : ""}`}
+              style={{ transform: `translateX(${x}px) rotate(${x / 16}deg)` }}
+              onPointerDown={(e) => {
+                start.current = e.clientX;
+                (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+              }}
+              onPointerMove={(e) => start.current !== null && setDrag(e.clientX - start.current)}
+              onPointerUp={() => {
+                start.current = null;
+                if (drag < -90) vote(true);
+                else if (drag > 90) vote(false);
+                else setDrag(0);
+              }}
+              onPointerCancel={() => {
+                start.current = null;
+                setDrag(0);
+              }}
+            >
+              <span className="stamp yes" style={{ opacity: leaning === "yes" ? strength : 0 }} aria-hidden="true">
+                ✓
+              </span>
+              <span className="stamp no" style={{ opacity: leaning === "no" ? strength : 0 }} aria-hidden="true">
+                ✕
+              </span>
+              <span className="e">{next.emoji}</span>
+              <strong>{next.title}</strong>
+              <small>{next.mine ? "one of your ideas" : `${done + 1} of ${deck.length}`}</small>
+            </div>
           </div>
           <div className="bs-swipe-btns">
-            <button className="no" aria-label="No" onClick={() => vote(false)}>
-              ✕
+            <button className="yes" aria-label={`Yes to ${next.title}`} onClick={() => vote(true)}>
+              ✓
             </button>
-            <button className="yes" aria-label="Yes" onClick={() => vote(true)}>
-              ♥
+            <button className="no" aria-label={`No to ${next.title}`} onClick={() => vote(false)}>
+              ✕
             </button>
           </div>
         </>
-      ) : ideas.length ? (
+      ) : (
         <div className="bs-empty center">
           <p>
-            You&rsquo;ve swiped everything. {theyVoted ? `No match with ${other?.name} yet.` : `Waiting for ${other?.name} to swipe.`}
+            You&rsquo;ve been through all {deck.length} dishes.{" "}
+            {theirCount ? `No match with ${other?.name} yet: they may still be swiping.` : `Waiting for ${other?.name} to swipe.`}
           </p>
-          <button className="btn ghost" onClick={() => bs.clearUs("my-votes")}>
+          <button className="btn ghost" onClick={restart}>
             Start again
           </button>
         </div>
-      ) : (
-        <p className="bs-empty">Add a few dinner ideas below (lahmacun, sushi, Mangal, pasta at home…), then both swipe.</p>
       )}
-      <h3 className="bs-sub">Dinner ideas</h3>
+      <h3 className="bs-sub">Your own dinner ideas</h3>
+      <p className="bs-hint">These go to the front of the deck, ahead of the {DISHES.length} built-in dishes.</p>
       <IdeaAdder bs={bs} list="dinner" placeholder="Add a dinner idea…" />
       <IdeaList bs={bs} items={ideas} />
     </div>

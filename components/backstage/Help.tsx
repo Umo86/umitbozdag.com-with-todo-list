@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { MicIcon } from "./Dashboard";
 import { isApp } from "./native";
+import changelog from "@/lib/changelog.json";
 import type { Me, Person } from "./types";
 
 const WELCOME_KEY = (id: string) => `backstage:welcomed:${id}`;
@@ -49,6 +50,7 @@ export function Welcome({ me, users, onClose }: { me: Me; users: Person[]; onClo
   const finish = () => {
     try {
       localStorage.setItem(WELCOME_KEY(me.id), "1");
+      localStorage.setItem(SEEN_KEY, changelog[0]?.title ?? "");
     } catch {
       /* fine */
     }
@@ -119,7 +121,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "Chore battle: ticking off a joint to-do scores a point (urgent = 2). Last week's winner wears the 👑.",
       "Nudge: open a joint to-do and tap 👉 Nudge. It lands in the chat (with a count, if it's become a habit…).",
       "Love notes: on a joint to-do you added, write a hidden note. It shows as 💌 for the other person and opens when they tap it.",
-      "Us › Dinner: both swipe yes/no on dinner ideas. The first one you both like is a match.",
+      "Us › Dinner: you both swipe through the same deck of dishes. Swipe left for yes (green tick), right for no (red cross). The first dish you both say yes to is dinner. Your own ideas go to the front.",
       "Us › Dates: spin the roulette on your date ideas and book the winner for Saturday.",
       "Us › Memories: keep little moments; one pops up on Today now and then.",
       "Us › Gifts: a private list of gift ideas for the other person (they never see it), with a reminder two weeks before their birthday. Add your own birthday there too.",
@@ -182,6 +184,54 @@ export function Help({ onClose, onReplayWelcome }: { onClose: () => void; onRepl
           <a className="bs-link" href="/app/updates" target="_blank" rel="noreferrer">
             What&rsquo;s new
           </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ——— what's new: shown once after each update that adds a changelog entry ———
+const SEEN_KEY = "backstage:seen-update";
+
+export function shouldShowNew(): boolean {
+  try {
+    return !!changelog[0] && localStorage.getItem(SEEN_KEY) !== changelog[0].title;
+  } catch {
+    return false;
+  }
+}
+
+export function WhatsNew({ onClose }: { onClose: () => void }) {
+  const c = changelog[0];
+  const finish = () => {
+    try {
+      localStorage.setItem(SEEN_KEY, c?.title ?? "");
+    } catch {
+      /* fine */
+    }
+    onClose();
+  };
+  if (!c) return null;
+  return (
+    <div className="bs-scrim center">
+      <div className="bs-welcome" role="dialog" aria-modal="true" aria-labelledby="new-h">
+        <div className="icon" aria-hidden="true">
+          ✨
+        </div>
+        <span className="quiet small">Backstage has been updated</span>
+        <h2 id="new-h">{c.title}</h2>
+        <ul className="bs-newlist">
+          {c.items.map((x) => (
+            <li key={x}>{x}</li>
+          ))}
+        </ul>
+        <div className="bs-drawer-foot">
+          <a className="bs-link" href="/app/updates" target="_blank" rel="noreferrer">
+            All updates
+          </a>
+          <button className="btn" onClick={finish} autoFocus>
+            Got it
+          </button>
         </div>
       </div>
     </div>

@@ -186,6 +186,11 @@ create table if not exists push_subs (
   auth       text not null,
   created_at timestamptz not null default now()
 );
+-- New versions: each changelog entry is announced once to both people.
+create table if not exists app_announcements (
+  title      text primary key,
+  created_at timestamptz not null default now()
+);
 create table if not exists devices (
   id         uuid primary key default gen_random_uuid(),
   user_id    text not null,

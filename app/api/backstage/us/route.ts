@@ -21,11 +21,11 @@ export async function POST(req: Request) {
       await db().query(`delete from us_items where kind = 'mood' and added_by = $1 and day = $2::date`, [auth.me.id, r.fields.day]);
     }
     if (kind === "vote") {
-      await db().query(`delete from us_items where kind = 'vote' and added_by = $1 and day = $2::date and ref = $3`, [
-        auth.me.id,
-        r.fields.day,
-        r.fields.ref,
-      ]);
+      await db().query(
+        `delete from us_items where kind = 'vote' and added_by = $1 and day = $2::date
+           and ${r.fields.ref ? "ref = $3" : "ref is null and title = $3"}`,
+        [auth.me.id, r.fields.day, r.fields.ref ?? r.fields.title]
+      );
     }
     const keys = Object.keys(r.fields);
     const row = await db().query(

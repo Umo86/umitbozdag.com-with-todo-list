@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-10",
+    "title": "Dinner game with 58 dishes",
+    "items": [
+      "Dinner game: swipe through 58 dishes together. Left for yes ✓, right for no ✕. First dish you both like wins",
+      "Your own dinner ideas go to the front of the deck",
+      "A 'What's new' card after each update, and a notification to both of you when a new version goes live",
+      "Sign-in screen tidied up"
+    ]
+  },
+  {
+    "date": "2026-11-10",
     "title": "Newest app always on the download page",
     "items": [
       "Every update now publishes a fresh Android app on umitbozdag.com/app automatically",

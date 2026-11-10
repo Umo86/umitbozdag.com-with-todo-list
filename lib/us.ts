@@ -91,8 +91,10 @@ export function readUs(kind: UsKind, body: Record<string, unknown>, me: Me, part
       f.day = londonToday();
       break;
     case "vote":
-      if (typeof body.ref !== "string" || !UUID.test(body.ref)) return { ok: false, error: "Vote on an idea." };
-      f.ref = body.ref;
+      // either one of your own dinner ideas (ref) or a built-in dish ("dish:key" in title)
+      if (typeof body.ref === "string" && UUID.test(body.ref)) f.ref = body.ref;
+      else if (typeof body.title === "string" && /^dish:[a-z0-9-]{1,40}$/.test(body.title)) f.title = body.title;
+      else return { ok: false, error: "Vote on a dish." };
       f.yes = body.yes === true;
       f.day = londonToday();
       break;

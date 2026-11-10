@@ -11,7 +11,7 @@ import Calendar from "./Calendar";
 import UsHub, { type UsSection } from "./UsHub";
 import Shopping from "./Shopping";
 import { lastWeekChampion, nextYearly } from "./Fun";
-import { Help, shouldWelcome, Welcome } from "./Help";
+import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
 import Capture from "./Capture";
 import Dashboard, { MicIcon } from "./Dashboard";
 import EventSheet from "./EventSheet";
@@ -36,7 +36,8 @@ type Sheet =
   | { kind: "projects" }
   | { kind: "settings" }
   | { kind: "help" }
-  | { kind: "welcome" };
+  | { kind: "welcome" }
+  | { kind: "whatsnew" };
 
 const LIST_KEY = "backstage:list";
 const VIEW_KEY = "backstage:view";
@@ -260,7 +261,9 @@ export default function BackstageApp() {
 
   // ——— welcome, once per person per device ———
   useEffect(() => {
-    if (phase.kind === "app" && me && shouldWelcome(me)) setSheet((s) => s ?? { kind: "welcome" });
+    if (phase.kind !== "app" || !me) return;
+    if (shouldWelcome(me)) setSheet((s) => s ?? { kind: "welcome" });
+    else if (shouldShowNew()) setSheet((s) => s ?? { kind: "whatsnew" });
   }, [phase.kind, me]);
 
   // ——— chat: look for new messages (often while it's open, now and then otherwise) ———
@@ -751,6 +754,7 @@ export default function BackstageApp() {
       )}
       {sheet?.kind === "help" && <Help onClose={() => setSheet(null)} onReplayWelcome={() => setSheet({ kind: "welcome" })} />}
       {sheet?.kind === "welcome" && <Welcome me={me} users={users} onClose={() => setSheet(null)} />}
+      {sheet?.kind === "whatsnew" && <WhatsNew onClose={() => setSheet(null)} />}
       {!bs.online && (
         <div className="bs-offline" role="alert">
           <strong>You&rsquo;re offline.</strong> You can look around, but changes won&rsquo;t save until you&rsquo;re back online.

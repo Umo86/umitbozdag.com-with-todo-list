@@ -382,7 +382,7 @@ export function useBackstage() {
             (x) =>
               !(
                 (item.kind === "mood" && x.kind === "mood" && x.added_by === item.added_by && x.day === item.day) ||
-                (item.kind === "vote" && x.kind === "vote" && x.added_by === item.added_by && x.ref === item.ref)
+                (item.kind === "vote" && x.kind === "vote" && x.added_by === item.added_by && x.ref === item.ref && x.title === item.title)
               )
           ),
         ]);
