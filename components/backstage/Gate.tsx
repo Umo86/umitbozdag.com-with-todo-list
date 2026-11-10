@@ -1,7 +1,7 @@
 "use client";
 
 // The door to Backstage: sign in, create the account, confirm the email.
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Backstage } from "./useBackstage";
 
 export default function Gate({ bs }: { bs: Backstage }) {
@@ -114,20 +114,10 @@ function SignForm({ bs, mode }: { bs: Backstage; mode: "signin" | "signup" }) {
 
 function VerifyForm({ bs, email }: { bs: Backstage; email: string }) {
   const [err, setErr] = useState("");
-  const [info, setInfo] = useState("");
+  // Signing up (or signing in unverified) already makes Neon email a code,
+  // so none is requested here; "Send a new code" is there if it didn't arrive.
+  const [info, setInfo] = useState(email ? `We emailed a 6-digit code to ${email}.` : "");
   const [busy, setBusy] = useState(false);
-  const sent = useRef(false);
-
-  // Ask for a code once on arrival; sign-up may already have sent one, and a
-  // second code simply replaces the first.
-  useEffect(() => {
-    if (sent.current || !email) return;
-    sent.current = true;
-    bs.sendCode(email).then((e) => {
-      if (e) setErr(e);
-      else setInfo(`We emailed a 6-digit code to ${email}.`);
-    });
-  }, [bs, email]);
 
   return (
     <form
@@ -164,8 +154,9 @@ function VerifyForm({ bs, email }: { bs: Backstage; email: string }) {
         <button
           type="button"
           onClick={async () => {
-            setErr(await bs.sendCode(email));
-            setInfo(`A new code is on its way to ${email}.`);
+            const e = await bs.sendCode(email);
+            setErr(e);
+            if (!e) setInfo(`A new code is on its way to ${email}. Use the newest one.`);
           }}
         >
           Send a new code
