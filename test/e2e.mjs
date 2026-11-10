@@ -336,6 +336,26 @@ if (password2) {
   step("fun: birthday saved and visible to the other", bd.status === 200 && bds.dilfiraz === "1990-11-19");
   const bdBad = await asDil("/me", "PATCH", { birthday: "soon" });
   step("fun: a birthday must be a date", bdBad.status === 400);
+  // notifications (Web Push) and versions
+  const cfg2 = await call("/config");
+  const ver = await call("/version");
+  step("push: version endpoint answers", ver.status === 200 && typeof ver.data.build === "string" && ver.data.build.length > 0);
+  if (cfg2.data.push_key) {
+    const fake = { endpoint: `https://example.invalid/push/${mark}`, keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } };
+    const sub = await asUmit("/push", "POST", fake);
+    step("push: a browser can switch notifications on", sub.status === 200, `status ${sub.status} ${sub.data.error ?? ""}`);
+    const t0 = Date.now();
+    const msg = await asDil("/chat", "POST", { body: `${mark} push test` });
+    step("push: sending a message still works with a dead subscription", msg.status === 201 && Date.now() - t0 < 15000, `${Date.now() - t0} ms`);
+    await asDil(`/chat/${msg.data.id}`, "DELETE");
+    const unsub = await asUmit("/push", "DELETE", { endpoint: fake.endpoint });
+    step("push: …and off again", unsub.status === 200);
+    const bad = await asUmit("/push", "POST", { endpoint: "not-a-url", keys: {} });
+    step("push: a broken subscription is refused", bad.status === 400);
+  } else {
+    step("push: server has no VAPID key (skipped)", true);
+  }
+
   // tidy the fun bits
   for (const m of nudgeMsgs) await asUmit(`/chat/${m.id}`, "DELETE");
   await asUmit(`/tasks/${jt.data.id}`, "DELETE");

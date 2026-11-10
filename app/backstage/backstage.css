@@ -647,3 +647,6 @@
   .bs-hearts,.bs-confetti{display:none}
   .bs-lovenote button{animation:none}
 }
+.bs-due span{flex:1;font-size:14px}
+.bs-due .btn.small{white-space:nowrap}
+.bs-on{color:#1f8a5b;font-weight:600;align-self:center}

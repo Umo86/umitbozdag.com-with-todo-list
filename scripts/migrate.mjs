@@ -174,6 +174,25 @@ alter table tasks add column if not exists love_note    text;
 alter table tasks add column if not exists completed_by text;
 alter table tasks add column if not exists nudges       int not null default 0;
 alter table users add column if not exists birthday     date;
+
+-- Notifications without Firebase: browsers subscribe with Web Push (VAPID
+-- keys in VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY). (devices: kept for a
+-- future Android background check.)
+create table if not exists push_subs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    text not null,
+  endpoint   text not null unique,
+  p256dh     text not null,
+  auth       text not null,
+  created_at timestamptz not null default now()
+);
+create table if not exists devices (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    text not null,
+  token_hash text not null unique,
+  created_at timestamptz not null default now(),
+  last_seen  timestamptz
+);
 `;
 
 const client = new Client({ connectionString: url });

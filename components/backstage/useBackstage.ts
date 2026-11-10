@@ -70,6 +70,7 @@ export function useBackstage() {
   const [chatUnread, setChatUnread] = useState(0);
   const [seenUpTo, setSeenUpTo] = useState<string | null>(null);
   const [ai, setAi] = useState(false);
+  const [pushKey, setPushKey] = useState("");
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const say = useCallback((msg: string, tone: "info" | "error" = "info", action?: { label: string; run: () => void }) => {
@@ -159,9 +160,11 @@ export function useBackstage() {
           password?: string;
           database?: string;
           ai?: string;
+          push_key?: string;
         };
         if (cancelled) return;
         setAi(cfg.ai === "on");
+        setPushKey(cfg.push_key ?? "");
         if (cfg.password !== "ok") return setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
         if (cfg.database === "missing") return setPhase({ kind: "noconfig", missing: "DATABASE_URL" });
         if (cfg.database !== "ok") {
@@ -585,6 +588,7 @@ export function useBackstage() {
     markChatRead,
     say,
     ai,
+    pushKey,
     api,
     refresh,
     addDrafts,

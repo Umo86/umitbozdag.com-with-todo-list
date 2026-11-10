@@ -22,6 +22,7 @@ import Projects from "./Projects";
 import Settings from "./Settings";
 import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
+import { enablePush, pushState } from "./push";
 import { isApp, listen, prepareNotifications, syncReminders, type Extra, type NotificationAction } from "./native";
 import { forMe, nameOf, type ListName } from "./types";
 import { useBackstage } from "./useBackstage";
@@ -96,6 +97,9 @@ export default function BackstageApp() {
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     const q = new URLSearchParams(window.location.search);
     if (q.has("capture")) setSheet({ kind: "capture", listen: false });
+    const qv = q.get("view");
+    if (qv && ["today", "mine", "joint", "calendar", "us"].includes(qv)) setViewState(qv as View);
+    if (q.has("view") || q.has("capture")) window.history.replaceState(null, "", "/backstage");
   }, []);
 
   // ——— in-page reminders (browser): check every half minute ———
@@ -190,6 +194,69 @@ export default function BackstageApp() {
     const timer = setTimeout(() => void syncReminders(tasks, events, me.id, extras).catch(() => {}), 1200);
     return () => clearTimeout(timer);
   }, [phase.kind, tasks, events, me, users, bs.birthdays, bs.us]);
+
+  // ——— always the latest version: reload when a new one goes live ———
+  // (also inside the Android app, which loads this site live)
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => {
+    const mine = process.env.NEXT_PUBLIC_BUILD_ID;
+    if (!mine) return;
+    let stop = false;
+    const check = async () => {
+      if (stop || !navigator.onLine) return;
+      try {
+        const r = await fetch("/api/backstage/version", { cache: "no-store" });
+        const v = (await r.json()) as { build?: string };
+        if (!v.build || v.build === mine) return;
+        // nothing half-typed open: reload straight away (once per version,
+        // so a stubborn cache can't cause a loop); otherwise offer it
+        let tried = "";
+        try {
+          tried = sessionStorage.getItem("backstage:reloaded-for") ?? "";
+          sessionStorage.setItem("backstage:reloaded-for", v.build);
+        } catch {
+          /* fine */
+        }
+        if (!live.current.sheet && tried !== v.build) window.location.reload();
+        else setUpdateReady(true);
+      } catch {
+        /* try again later */
+      }
+    };
+    void check();
+    const timer = setInterval(check, 5 * 60_000);
+    const onVis = () => !document.hidden && void check();
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onVis);
+    return () => {
+      stop = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onVis);
+    };
+  }, []);
+
+  // ——— browsers: offer notifications once ———
+  const [askPush, setAskPush] = useState(false);
+  useEffect(() => {
+    if (phase.kind !== "app" || !bs.pushKey) return;
+    let dismissed = false;
+    try {
+      dismissed = !!localStorage.getItem("backstage:push-asked");
+    } catch {
+      /* fine */
+    }
+    if (dismissed) return;
+    void pushState().then((s) => setAskPush(s === "off" && Notification.permission === "default"));
+  }, [phase.kind, bs.pushKey]);
+  const closeAskPush = () => {
+    setAskPush(false);
+    try {
+      localStorage.setItem("backstage:push-asked", "1");
+    } catch {
+      /* fine */
+    }
+  };
 
   // ——— welcome, once per person per device ———
   useEffect(() => {
@@ -387,6 +454,38 @@ export default function BackstageApp() {
             Apps › Backstage › Notifications and switch them on.
           </span>
           <button className="bs-x" onClick={() => setNotifOff(false)} aria-label="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
+
+      {updateReady && (
+        <div className="bs-due" role="status">
+          <strong>New version ready</strong>
+          <span>Backstage has been updated.</span>
+          <button className="btn small" onClick={() => window.location.reload()}>
+            Update now
+          </button>
+        </div>
+      )}
+      {askPush && !sheet && (
+        <div className="bs-due" role="status">
+          <strong>🔔 Get notified</strong>
+          <span>
+            Know straight away when {other?.name ?? "the other person"} messages you, sends a heart or adds something
+            joint, even with Backstage closed.
+          </span>
+          <button
+            className="btn small"
+            onClick={async () => {
+              const err = await enablePush(bs.pushKey, bs.api);
+              closeAskPush();
+              bs.say(err || "Notifications are on 🎉", err ? "error" : "info");
+            }}
+          >
+            Turn on
+          </button>
+          <button className="bs-x" onClick={closeAskPush} aria-label="Not now">
             ×
           </button>
         </div>

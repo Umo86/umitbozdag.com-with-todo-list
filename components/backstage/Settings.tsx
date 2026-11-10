@@ -4,6 +4,7 @@
 // Calendar, reminder settings on the phone, and signing out.
 import { useEffect, useState } from "react";
 import { exactAlarms, isApp, openExactAlarmSetting, prepareNotifications } from "./native";
+import { disablePush, enablePush, pushState, type PushState } from "./push";
 import type { Me } from "./types";
 import type { Backstage } from "./useBackstage";
 
@@ -12,10 +13,13 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
   const [confirmNew, setConfirmNew] = useState(false);
   const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
   const [notif, setNotif] = useState<string>("");
+  const [push, setPush] = useState<PushState>("unsupported");
+  const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
     bs.api<{ calendar_url: string }>("/me").then((r) => setUrl(r.calendar_url), () => setUrl(""));
     void exactAlarms().then(setExact);
+    void pushState().then(setPush);
     if (!isApp() && "Notification" in window) setNotif(Notification.permission);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -127,10 +131,53 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
             </div>
           </>
         ) : (
-          <p className="bs-hint">
-            In a browser, reminders pop up while Backstage is open
-            {notif === "granted" ? " (alerts are on)" : ""}. Install the Android app to get them with Backstage closed.
-          </p>
+          <>
+            <p className="bs-hint">
+              Get a notification on this {/Android|iPhone|Mobile/i.test(navigator.userAgent) ? "phone" : "computer"} when{" "}
+              {me.id === "umit" ? "Dilfiraz" : "Umit"} messages you, sends a heart or a nudge, or adds something joint, even with Backstage closed.
+              {notif === "granted" ? "" : ""}
+            </p>
+            {push === "unsupported" ? (
+              <p className="bs-hint">This browser can&rsquo;t do that. Use Chrome, Edge or Firefox.</p>
+            ) : push === "blocked" ? (
+              <p className="bs-hint">Notifications are blocked for this site. Click the lock icon next to the address, allow Notifications, then reload.</p>
+            ) : (
+              <div className="bs-row-btns">
+                {push === "on" ? (
+                  <>
+                    <span className="bs-on">✓ Notifications are on here</span>
+                    <button
+                      className="btn ghost"
+                      disabled={pushBusy}
+                      onClick={async () => {
+                        setPushBusy(true);
+                        await disablePush(bs.api);
+                        setPush(await pushState());
+                        setPushBusy(false);
+                        bs.say("Notifications are off on this device.");
+                      }}
+                    >
+                      Turn off
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="btn"
+                    disabled={pushBusy}
+                    onClick={async () => {
+                      setPushBusy(true);
+                      const err = await enablePush(bs.pushKey, bs.api);
+                      setPush(await pushState());
+                      setPushBusy(false);
+                      bs.say(err || "Notifications are on. You should get a test one now.", err ? "error" : "info");
+                    }}
+                  >
+                    Turn on notifications
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         <div className="bs-drawer-foot">

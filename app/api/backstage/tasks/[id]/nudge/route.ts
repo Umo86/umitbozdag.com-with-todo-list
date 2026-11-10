@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { UUID } from "@/lib/backstage";
+import { notify, otherOf } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       auth.me.id,
       `👉 Nudge about “${title}”${nth(nudges)}`,
     ]);
+    await notify(otherOf(auth.me.id), {
+      title: `👉 ${auth.me.name} nudged you`,
+      body: `“${title}”${nudges > 1 ? ` (${nudges} times now)` : ""}`,
+      url: "/backstage?view=joint",
+      tag: `nudge-${id}`,
+    });
     return NextResponse.json({ ok: true, nudges });
   } catch (err) {
     console.error("backstage nudge error:", err);

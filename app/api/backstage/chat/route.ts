@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { notify, otherOf } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,12 @@ export async function POST(req: Request) {
       `insert into chat_messages (sender, body, kind) values ($1, $2, $3) returning ${COLS}`,
       [auth.me.id, text, kind]
     );
+    await notify(otherOf(auth.me.id), {
+      title: kind === "heart" ? `${auth.me.name} is thinking of you ❤️` : `💬 ${auth.me.name}`,
+      body: kind === "heart" ? "Tap to send one back." : text.slice(0, 180),
+      url: "/backstage?view=us",
+      tag: kind === "heart" ? "heart" : "chat",
+    });
     return NextResponse.json(r.rows[0], { status: 201 });
   } catch (err) {
     console.error("backstage chat send error:", err);

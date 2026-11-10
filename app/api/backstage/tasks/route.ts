@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { notify, otherOf } from "@/lib/notify";
 import {
   cleanAssignee,
   cleanList,
@@ -65,6 +66,14 @@ export async function POST(req: Request) {
        returning ${TASK_COLS}`,
       [list, projectId, title, notes, priority, due, remindAt, me.id, position, repeat, owner, assignee]
     );
+    if (owner === JOINT && assignee !== me.id) {
+      await notify(otherOf(me.id), {
+        title: `${me.name} added a joint to-do`,
+        body: title,
+        url: "/backstage?view=joint",
+        tag: `task-${r.rows[0].id}`,
+      });
+    }
     return NextResponse.json(r.rows[0], { status: 201 });
   } catch (err) {
     console.error("backstage task create error:", err);

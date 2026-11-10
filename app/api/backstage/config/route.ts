@@ -22,5 +22,7 @@ export async function GET() {
     database,
     // spoken tasks are read by AI when a key is set, by built-in rules otherwise
     ai: process.env.ANTHROPIC_API_KEY ? "on" : "off",
+    // public key for browser notifications (Web Push); empty = not set up
+    push_key: process.env.VAPID_PUBLIC_KEY ?? "",
   });
 }
