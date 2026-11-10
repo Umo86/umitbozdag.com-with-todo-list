@@ -4,7 +4,7 @@
 // the /api/backstage calls, and the board's data with optimistic updates.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createAuthClient } from "@neondatabase/auth";
-import type { Project, Role, Task, TaskPatch } from "./types";
+import type { Message, Project, Role, Task, TaskPatch } from "./types";
 
 type AuthResult = { data?: unknown; error?: { message?: string; code?: string; status?: number } | null } | null;
 type AuthLike = {
@@ -56,6 +56,7 @@ export function useBackstage() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [me, setMe] = useState<{ email: string; name: string; role: Role } | null>(null);
   const [notice, setNotice] = useState("");
   const authRef = useRef<AuthLike | null>(null);
@@ -95,9 +96,11 @@ export function useBackstage() {
         role: Role;
         projects: Project[];
         tasks: Task[];
+        messages?: Message[];
       }>("/state");
       setProjects(data.projects ?? []);
       setTasks(data.tasks ?? []);
+      setMessages(data.messages ?? []);
       setMe({ email: data.email, name: data.name, role: data.role });
       setPhase({ kind: "app" });
     } catch (e) {
@@ -214,6 +217,7 @@ export function useBackstage() {
   const signOut = useCallback(() => {
     const done = () => {
       setTasks([]);
+      setMessages([]);
       setProjects([]);
       setMe(null);
       setPhase({ kind: "signin" });
@@ -292,12 +296,31 @@ export function useBackstage() {
     [api, fail]
   );
 
+  const patchMessage = useCallback(
+    (id: string, read: boolean) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, read_at: read ? new Date().toISOString() : null } : m))
+      );
+      api(`/messages/${id}`, { method: "PATCH", body: { read } }).catch(fail);
+    },
+    [api, fail]
+  );
+
+  const deleteMessage = useCallback(
+    (id: string) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      api(`/messages/${id}`, { method: "DELETE" }).catch(fail);
+    },
+    [api, fail]
+  );
+
   return {
     phase,
     setPhase,
     me,
     projects,
     tasks,
+    messages,
     notice,
     say,
     signIn,
@@ -312,6 +335,8 @@ export function useBackstage() {
     addProject,
     patchProject,
     deleteProject,
+    patchMessage,
+    deleteMessage,
   };
 }
 

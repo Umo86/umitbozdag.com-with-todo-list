@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Board from "./Board";
 import Gate from "./Gate";
+import Messages from "./Messages";
 import Projects from "./Projects";
 import TaskDrawer from "./TaskDrawer";
 import { useBackstage } from "./useBackstage";
@@ -36,6 +37,7 @@ export default function BackstageApp() {
   const [project, setProject] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
+  const [inbox, setInbox] = useState(false);
   const [due, setDue] = useState<string[]>([]);
   const [canNotify, setCanNotify] = useState<"unsupported" | "default" | "granted" | "denied">(
     "unsupported"
@@ -43,6 +45,7 @@ export default function BackstageApp() {
   const seen = useRef<Set<string>>(new Set());
 
   const isOwner = me?.role === "owner";
+  const unread = bs.messages.filter((m) => !m.read_at).length;
   const activeList: ListName = isOwner ? list : "personal";
 
   useEffect(() => {
@@ -154,8 +157,9 @@ export default function BackstageApp() {
               <button
                 key={l}
                 role="tab"
-                aria-selected={list === l}
+                aria-selected={!inbox && list === l}
                 onClick={() => {
+                  setInbox(false);
                   setList(l);
                   remember(LIST_KEY, l);
                 }}
@@ -164,6 +168,10 @@ export default function BackstageApp() {
                 <span className="n">{openCount(l)}</span>
               </button>
             ))}
+            <button role="tab" aria-selected={inbox} onClick={() => setInbox(true)}>
+              Messages
+              {unread > 0 && <span className="n new">{unread}</span>}
+            </button>
           </div>
         ) : (
           <p className="bs-helper">
@@ -171,7 +179,7 @@ export default function BackstageApp() {
           </p>
         )}
 
-        {isOwner && (
+        {isOwner && !inbox && (
           <div className="bs-filter">
             <button aria-pressed={project === null} onClick={() => setProject(null)}>
               All
@@ -197,17 +205,21 @@ export default function BackstageApp() {
         )}
       </div>
 
-      <Board
-        key={activeList}
-        tasks={shown}
-        projects={projects}
-        canEdit={isOwner}
-        onAdd={(title) =>
-          void bs.addTask({ title, list: activeList, project_id: project })
-        }
-        onPatch={bs.patchTask}
-        onOpen={setOpenId}
-      />
+      {inbox && isOwner ? (
+        <Messages bs={bs} messages={bs.messages} />
+      ) : (
+        <Board
+          key={activeList}
+          tasks={shown}
+          projects={projects}
+          canEdit={isOwner}
+          onAdd={(title) =>
+            void bs.addTask({ title, list: activeList, project_id: project })
+          }
+          onPatch={bs.patchTask}
+          onOpen={setOpenId}
+        />
+      )}
 
       {openTask && isOwner && (
         <TaskDrawer

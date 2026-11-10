@@ -1,9 +1,11 @@
-import Badge from "@/components/Badge";
+import ContactBadge from "@/components/ContactBadge";
+import EventsList from "@/components/EventsList";
 import HallBuild from "@/components/HallBuild";
+import HeroFilm from "@/components/HeroFilm";
 import Reveal from "@/components/Reveal";
 import ShowCycle from "@/components/ShowCycle";
-import Ticker from "@/components/Ticker";
-import { CRAFT, FACTS, ROLES, SHOWS, SITE } from "@/lib/content";
+import { SiteFooter, SiteNav, WaIcon } from "@/components/SiteChrome";
+import { COUNTRIES, PROFILE as p, SITE } from "@/lib/content";
 
 const personLd = {
   "@context": "https://schema.org",
@@ -13,14 +15,14 @@ const personLd = {
   jobTitle: SITE.role,
   worksFor: { "@type": "Organization", name: SITE.employer },
   address: { "@type": "PostalAddress", addressLocality: SITE.city, addressCountry: "GB" },
-  knowsLanguage: ["English", "Turkish"],
-  knowsAbout: CRAFT,
+  knowsLanguage: p.languages,
+  sameAs: [SITE.linkedin],
 };
 
 export default function Home() {
   return (
     <>
-      <a className="skip" href="#profile">
+      <a className="skip" href="#about">
         Skip to content
       </a>
       <script
@@ -28,190 +30,168 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }}
       />
 
-      <header className="topbar">
-        <div className="wrap">
-          <a className="wordmark" href="#top">
-            Umit Bozdag
-          </a>
-          <nav className="topnav" aria-label="Site">
-            <a href="#profile">Profile</a>
-            <a href="#cycle">Show cycle</a>
-            <a href="#experience">Experience</a>
-            <a href="#productions">Productions</a>
-            <a href="#contact">Contact</a>
-            <a className="cta" href="/cv">
-              Read the CV
-            </a>
-          </nav>
-        </div>
-      </header>
+      <SiteNav home />
 
-      <section className="hero" id="top">
-        <div className="wrap hero-content">
-          <p className="kicker">Event operations, London</p>
-          <h1 className="masthead">
-            <span className="forename">UMIT</span>BOZDAG
-          </h1>
-          <div className="cover-rule" />
-          <div className="cover-rule thin" />
-          <div className="coverlines">
-            <p className="line">
-              <em>Fifteen years of flagship exhibitions</em> — from the first
-              floorplan to the final breakdown.
-            </p>
-            <p className="line">
-              Now running <em>UK Construction Week</em>
-              <br />
-              NEC Birmingham &amp; ExCeL London
-            </p>
-          </div>
-        </div>
-        <div className="wrap">
-          <HallBuild />
-        </div>
-      </section>
+      <main id="top">
+        <HeroFilm />
 
-      <Ticker />
-
-      <main>
-        <section id="profile" className="block">
+        <section aria-label="In numbers">
           <div className="wrap">
-            <Reveal>
-              <h2 className="sec">The profile</h2>
-            </Reveal>
-            <div className="profile-grid">
-              <Reveal>
-                <p className="lede">
-                  Big shows look effortless when the operations behind them are
-                  exact.
-                </p>
-                <p className="after">
-                  That is the work: schedules, contractors, compliance and a
-                  thousand moving parts resolved before doors open. I am a
-                  Senior Operations Manager at Media 10, leading operations for
-                  UK Construction Week across the NEC in Birmingham and ExCeL
-                  London, and working alongside the commercial team so that
-                  every stand and sponsorship sold is one we can build. Before
-                  Media 10 I delivered Gastech with DMG Events and international
-                  exhibitions across logistics, fashion and retail with Hyve
-                  Group.
-                </p>
-              </Reveal>
-              <Reveal delay={0.15}>
-                <table className="facts">
-                  <tbody>
-                    {FACTS.map(([k, v]) => (
-                      <tr key={k}>
-                        <th scope="row">{k}</th>
-                        <td>{v}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Reveal>
+            <div className="nums">
+              {p.stats.map((s) => (
+                <div key={s.label}>
+                  <strong>
+                    {s.value}
+                    {s.suffix}
+                  </strong>
+                  <span>{s.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section id="cycle" className="block">
+        <section id="about" className="sec">
           <div className="wrap">
             <Reveal>
-              <h2 className="sec tight">The show cycle</h2>
-              <p className="sec-intro">
-                A show is on the floor for three days and in the diary for a
-                year. This is the year: the workstreams that have to land, in
-                order, for the doors to open on time.
-              </p>
+              <div className="about">
+                <div>
+                  <span className="kicker">About</span>
+                  <h2 className="h2">{p.statement}</h2>
+                </div>
+                <div className="about__text">
+                  {p.intro.map((para) => (
+                    <p key={para.slice(0, 24)}>{para}</p>
+                  ))}
+                </div>
+              </div>
             </Reveal>
+            <Reveal>
+              <dl className="facts">
+                {p.facts.map((f) => (
+                  <div key={f.label}>
+                    <dt className="label">{f.label}</dt>
+                    <dd>{f.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Reveal>
+            <Reveal>
+              <div className="orgs">
+                <span className="label">Worked with</span>
+                <div className="orgs__grid">
+                  {p.employers.map((e) => (
+                    <a className="org" key={e.id} href={e.url} target="_blank" rel="noopener">
+                      <span className="org__logo">
+                        {e.logo && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={e.logo} alt="" loading="lazy" />
+                        )}
+                      </span>
+                      <strong>{e.name}</strong>
+                      <span>{e.role}</span>
+                      <span>{e.period}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section id="services" className="sec flush">
+          <div className="wrap">
+            <Reveal>
+              <span className="kicker">What I do</span>
+              <h2 className="h2" style={{ maxWidth: "18ch" }}>
+                {p.servicesIntro}
+              </h2>
+            </Reveal>
+            <Reveal>
+              <div className="services">
+                {p.services.map((s) => (
+                  <div className="svc" key={s.title}>
+                    <h3>{s.title}</h3>
+                    <p>{s.text}</p>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section id="cycle" className="sec flush">
+          <div className="wrap">
+            <Reveal>
+              <div className="head">
+                <div>
+                  <span className="kicker">The show cycle</span>
+                  <h2 className="h2">Three days on the floor. A year in the diary.</h2>
+                </div>
+                <p className="lead">
+                  One hall from empty floorplan to doors open, and the
+                  workstreams that have to land, in order, to get it there.
+                </p>
+              </div>
+            </Reveal>
+            <div className="blueprint">
+              <HallBuild />
+            </div>
             <ShowCycle />
           </div>
         </section>
 
-        <section id="experience" className="block">
+        <section id="events" className="sec flush">
           <div className="wrap">
             <Reveal>
-              <h2 className="sec">Experience</h2>
-            </Reveal>
-            {ROLES.map((r, i) => (
-              <Reveal key={r.org} delay={i * 0.06}>
-                <div className={`role${i === 0 ? " first" : ""}`}>
-                  <div className="org">
-                    {r.org}
-                    {r.now && (
-                      <>
-                        <br />
-                        <span className="now">Now</span>
-                      </>
-                    )}
-                  </div>
-                  <div>
-                    <h3>{r.title}</h3>
-                    <p>{r.summary}</p>
-                  </div>
+              <div className="head">
+                <div>
+                  <span className="kicker">Events</span>
+                  <h2 className="h2">Every show since 2012.</h2>
                 </div>
-              </Reveal>
-            ))}
+                <p className="meta">
+                  {p.shows.length} shows, {COUNTRIES} countries, newest first
+                </p>
+              </div>
+            </Reveal>
+            <EventsList shows={p.shows} employers={p.employers} />
           </div>
         </section>
 
-        <section id="productions" className="block">
+        <section id="contact" className="sec contact">
           <div className="wrap">
-            <Reveal>
-              <h2 className="sec">Selected productions</h2>
-            </Reveal>
-            {SHOWS.map((s, i) => (
-              <Reveal key={s.name} delay={Math.min(i, 5) * 0.06} y={18}>
-                <div className={`show${i === 0 ? " first" : ""}`}>
-                  <span className="name">{s.name}</span>
-                  <span className="meta">{s.meta}</span>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        <section id="capabilities" className="block">
-          <div className="wrap">
-            <Reveal>
-              <h2 className="sec tight">The craft</h2>
-              <p className="sec-intro">
-                Everything an exhibition needs between the sales deck and the
-                show floor, owned end to end.
+            <div className="contact__text">
+              <span className="kicker">Contact</span>
+              <h2 className="h2">Let&rsquo;s talk.</h2>
+              <p className="contact__lead">
+                Planning a show, hiring, or want to compare notes?
+                {SITE.whatsapp ? " WhatsApp is the quickest way to reach me." : ""}
               </p>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <ul className="craft">
-                {CRAFT.map((c) => (
-                  <li key={c}>{c}</li>
-                ))}
-              </ul>
-            </Reveal>
-          </div>
-        </section>
-
-        <section id="contact" className="contact">
-          <div className="wrap contact-grid">
-            <div className="contact-text">
-              <h2 className="sec tight">Contact</h2>
-              <p className="big">
-                Planning a show? Let&rsquo;s make it run like clockwork.
-              </p>
-              <p className="reach">
+              <div className="btns">
+                {SITE.whatsapp && (
+                  <a className="btn" href={SITE.whatsapp} target="_blank" rel="noopener">
+                    <WaIcon />
+                    Message on WhatsApp
+                  </a>
+                )}
+                <a className="btn btn--o" href={`mailto:${SITE.email}`}>
+                  Email me
+                </a>
+              </div>
+              <p className="contact__small">
                 <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
-                &nbsp;or&nbsp;<a href="/cv">read the CV</a>
+                <a href={SITE.linkedin} target="_blank" rel="noopener">
+                  LinkedIn
+                </a>
+                <span>{p.area}</span>
               </p>
             </div>
-            <Badge />
+            <ContactBadge />
           </div>
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="wrap">
-          <span>© {new Date().getFullYear()} Umit Bozdag, London</span>
-          <a href="/backstage">Backstage</a>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

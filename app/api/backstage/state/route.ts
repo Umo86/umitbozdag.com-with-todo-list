@@ -20,16 +20,24 @@ export async function GET(req: Request) {
     }
 
     await seedIfFirstRun();
-    const [projects, tasks] = await Promise.all([
+    const [projects, tasks, messages] = await Promise.all([
       db().query(
         `select id, name, color, position from projects order by position, created_at`
       ),
       db().query(`select ${TASK_COLS} from tasks ${TASK_ORDER}`),
+      // Contact-form messages; an empty list if the table isn't there yet.
+      db()
+        .query(
+          `select id, name, email, company, message, created_at, read_at
+           from messages order by created_at desc limit 200`
+        )
+        .catch(() => ({ rows: [] })),
     ]);
     return NextResponse.json({
       ...who,
       projects: projects.rows,
       tasks: tasks.rows,
+      messages: messages.rows,
     });
   } catch (err) {
     console.error("backstage state error:", err);

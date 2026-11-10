@@ -1,14 +1,10 @@
 import type { Metadata, Viewport } from "next";
 // Fonts are bundled with the site (no request to Google, no flash of the
 // wrong typeface).
-import "@fontsource-variable/bodoni-moda/opsz.css";
-import "@fontsource-variable/bodoni-moda/opsz-italic.css";
-import "@fontsource-variable/jost/wght.css";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/inter-tight/wght.css";
 import "./globals.css";
 import { SITE } from "@/lib/content";
-
-const FAVICON =
-  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="white"/><text x="32" y="46" font-family="Didot,Bodoni MT,serif" font-size="44" text-anchor="middle" fill="black">B</text><rect y="58" width="64" height="6" fill="%23A61C2B"/></svg>';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -18,7 +14,7 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   alternates: { canonical: "/" },
-  icons: { icon: FAVICON },
+  icons: { icon: "/img/favicon.svg" },
   openGraph: {
     type: "profile",
     url: "/",

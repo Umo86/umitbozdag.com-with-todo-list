@@ -17,9 +17,10 @@ a private task manager backed by Neon Postgres and Neon Auth.
 | Path | What it is |
 | --- | --- |
 | `app/` | Pages: `/` (home), `/cv`, `/backstage`, plus the API under `/api/backstage/*` |
-| `components/` | Hero hall animation, show-cycle chart, lanyard badge, scroll reveals, ticker |
+| `components/` | London film hero, hall blueprint animation, show-cycle chart, badge contact form, events list |
 | `components/backstage/` | The Backstage board: sign-in gate, columns with drag and drop, task drawer, projects |
-| `lib/content.ts` | All public-page content (roles, shows, facts) in one place |
+| `lib/profile.json` | All public-page content: roles, dates, the 24 shows, press links, contact details. Edit this to change what the site says |
+| `app/shows/[id]/` | One page per show, generated from `profile.json` |
 | `lib/` | Postgres pool, Neon Auth token check + owner/helper roles (verified emails only), task queries |
 | `scripts/migrate.mjs` | Creates the `settings` / `projects` / `tasks` tables (run once) |
 | `test/e2e.mjs` | End-to-end test: sign-in → JWT → task CRUD |
@@ -79,6 +80,9 @@ in `HELPER_EMAILS`.
   Backstage is open. **Add to calendar** downloads an `.ics` file so your phone
   can alert you when it is not.
 - Deleting a project keeps its tasks.
+- **Messages**: anything sent through the contact form on the home page is saved
+  to the `messages` table and listed here, with a reply link. If the database is
+  unreachable the form opens the visitor's own email app instead.
 
 ## Local commands
 

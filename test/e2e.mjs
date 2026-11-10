@@ -227,5 +227,29 @@ const kept = (after.data.tasks || []).find((t) => t.id === t4.data.id);
 step("api: deleting a project keeps its tasks", !!kept && kept.project_id === null);
 await api(`/tasks/${t4.data.id}`, "DELETE");
 
+// contact form -> Messages in Backstage
+const post = (body) =>
+  fetch(siteBase.replace(/\/+$/, "") + "/api/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+const badMsg = await post({ name: "E2E", email: "not-an-email", message: "hello there" });
+step("contact: rejects a bad email", badMsg.status === 400, `status ${badMsg.status}`);
+const mark = `E2E contact ${Date.now()}`;
+const okMsg = await post({ name: "E2E Visitor", email: "visitor@example.com", company: "Test Co", message: mark });
+step("contact: stores a message", okMsg.status === 201, `status ${okMsg.status}`);
+const again = await post({ name: "E2E Visitor", email: "visitor@example.com", message: mark + " again" });
+step("contact: second message within 30s is held back", again.status === 429, `status ${again.status}`);
+const inbox = await api("/state");
+const got = (inbox.data.messages || []).find((m) => m.message === mark);
+step("backstage: message appears, unread", !!got && got.read_at === null);
+if (got) {
+  const rd = await api(`/messages/${got.id}`, "PATCH", { read: true });
+  step("backstage: mark message read", rd.status === 200 && !!rd.data.read_at);
+  const dm = await api(`/messages/${got.id}`, "DELETE");
+  step("backstage: delete message", dm.status === 200);
+}
+
 console.log(failures ? `\n${failures} step(s) failed.` : "\nAll end-to-end steps passed.");
 await finish(failures ? 1 : 0);

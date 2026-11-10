@@ -22,6 +22,16 @@ export type Task = {
   completed_at: string | null;
 };
 
+export type Message = {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  message: string;
+  created_at: string;
+  read_at: string | null;
+};
+
 export type TaskPatch = Partial<
   Pick<
     Task,
@@ -35,7 +45,7 @@ export const STATUSES: Array<{ id: Status; label: string }> = [
   { id: "done", label: "Done" },
 ];
 
-export const SWATCHES = ["#d64553", "#f2efe9", "#1f6f6b", "#b3741f", "#3f5fae", "#6d3b8e"];
+export const SWATCHES = ["#1a47ff", "#d64553", "#1f6f6b", "#b3741f", "#6d3b8e", "#6b7280"];
 
 export function fmtDay(d: string): string {
   return new Date(d + "T00:00:00").toLocaleDateString("en-GB", {

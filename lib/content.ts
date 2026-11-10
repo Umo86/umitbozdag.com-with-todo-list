@@ -1,110 +1,32 @@
-// Single source for the public site's content. The home page, the CV and the
-// search/link metadata all read from here, so a fact is edited in one place.
+// Single source for the public site's content. profile.json holds the facts
+// (roles, dates, shows, contact details); the home page, the CV and the
+// search/link metadata all read from here.
+import profile from "./profile.json";
+
+export const PROFILE = profile;
 
 export const SITE = {
-  name: "Umit Bozdag",
+  name: profile.name,
   url: "https://umitbozdag.com",
-  role: "Senior Operations Manager",
-  employer: "Media 10",
+  role: profile.title,
+  employer: profile.company,
   city: "London",
-  email: "umitbozdag@googlemail.com",
-  title: "Umit Bozdag — Event Operations, London",
-  description:
-    "Umit Bozdag is a Senior Operations Manager in London with fifteen years of flagship exhibitions — UK Construction Week, Gastech, Breakbulk, Spring Fair and Pure London.",
+  email: profile.email,
+  linkedin: profile.linkedin,
+  whatsapp: profile.whatsapp
+    ? `https://wa.me/${profile.whatsapp}?text=${encodeURIComponent(profile.whatsappText ?? "")}`
+    : null,
+  title: `${profile.name} — ${profile.title} · Exhibitions & Events, London`,
+  description: `${profile.name}, ${profile.title} at ${profile.company}. ${profile.statement}`,
 };
 
-export type Role = {
-  org: string;
-  place?: string;
-  title: string;
-  when?: string;
-  now?: boolean;
-  summary: string;
-  points: string[];
-};
+export type Show = (typeof profile.shows)[number];
+export type Employer = (typeof profile.employers)[number];
 
-export const ROLES: Role[] = [
-  {
-    org: "Media 10",
-    place: "London",
-    title: "Senior Operations Manager",
-    when: "2026 — present",
-    now: true,
-    summary:
-      "Operational lead for UK Construction Week in Birmingham and London — build and breakdown schedules, contractor and supplier management, signage and stand sign-off, and on-site delivery. Supports the sales team on stand space and sponsorship, turning commercial packages into features that work on the floor.",
-    points: [
-      "Operational lead for UK Construction Week, delivered across NEC Birmingham and ExCeL London",
-      "Owns build and breakdown schedules, contractor and supplier management, and on-site delivery",
-      "Runs signage, graphics and stand-design sign-off across the show",
-      "Supports sales of stand space and sponsorship, shaping commercial packages into deliverable features",
-      "Works across the wider portfolio, including Futurebuild and the Stone & Surface Show",
-    ],
-  },
-  {
-    org: "DMG Events",
-    title: "Operations Manager",
-    when: "to 2026",
-    summary:
-      "Delivered Gastech, one of the world's leading energy exhibitions and conferences, and supported operations across DMG's international portfolio.",
-    points: [
-      "Delivered Gastech, one of the world's leading energy exhibitions and conferences",
-      "Supported operations across DMG's international events portfolio",
-    ],
-  },
-  {
-    org: "Hyve Group",
-    title: "Event Operations",
-    summary:
-      "Operations across Breakbulk Europe and Breakbulk Americas, Spring Fair and Pure London — project cargo, retail and fashion shows at international scale.",
-    points: [
-      "Operations across Breakbulk Europe and Breakbulk Americas — project cargo and logistics exhibitions",
-      "Delivered Spring Fair at the NEC Birmingham and Pure London — large-scale retail and fashion shows",
-    ],
-  },
-  {
-    org: "Turkish Embassy, London",
-    title: "Culture & Information Office",
-    summary:
-      "Early career delivering cultural programmes and events for the Embassy in London.",
-    points: [
-      "Early career delivering cultural programmes and events for the Embassy in London",
-    ],
-  },
-];
-
-export const SHOWS: Array<{ name: string; meta: string }> = [
-  { name: "UK Construction Week", meta: "Construction, NEC Birmingham & ExCeL London" },
-  { name: "Futurebuild", meta: "Built environment, London" },
-  { name: "Stone & Surface Show", meta: "Stone and surfaces, London & Birmingham" },
-  { name: "Gastech", meta: "Energy, international" },
-  { name: "Breakbulk Europe", meta: "Project cargo & logistics" },
-  { name: "Breakbulk Americas", meta: "Project cargo & logistics" },
-  { name: "Spring Fair", meta: "Retail, NEC Birmingham" },
-  { name: "Pure London", meta: "Fashion, London" },
-];
-
-export const CRAFT = [
-  "Venue & floor planning",
-  "Contractor & supplier management",
-  "Build & breakdown scheduling",
-  "Health, safety & CDM compliance",
-  "Signage, graphics & wayfinding",
-  "Operations budgets",
-  "Sponsorship & feature delivery",
-  "Exhibitor experience",
-];
-
-export const FACTS: Array<[string, string]> = [
-  ["Currently", "Senior Operations Manager, Media 10"],
-  ["Based", "London, United Kingdom"],
-  ["Home venues", "NEC Birmingham, ExCeL London"],
-  ["Delivered across", "UK, Europe, North America, Asia"],
-  ["Languages", "English, Turkish"],
-  [
-    "Beyond the floor",
-    "Builds digital tools for the events industry, including a signage and sponsorship sign-off platform",
-  ],
-];
+export const COUNTRIES = (() => {
+  const stat = profile.stats.find((s) => /countr/i.test(s.label));
+  return stat ? stat.value : 0;
+})();
 
 // The show cycle drawn on the home page: a typical large trade exhibition,
 // from the first floorplan to the last truck out. Positions are fractions of

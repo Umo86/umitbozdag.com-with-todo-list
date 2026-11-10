@@ -72,6 +72,17 @@ create index if not exists tasks_list_status_idx on tasks (list, status, positio
 alter table tasks drop constraint if exists tasks_project_id_fkey;
 alter table tasks add constraint tasks_project_id_fkey
   foreign key (project_id) references projects(id) on delete set null;
+
+-- Messages sent through the public contact form, read in Backstage.
+create table if not exists messages (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  email      text not null,
+  company    text,
+  message    text not null,
+  created_at timestamptz not null default now(),
+  read_at    timestamptz
+);
 `;
 
 const client = new Client({ connectionString: url });

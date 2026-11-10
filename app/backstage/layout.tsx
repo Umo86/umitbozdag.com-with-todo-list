@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: "#151210" };
+export const viewport: Viewport = { themeColor: "#f5f6fb" };
 
 export default function BackstageLayout({
   children,

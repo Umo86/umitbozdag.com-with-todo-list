@@ -3,17 +3,17 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
 // The link-preview card shown when the site is shared (LinkedIn, WhatsApp…).
-export const alt = "Umit Bozdag — Event Operations, London";
+export const alt = "Umit Bozdag — Senior Operations Manager, exhibitions and events, London";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const font = (file: string) =>
-  readFile(join(process.cwd(), "node_modules/@fontsource/bodoni-moda/files", file));
+  readFile(join(process.cwd(), "node_modules/@fontsource/inter-tight/files", file));
 
 export default async function OpengraphImage() {
-  const [regular, italic] = await Promise.all([
-    font("bodoni-moda-latin-500-normal.woff"),
-    font("bodoni-moda-latin-500-italic.woff"),
+  const [medium, heavy] = await Promise.all([
+    font("inter-tight-latin-500-normal.woff"),
+    font("inter-tight-latin-800-normal.woff"),
   ]);
   return new ImageResponse(
     (
@@ -23,33 +23,31 @@ export default async function OpengraphImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#ffffff",
-          color: "#000000",
-          fontFamily: "Bodoni",
-          padding: "0 90px",
+          justifyContent: "flex-end",
+          background: "#06143a",
+          color: "#ffffff",
+          fontFamily: "Inter Tight",
+          padding: "70px 80px",
         }}
       >
-        <div style={{ fontSize: 30, fontStyle: "italic", color: "#1f1d1b" }}>
-          Event operations, London
+        <div style={{ fontSize: 26, fontWeight: 500, letterSpacing: 2.5, textTransform: "uppercase", color: "rgba(255,255,255,0.72)" }}>
+          Senior Operations Manager, Media10, London
         </div>
-        <div style={{ fontSize: 76, letterSpacing: 26, marginTop: 26, paddingLeft: 26 }}>
-          UMIT
+        <div style={{ fontSize: 190, fontWeight: 800, lineHeight: 0.92, letterSpacing: -8, marginTop: 22, display: "flex", flexDirection: "column" }}>
+          <span>Umit</span>
+          <span>Bozdag</span>
         </div>
-        <div style={{ fontSize: 196, lineHeight: 1, marginTop: -6 }}>BOZDAG</div>
-        <div style={{ width: "100%", height: 6, background: "#a61c2b", marginTop: 34 }} />
-        <div style={{ width: "100%", height: 2, background: "#000000", marginTop: 7 }} />
-        <div style={{ fontSize: 32, fontStyle: "italic", marginTop: 30, color: "#1f1d1b" }}>
-          Fifteen years of flagship exhibitions, from the first floorplan to the final breakdown
+        <div style={{ width: 140, height: 8, background: "#1a47ff", marginTop: 40 }} />
+        <div style={{ fontSize: 32, fontWeight: 500, marginTop: 28, color: "rgba(255,255,255,0.85)" }}>
+          Exhibitions and conferences that run on time, on budget and safely
         </div>
       </div>
     ),
     {
       ...size,
       fonts: [
-        { name: "Bodoni", data: regular, weight: 500, style: "normal" },
-        { name: "Bodoni", data: italic, weight: 500, style: "italic" },
+        { name: "Inter Tight", data: medium, weight: 500, style: "normal" },
+        { name: "Inter Tight", data: heavy, weight: 800, style: "normal" },
       ],
     }
   );

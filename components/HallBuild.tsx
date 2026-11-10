@@ -1,6 +1,7 @@
 "use client";
 
-// The hero figure: one exhibition hall taken through a show cycle.
+// The hero figure: one exhibition hall taken through a show cycle, drawn as
+// a blueprint (white line on navy).
 // Floorplan is drawn → stands sell → the build goes in → doors open and
 // visitors walk the aisles → breakdown hands the hall back empty.
 // Plays once to "Show open" and rests there; the phase buttons let a
@@ -8,8 +9,10 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-const PLAN = "#cfc9be";
-const INK = "#000000";
+const PLAN = "rgba(255,255,255,0.3)";
+const INK = "#ffffff";
+const NAVY = "#06143a";
+const SOLD = "#2f5bff";
 
 type Stand = { id: string; x: number; y: number; w: number; h: number; sold?: boolean };
 
@@ -188,9 +191,9 @@ export default function HallBuild() {
             y={s.y + 3}
             width={s.w - 6}
             height={s.h - 6}
-            fill="var(--carmine)"
+            fill={SOLD}
             initial={false}
-            animate={{ opacity: sold ? 0.15 : 0 }}
+            animate={{ opacity: sold ? 0.62 : 0 }}
             transition={t(sold ? i * 0.09 : 0, 0.45)}
           />
         ))}
@@ -223,7 +226,7 @@ export default function HallBuild() {
         <motion.g
           className="hall-labels"
           fontSize="11"
-          fill="#8d867b"
+          fill="rgba(255,255,255,0.55)"
           initial={false}
           animate={{ opacity: phase >= 1 && !gone ? 1 : 0 }}
           transition={t(0.2, 0.6)}
@@ -255,7 +258,7 @@ export default function HallBuild() {
               y2={y}
               strokeDasharray="7 5"
               strokeWidth="2.5"
-              stroke="#b9b2a6"
+              stroke="rgba(255,255,255,0.45)"
               vectorEffect="non-scaling-stroke"
             />
           ))}
@@ -273,12 +276,12 @@ export default function HallBuild() {
         <motion.g
           className="hall-labels"
           fontSize="11"
-          fill="#57524a"
+          fill="rgba(255,255,255,0.72)"
           initial={false}
           animate={{ opacity: built ? 1 : 0 }}
           transition={t(built ? 0.7 : 0, 0.6)}
         >
-          <text x="755" y="72" textAnchor="middle" fill="#fff">
+          <text x="755" y="72" textAnchor="middle" fill={NAVY}>
             Main stage
           </text>
           <text x="105" y="262" textAnchor="middle">
@@ -293,12 +296,12 @@ export default function HallBuild() {
         {open &&
           VISITORS.map((v, i) =>
             reduce ? (
-              <circle key={i} cx={v.xs[2]} cy={v.ys[2]} r="3.2" fill="var(--carmine)" />
+              <circle key={i} cx={v.xs[2]} cy={v.ys[2]} r="3.4" fill="#ffffff" />
             ) : (
               <motion.circle
                 key={i}
-                r="3.2"
-                fill="var(--carmine)"
+                r="3.4"
+                fill="#ffffff"
                 initial={{ cx: v.xs[0], cy: v.ys[0], opacity: 0 }}
                 animate={{
                   cx: v.xs,
@@ -314,7 +317,7 @@ export default function HallBuild() {
             )
           )}
 
-        <text className="hall-labels" x="610" y="426" textAnchor="middle" fontSize="11" fill="#57524a">
+        <text className="hall-labels" x="610" y="426" textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.72)">
           Entrance
         </text>
       </svg>
