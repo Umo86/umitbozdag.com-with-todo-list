@@ -1,7 +1,7 @@
 "use client";
 
-// Project labels: add, rename, recolour, delete. Deleting a project keeps
-// its tasks; they only lose the label.
+// Projects: add, rename, recolour, set a deadline, delete. Deleting a project
+// keeps its tasks; they only lose the label.
 import { useState } from "react";
 import { SWATCHES, type Project } from "./types";
 import type { Backstage } from "./useBackstage";
@@ -52,6 +52,15 @@ export default function Projects({
                   else e.currentTarget.value = p.name;
                 }}
               />
+              <span className="bs-deadline">
+                <span>Deadline</span>
+                <input
+                  type="date"
+                  value={p.due_date ?? ""}
+                  aria-label={`Deadline for ${p.name}`}
+                  onChange={(e) => bs.patchProject(p.id, { due_date: e.target.value || null })}
+                />
+              </span>
               {confirm === p.id ? (
                 <span className="bs-confirm">
                   <button className="btn danger" onClick={() => bs.deleteProject(p.id)}>
@@ -78,12 +87,16 @@ export default function Projects({
             const input = e.currentTarget.elements.namedItem("pname") as HTMLInputElement;
             const name = input.value.trim();
             if (!name) return;
-            void bs.addProject(name, color);
+            const due = e.currentTarget.elements.namedItem("pdue") as HTMLInputElement;
+            void bs.addProject(name, color, due.value || null);
             input.value = "";
+            due.value = "";
           }}
         >
           <label htmlFor="p-new">New project</label>
-          <input id="p-new" name="pname" maxLength={120} placeholder="Project name" />
+          <input id="p-new" name="pname" maxLength={120} placeholder="Project name, e.g. UKCW London 2027" />
+          <label htmlFor="p-due">Deadline (optional)</label>
+          <input id="p-due" name="pdue" type="date" />
           <div className="bs-swatches">
             {SWATCHES.map((c) => (
               <button

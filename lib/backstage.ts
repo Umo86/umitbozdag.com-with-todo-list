@@ -9,6 +9,13 @@ export const PRIORITIES = new Set(["low", "normal", "high"]);
 export const LISTS = new Set(["personal", "work"]);
 
 export const COLOR = /^#[0-9a-f]{6}$/i;
+export const REPEATS = new Set(["daily", "weekdays", "weekly", "fortnightly", "monthly", "yearly"]);
+
+export function cleanRepeat(v: unknown): string | null {
+  return typeof v === "string" && REPEATS.has(v) ? v : null;
+}
+
+export const PROJECT_COLS = `id, name, color, position, to_char(due_date, 'YYYY-MM-DD') as due_date`;
 
 export function cleanTitle(v: unknown, max = 500): string | null {
   if (typeof v !== "string") return null;
@@ -37,7 +44,7 @@ export function cleanPosition(v: unknown): number | null {
 
 export const TASK_COLS = `id, project_id, list, title, notes, status, priority,
   to_char(due_date, 'YYYY-MM-DD') as due_date, remind_at, added_by, position,
-  calendar_ref, created_at, updated_at, completed_at`;
+  calendar_ref, repeat, created_at, updated_at, completed_at`;
 
 export const TASK_ORDER = `order by position asc, created_at desc`;
 

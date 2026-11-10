@@ -3,7 +3,19 @@
 // Everything Backstage needs from the outside world: the password session,
 // the /api/backstage calls, and the board's data with optimistic updates.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Message, Project, Role, Task, TaskPatch } from "./types";
+import type { ListName, Message, Priority, Project, Repeat, Role, Task, TaskPatch } from "./types";
+import { localToIso, type Draft } from "@/lib/parse";
+
+export type NewTask = {
+  title: string;
+  list: ListName;
+  project_id?: string | null;
+  notes?: string | null;
+  priority?: Priority;
+  due_date?: string | null;
+  remind_at?: string | null;
+  repeat?: Repeat | null;
+};
 
 export type Phase =
   | { kind: "loading" }
@@ -27,6 +39,7 @@ export function useBackstage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [me, setMe] = useState<{ name: string; role: Role } | null>(null);
   const [notice, setNotice] = useState("");
+  const [ai, setAi] = useState(false);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const say = useCallback((msg: string) => {
@@ -89,8 +102,10 @@ export function useBackstage() {
         const cfg = (await (await fetch("/api/backstage/config")).json()) as {
           password?: string;
           database?: string;
+          ai?: string;
         };
         if (cancelled) return;
+        setAi(cfg.ai === "on");
         if (cfg.password !== "ok") return setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
         if (cfg.database === "missing") return setPhase({ kind: "noconfig", missing: "DATABASE_URL" });
         if (cfg.database !== "ok") {
@@ -146,7 +161,7 @@ export function useBackstage() {
   );
 
   const addTask = useCallback(
-    async (body: { title: string; list: string; project_id?: string | null }) => {
+    async (body: NewTask) => {
       try {
         const t = await api<Task>("/tasks", { method: "POST", body });
         setTasks((prev) => [t, ...prev]);
@@ -159,15 +174,51 @@ export function useBackstage() {
     [api, fail]
   );
 
+  // Several drafts at once (from speech). Returns how many were saved.
+  const addDrafts = useCallback(
+    async (drafts: Draft[], fallbackList: ListName): Promise<number> => {
+      let saved = 0;
+      const made: Task[] = [];
+      for (const d of drafts) {
+        try {
+          const t = await api<Task>("/tasks", {
+            method: "POST",
+            body: {
+              title: d.title,
+              list: d.list ?? fallbackList,
+              project_id: d.project_id,
+              priority: d.priority,
+              due_date: d.due_date,
+              remind_at: localToIso(d.remind_local),
+              repeat: d.repeat,
+            },
+          });
+          made.push(t);
+          saved++;
+        } catch (e) {
+          say((e as Error).message);
+        }
+      }
+      if (made.length) setTasks((prev) => [...made.reverse(), ...prev]);
+      return saved;
+    },
+    [api, say]
+  );
+
   const patchTask = useCallback(
     (id: string, patch: TaskPatch) => {
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-      api<Task>(`/tasks/${id}`, { method: "PATCH", body: patch }).then(
-        (t) => setTasks((prev) => prev.map((x) => (x.id === id ? t : x))),
-        fail
-      );
+      api<Task & { spawned?: Task }>(`/tasks/${id}`, { method: "PATCH", body: patch }).then(({ spawned, ...t }) => {
+        setTasks((prev) => {
+          const next = prev.map((x) => (x.id === id ? (t as Task) : x));
+          return spawned && !next.some((x) => x.id === spawned.id) ? [spawned, ...next] : next;
+        });
+        if (spawned?.due_date) {
+          say(`Next one added for ${new Date(spawned.due_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}.`);
+        }
+      }, fail);
     },
-    [api, fail]
+    [api, fail, say]
   );
 
   const deleteTask = useCallback(
@@ -179,9 +230,9 @@ export function useBackstage() {
   );
 
   const addProject = useCallback(
-    async (name: string, color: string) => {
+    async (name: string, color: string, due_date: string | null = null) => {
       try {
-        const p = await api<Project>("/projects", { method: "POST", body: { name, color } });
+        const p = await api<Project>("/projects", { method: "POST", body: { name, color, due_date } });
         setProjects((prev) => [...prev, p]);
       } catch (e) {
         fail(e);
@@ -191,7 +242,7 @@ export function useBackstage() {
   );
 
   const patchProject = useCallback(
-    (id: string, patch: { name?: string; color?: string }) => {
+    (id: string, patch: { name?: string; color?: string; due_date?: string | null }) => {
       setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
       api(`/projects/${id}`, { method: "PATCH", body: patch }).catch(fail);
     },
@@ -234,6 +285,10 @@ export function useBackstage() {
     messages,
     notice,
     say,
+    ai,
+    api,
+    refresh,
+    addDrafts,
     signIn,
     signOut,
     addTask,

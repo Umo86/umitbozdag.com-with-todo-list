@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/auth";
-import { cleanTitle, COLOR, UUID } from "@/lib/backstage";
+import { cleanTitle, COLOR, DATE, PROJECT_COLS, UUID } from "@/lib/backstage";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +27,19 @@ export async function PATCH(req: Request, ctx: Ctx) {
       }
       color = body.color;
     }
-    if (name === undefined && color === null) {
+    // due_date: "YYYY-MM-DD" sets the deadline, null clears it
+    const dueGiven = body.due_date !== undefined;
+    if (dueGiven && body.due_date !== null && !(typeof body.due_date === "string" && DATE.test(body.due_date))) {
+      return NextResponse.json({ error: "A deadline needs a date." }, { status: 400 });
+    }
+    if (name === undefined && color === null && !dueGiven) {
       return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
     }
     const r = await db().query(
-      `update projects set name = coalesce($2, name), color = coalesce($3, color)
-       where id = $1 returning id, name, color, position`,
-      [id, name ?? null, color]
+      `update projects set name = coalesce($2, name), color = coalesce($3, color),
+         due_date = case when $4 then $5::date else due_date end
+       where id = $1 returning ${PROJECT_COLS}`,
+      [id, name ?? null, color, dueGiven, dueGiven ? body.due_date : null]
     );
     if (!r.rows.length) {
       return NextResponse.json({ error: "Unknown project." }, { status: 404 });

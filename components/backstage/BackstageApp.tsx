@@ -1,17 +1,32 @@
 "use client";
 
-// Backstage: the private production office. Two lists (Personal, Work), each
-// a three-column board, with project labels, due dates and reminders.
-import { useEffect, useMemo, useRef, useState } from "react";
+// Backstage: the private production office. A Today dashboard, two lists
+// (Work, Personal) each a three-column board, project labels with deadlines,
+// due dates, reminders, and adding tasks by voice. Inside the Android app it
+// also keeps the phone's reminders in step (see native.ts).
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Board from "./Board";
+import Capture from "./Capture";
+import Dashboard, { MicIcon } from "./Dashboard";
 import Gate from "./Gate";
+import { parseTasks } from "@/lib/parse";
 import Messages from "./Messages";
 import Projects from "./Projects";
 import TaskDrawer from "./TaskDrawer";
+import {
+  exactAlarms,
+  isApp,
+  listen,
+  openExactAlarmSetting,
+  prepareNotifications,
+  syncReminders,
+  type NotificationAction,
+} from "./native";
 import { useBackstage } from "./useBackstage";
 import type { ListName } from "./types";
 
 const LIST_KEY = "backstage:list";
+type View = "today" | ListName | "messages";
 const SEEN_KEY = "backstage:reminded";
 
 function recall<T>(key: string, fallback: T): T {
@@ -33,11 +48,13 @@ function remember(key: string, value: unknown) {
 export default function BackstageApp() {
   const bs = useBackstage();
   const { phase, me, tasks, projects } = bs;
+  const [view, setView] = useState<View>("today");
   const [list, setList] = useState<ListName>("work");
+  const [capture, setCapture] = useState<null | { listen: boolean }>(null);
+  const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
   const [project, setProject] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
-  const [inbox, setInbox] = useState(false);
   const [due, setDue] = useState<string[]>([]);
   const [canNotify, setCanNotify] = useState<"unsupported" | "default" | "granted" | "denied">(
     "unsupported"
@@ -47,9 +64,14 @@ export default function BackstageApp() {
   const isOwner = me?.role === "owner";
   const unread = bs.messages.filter((m) => !m.read_at).length;
   const activeList: ListName = isOwner ? list : "personal";
+  const inbox = view === "messages";
 
   useEffect(() => {
-    setList(recall<ListName>(LIST_KEY, "work") === "personal" ? "personal" : "work");
+    const l = recall<ListName>(LIST_KEY, "work") === "personal" ? "personal" : "work";
+    setList(l);
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("view") === "work" || q.get("view") === "personal") setView(q.get("view") as ListName);
+    if (q.has("capture")) setCapture({ listen: false });
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     if ("Notification" in window) setCanNotify(Notification.permission);
   }, []);
@@ -85,6 +107,48 @@ export default function BackstageApp() {
     return () => clearInterval(timer);
   }, [phase.kind, tasks]);
 
+  // ——— the Android app: phone reminders, notification buttons, shortcuts ———
+  const live = useRef({ tasks, patchTask: bs.patchTask, refresh: bs.refresh });
+  live.current = { tasks, patchTask: bs.patchTask, refresh: bs.refresh };
+
+  const onNotification = useCallback((a: NotificationAction) => {
+    const t = a.taskId ? live.current.tasks.find((x) => x.id === a.taskId) : undefined;
+    if (a.action === "done" && t) {
+      live.current.patchTask(t.id, { status: "done" });
+    } else if (a.action === "snooze" && t) {
+      live.current.patchTask(t.id, { remind_at: new Date(Date.now() + 60 * 60_000).toISOString() });
+    } else if (t) {
+      setOpenId(t.id);
+    } else {
+      setView("today");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (phase.kind !== "app" || !isApp()) return;
+    let off = () => {};
+    void prepareNotifications().then(() => exactAlarms().then(setExact));
+    void listen({
+      onNotification,
+      onLink: (path) => {
+        setView("today");
+        if (path === "capture") setCapture({ listen: true });
+      },
+      onResume: () => {
+        void live.current.refresh();
+        void exactAlarms().then(setExact);
+      },
+    }).then((f) => (off = f));
+    return () => off();
+  }, [phase.kind, onNotification]);
+
+  // keep the phone's scheduled reminders in step with the board
+  useEffect(() => {
+    if (phase.kind !== "app" || !isApp()) return;
+    const timer = setTimeout(() => void syncReminders(tasks).catch(() => {}), 1200);
+    return () => clearTimeout(timer);
+  }, [phase.kind, tasks]);
+
   const inList = useMemo(() => tasks.filter((t) => t.list === activeList), [tasks, activeList]);
   const shown = useMemo(
     () => (project ? inList.filter((t) => t.project_id === project) : inList),
@@ -113,6 +177,16 @@ export default function BackstageApp() {
           </span>
         </div>
         <div className="who">
+          {isOwner && (
+            <button className="bs-add" onClick={() => setCapture({ listen: false })}>
+              + Add tasks
+            </button>
+          )}
+          {exact === "denied" && (
+            <button onClick={() => void openExactAlarmSetting()} title="Android may delay reminders by a few minutes until this is allowed">
+              Allow on-time reminders
+            </button>
+          )}
           {canNotify === "default" && (
             <button
               onClick={() =>
@@ -152,13 +226,16 @@ export default function BackstageApp() {
       <div className="bs-bar">
         {isOwner ? (
           <div className="bs-tabs" role="tablist" aria-label="List">
+            <button role="tab" aria-selected={view === "today"} onClick={() => setView("today")}>
+              Today
+            </button>
             {(["work", "personal"] as ListName[]).map((l) => (
               <button
                 key={l}
                 role="tab"
-                aria-selected={!inbox && list === l}
+                aria-selected={view === l}
                 onClick={() => {
-                  setInbox(false);
+                  setView(l);
                   setList(l);
                   remember(LIST_KEY, l);
                 }}
@@ -167,7 +244,7 @@ export default function BackstageApp() {
                 <span className="n">{openCount(l)}</span>
               </button>
             ))}
-            <button role="tab" aria-selected={inbox} onClick={() => setInbox(true)}>
+            <button role="tab" aria-selected={inbox} onClick={() => setView("messages")}>
               Messages
               {unread > 0 && <span className="n new">{unread}</span>}
             </button>
@@ -178,7 +255,7 @@ export default function BackstageApp() {
           </p>
         )}
 
-        {isOwner && !inbox && (
+        {isOwner && (view === "work" || view === "personal") && (
           <div className="bs-filter">
             <button aria-pressed={project === null} onClick={() => setProject(null)}>
               All
@@ -206,15 +283,34 @@ export default function BackstageApp() {
 
       {inbox && isOwner ? (
         <Messages bs={bs} messages={bs.messages} />
+      ) : view === "today" && isOwner ? (
+        <Dashboard
+          tasks={tasks}
+          projects={projects}
+          onOpen={setOpenId}
+          onPatch={bs.patchTask}
+          onPickProject={(id) => {
+            setProject(id);
+            setView(list);
+          }}
+          onManageProjects={() => setManaging(true)}
+          onCapture={() => setCapture({ listen: true })}
+        />
       ) : (
         <Board
           key={activeList}
           tasks={shown}
           projects={projects}
           canEdit={isOwner}
-          onAdd={(title) =>
-            void bs.addTask({ title, list: activeList, project_id: project })
-          }
+          onAdd={(title) => {
+            // typed straight into a column: dates, reminders etc. are read too
+            const drafts = parseTasks(title, { projects });
+            if (!drafts.length) return;
+            void bs.addDrafts(
+              drafts.map((d) => ({ ...d, project_id: d.project_id ?? project })),
+              activeList
+            );
+          }}
           onPatch={bs.patchTask}
           onOpen={setOpenId}
         />
@@ -231,6 +327,20 @@ export default function BackstageApp() {
         />
       )}
       {managing && <Projects bs={bs} projects={projects} onClose={() => setManaging(false)} />}
+      {capture && isOwner && (
+        <Capture
+          bs={bs}
+          projects={projects}
+          defaultList={view === "personal" ? "personal" : "work"}
+          autoListen={capture.listen}
+          onClose={() => setCapture(null)}
+        />
+      )}
+      {isOwner && !capture && !openTask && !managing && (
+        <button className="bs-fab" onClick={() => setCapture({ listen: true })} aria-label="Speak tasks">
+          <MicIcon size={26} />
+        </button>
+      )}
       {bs.notice && (
         <div className="bs-toast" role="status">
           {bs.notice}

@@ -90,6 +90,12 @@ create table if not exists login_attempts (
   at timestamptz not null default now()
 );
 create index if not exists login_attempts_ip_at_idx on login_attempts (ip, at);
+
+-- Repeating tasks (next_id links a finished one to the copy it created)
+-- and project deadlines.
+alter table tasks    add column if not exists repeat   text;
+alter table tasks    add column if not exists next_id  uuid;
+alter table projects add column if not exists due_date date;
 `;
 
 const client = new Client({ connectionString: url });

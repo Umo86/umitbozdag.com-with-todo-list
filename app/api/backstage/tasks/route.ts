@@ -4,6 +4,7 @@ import { requireMember } from "@/lib/auth";
 import {
   cleanList,
   cleanPosition,
+  cleanRepeat,
   cleanTitle,
   cleanWhen,
   DATE,
@@ -61,18 +62,19 @@ export async function POST(req: Request) {
     const notes =
       typeof body.notes === "string" ? body.notes.slice(0, 4000) : null;
     const position = cleanPosition(body.position);
+    const repeat = cleanRepeat(body.repeat);
     const addedBy = isOwner ? "umit" : auth.name;
 
     // New cards go to the top of To do unless a position is given.
     const r = await db().query(
       `insert into tasks
-         (list, project_id, title, notes, priority, due_date, remind_at, added_by, position)
-       values ($1, $2, $3, $4, $5, $6, $7, $8,
+         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $10,
          coalesce($9::double precision,
            (select min(position) - 1 from tasks where list = $1 and status = 'todo'),
            0))
        returning ${TASK_COLS}`,
-      [list, projectId, title, notes, priority, due, remindAt, addedBy, position]
+      [list, projectId, title, notes, priority, due, remindAt, addedBy, position, repeat]
     );
     return NextResponse.json(r.rows[0], { status: 201 });
   } catch (err) {

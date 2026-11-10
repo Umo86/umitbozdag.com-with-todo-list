@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireMember } from "@/lib/auth";
-import { seedIfFirstRun, TASK_COLS, TASK_ORDER } from "@/lib/backstage";
+import { PROJECT_COLS, seedIfFirstRun, TASK_COLS, TASK_ORDER } from "@/lib/backstage";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     await seedIfFirstRun();
     const [projects, tasks, messages] = await Promise.all([
       db().query(
-        `select id, name, color, position from projects order by position, created_at`
+        `select ${PROJECT_COLS} from projects order by position, created_at`
       ),
       db().query(`select ${TASK_COLS} from tasks ${TASK_ORDER}`),
       // Contact-form messages; an empty list if the table isn't there yet.

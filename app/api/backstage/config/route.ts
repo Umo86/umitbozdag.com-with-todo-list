@@ -20,5 +20,7 @@ export async function GET() {
   return NextResponse.json({
     password: passwordConfigured() ? "ok" : "missing",
     database,
+    // spoken tasks are read by AI when a key is set, by built-in rules otherwise
+    ai: process.env.ANTHROPIC_API_KEY ? "on" : "off",
   });
 }

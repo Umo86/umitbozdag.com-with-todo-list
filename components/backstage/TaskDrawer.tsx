@@ -3,7 +3,9 @@
 // One task, opened: every field editable with ordinary controls. Changes
 // save as each field is left, so there is no Save button to forget.
 import { useEffect, useRef, useState } from "react";
+import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
 import { downloadIcs } from "./ics";
+import { isApp } from "./native";
 import {
   STATUSES,
   fromLocalInput,
@@ -163,11 +165,28 @@ export default function TaskDrawer({
               }}
             />
           </div>
+          <div>
+            <label htmlFor="d-repeat">Repeat</label>
+            <select
+              id="d-repeat"
+              value={task.repeat ?? ""}
+              onChange={(e) => patch({ repeat: (e.target.value || null) as Repeat | null })}
+            >
+              <option value="">Doesn&rsquo;t repeat</option>
+              {REPEATS.map((r) => (
+                <option key={r} value={r}>
+                  {REPEAT_LABEL[r]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <p className="bs-hint">
-          Reminders pop up here while Backstage is open. For an alert on your
-          phone, add the task to your calendar.
+          {isApp()
+            ? "Reminders go off on this phone even when the app is closed."
+            : "Reminders pop up here while Backstage is open, and on your phone through the Backstage Android app."}
+          {task.repeat ? " When you tick this off, the next one is added." : ""}
         </p>
 
         <div className="bs-drawer-foot">

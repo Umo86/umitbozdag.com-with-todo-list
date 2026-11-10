@@ -3,6 +3,7 @@
 // The board: three columns for one list. Cards drag between columns and
 // reorder within them (pointer, touch and keyboard); the drawer offers the
 // same moves through ordinary form controls.
+import { REPEAT_LABEL } from "@/lib/parse";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
@@ -327,7 +328,7 @@ function Card({
         ) : (
           <p className="title">{t.title}</p>
         )}
-        {(project || t.due_date || t.remind_at || t.priority !== "normal" || t.added_by !== "umit" || t.notes) && (
+        {(project || t.due_date || t.remind_at || t.repeat || t.priority !== "normal" || t.added_by !== "umit" || t.notes) && (
           <div className="meta">
             {project && (
               <span className="proj">
@@ -345,6 +346,7 @@ function Card({
                 Reminder {fmtWhen(t.remind_at)}
               </span>
             )}
+            {t.repeat && <span>↻ {REPEAT_LABEL[t.repeat]}</span>}
             {t.priority === "high" && <span className="high">High</span>}
             {t.priority === "low" && <span>Low priority</span>}
             {t.notes && <span>Has notes</span>}

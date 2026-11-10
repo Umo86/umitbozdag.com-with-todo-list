@@ -116,6 +116,38 @@ step("api: move and reorder a card", mv.status === 200 && mv.data.position === 4
 const pc = await api(`/projects/${pr.data.id}`, "PATCH", { color: "#1f6f6b" });
 step("api: recolour project", pc.status === 200 && pc.data.color === "#1f6f6b");
 
+// project deadlines
+const pd = await api(`/projects/${pr.data.id}`, "PATCH", { due_date: "2027-05-06" });
+step("api: set a project deadline", pd.status === 200 && pd.data.due_date === "2027-05-06", JSON.stringify(pd.data));
+const pd2 = await api(`/projects/${pr.data.id}`, "PATCH", { due_date: null });
+step("api: clear a project deadline", pd2.status === 200 && pd2.data.due_date === null && pd2.data.color === "#1f6f6b");
+const pn = await api("/projects", "POST", { name: "E2E dated project", color: "#1a47ff", due_date: "2027-01-15" });
+step("api: new project with a deadline", pn.status === 201 && pn.data.due_date === "2027-01-15");
+await api(`/projects/${pn.data.id}`, "DELETE");
+
+// repeating tasks: finishing one creates the next, once
+const rep = await api("/tasks", "POST", {
+  title: "E2E weekly report", list: "work", repeat: "weekly",
+  due_date: "2026-11-16", remind_at: "2026-11-16T09:00:00Z",
+});
+step("api: create a repeating task", rep.status === 201 && rep.data.repeat === "weekly", rep.data.error || rep.data.repeat);
+const repDone = await api(`/tasks/${rep.data.id}`, "PATCH", { status: "done" });
+const sp = repDone.data.spawned;
+step("api: finishing it adds the next one", repDone.status === 200 && !!sp && sp.due_date === "2026-11-23" && sp.repeat === "weekly" && sp.status === "todo", JSON.stringify(sp ?? repDone.data));
+step("api: the next one keeps its reminder time", !!sp && new Date(sp.remind_at).toISOString() === "2026-11-23T09:00:00.000Z", sp?.remind_at);
+await api(`/tasks/${rep.data.id}`, "PATCH", { status: "todo" });
+const again2 = await api(`/tasks/${rep.data.id}`, "PATCH", { status: "done" });
+step("api: ticking it again doesn't add a second copy", again2.status === 200 && !again2.data.spawned);
+const badRep = await api("/tasks", "POST", { title: "E2E bad repeat", repeat: "hourly" });
+step("api: unknown repeat is ignored on create", badRep.status === 201 && badRep.data.repeat === null);
+const badRep2 = await api(`/tasks/${rep.data.id}`, "PATCH", { repeat: "hourly" });
+step("api: unknown repeat refused on edit", badRep2.status === 400);
+for (const id of [rep.data.id, sp?.id, badRep.data.id]) if (id) await api(`/tasks/${id}`, "DELETE");
+
+// reading speech: without an AI key the server says so and the page uses its own rules
+const parse = await api("/parse", "POST", { text: "call the venue tomorrow", now_local: "2026-11-10T20:00", projects: [] });
+step("api: /parse answers (501 = AI off, 200 = AI on)", parse.status === 501 || (parse.status === 200 && Array.isArray(parse.data.drafts)), `status ${parse.status}`);
+
 const delT = await api(`/tasks/${t1.data.id}`, "DELETE");
 step("api: delete task", delT.status === 200);
 const delP = await api(`/projects/${pr.data.id}`, "DELETE");

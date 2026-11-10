@@ -2,8 +2,16 @@ export type Status = "todo" | "doing" | "done";
 export type ListName = "personal" | "work";
 export type Priority = "low" | "normal" | "high";
 export type Role = "owner" | "helper";
+import type { Repeat } from "@/lib/parse";
+export type { Repeat };
 
-export type Project = { id: string; name: string; color: string; position: number };
+export type Project = {
+  id: string;
+  name: string;
+  color: string;
+  position: number;
+  due_date: string | null; // YYYY-MM-DD
+};
 
 export type Task = {
   id: string;
@@ -20,6 +28,7 @@ export type Task = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  repeat: Repeat | null;
 };
 
 export type Message = {
@@ -35,7 +44,7 @@ export type Message = {
 export type TaskPatch = Partial<
   Pick<
     Task,
-    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position"
+    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat"
   >
 >;
 
