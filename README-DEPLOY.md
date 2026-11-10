@@ -10,7 +10,7 @@ to activate Backstage, then redeploy.
 ## Production on Hostinger (Node.js app)
 
 A Next.js 16 site: editorial portfolio + CV, with **Backstage** (`/backstage`),
-a private task manager backed by Neon Postgres and Neon Auth.
+a private task manager behind one password, storing its data in Neon Postgres.
 
 ## What's in here
 
@@ -21,9 +21,9 @@ a private task manager backed by Neon Postgres and Neon Auth.
 | `components/backstage/` | The Backstage board: sign-in gate, columns with drag and drop, task drawer, projects |
 | `lib/profile.json` | All public-page content: roles, dates, the 24 shows, press links, contact details. Edit this to change what the site says |
 | `app/shows/[id]/` | One page per show, generated from `profile.json` |
-| `lib/` | Postgres pool, Neon Auth token check + owner/helper roles (verified emails only), task queries |
-| `scripts/migrate.mjs` | Creates the `settings` / `projects` / `tasks` tables (run once) |
-| `test/e2e.mjs` | End-to-end test: sign-in → JWT → task CRUD |
+| `lib/` | Postgres pool, the password gate and session cookie, task queries |
+| `scripts/migrate.mjs` | Creates the database tables (run once; safe to re-run) |
+| `test/e2e.mjs` | End-to-end test: password gate, tasks, projects, contact messages |
 
 ## Deploy on Hostinger (Business or Cloud plan)
 
@@ -40,36 +40,23 @@ a private task manager backed by Neon Postgres and Neon Auth.
 | Name | Value | Notes |
 | --- | --- | --- |
 | `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
-| `NEON_AUTH_BASE_URL` | `https://ep-shy-unit-zaoq9skj.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth` | this project's Neon Auth URL (public) |
-| `NEON_AUTH_JWKS_URL` | `https://ep-shy-unit-zaoq9skj.neonauth.c-2.eu-west-2.aws.neon.tech/neondb/auth/.well-known/jwks.json` | verified live |
-| `ALLOWED_EMAILS` | optional | comma-separated owner emails; defaults to `umitbozdag@googlemail.com` |
-| `HELPER_EMAILS` | optional | comma-separated emails of helpers (e.g. a partner). A helper signs up at `/backstage` with that email and can see the **Personal** list and add tasks to it — nothing else |
-
-**Trusted origins (required for sign-in):** in the Neon console → this project →
-Auth, add every origin the site runs on — e.g. your `https://….vercel.app` test
-URL, `https://umitbozdag.com` and `https://www.umitbozdag.com`. Localhost is
-allowed by default. Without this, the browser's sign-in request is rejected
-("Missing or null Origin" / untrusted origin).
+| `BACKSTAGE_PASSWORD` | the password for `/backstage` | keep it secret; changing it signs every device out |
+| `BACKSTAGE_SECRET` | optional | extra random text mixed into the session signature |
 
 Until these are set, the public site works fully and `/backstage` shows a
-"not connected yet" notice instead of the sign-in.
+notice naming the missing setting instead of the password field.
 
-## One-time Neon steps (done for you if Claude ran them)
+## One-time database step (already done on the Neon project)
 
-1. Enable **Postgres + Neon Auth** on the project.
-2. Run the schema: `npm install && npm run migrate` (needs `DATABASE_URL` or
-   `DATABASE_URL_UNPOOLED` in `.env.local`).
-3. Add the site to Neon Auth's **trusted domains**:
-   `https://umitbozdag.com` and `https://www.umitbozdag.com`.
+Run the schema: `npm install && npm run migrate` (needs `DATABASE_URL` or
+`DATABASE_URL_UNPOOLED` in `.env.local`).
 
-## First sign-in
+## Signing in
 
-Open `/backstage` and either **Continue with Google** (using the address in
-`ALLOWED_EMAILS`) or **Create account** with a password and enter the 6-digit
-code Neon emails you. Backstage only admits **verified** email addresses, so
-nobody can get in by registering your address with their own password. Any
-other verified account is refused ("limited to its owner") unless it is listed
-in `HELPER_EMAILS`.
+Open `/backstage` and enter the password (the `BACKSTAGE_PASSWORD` setting). A
+correct password keeps that browser signed in for 30 days. Ten wrong guesses
+from one address in fifteen minutes lock that address out for the rest of the
+fifteen minutes. The password is never stored in this repository.
 
 ## Backstage in brief
 
@@ -91,7 +78,5 @@ npm install
 npm run build     # production build
 npm start         # serve on $PORT (default 3000)
 npm run migrate   # apply the database schema
-npm run test:e2e  # node test/e2e.mjs <siteUrl> <authUrl> <email> <password>
-                  # set E2E_DATABASE_URL (direct connection) so the test can
-                  # verify and afterwards remove its own test account
+npm run test:e2e  # node test/e2e.mjs <siteUrl> <backstagePassword>
 ```

@@ -1,148 +1,31 @@
-// End-to-end test: Neon Auth sign-up/sign-in -> JWT -> Backstage API CRUD
-// against a running instance of the site.
+// End-to-end test against a running instance of the site: the password
+// gate, then task, project and message handling in Backstage.
 //
-// Usage: node test/e2e.mjs <siteBaseUrl> <neonAuthBaseUrl> <email> <password>
-//
-// The auth handshake uses node:https directly because Neon Auth requires an
-// Origin header, which Node's fetch() strips (it's a fetch-spec forbidden
-// header; browsers send it automatically, so the real app is unaffected).
-import https from "node:https";
-
-const [siteBase, authUrl, email, password] = process.argv.slice(2);
-if (!siteBase || !authUrl || !email || !password) {
-  console.error("Usage: node test/e2e.mjs <siteBaseUrl> <neonAuthBaseUrl> <email> <password>");
+// Usage: node test/e2e.mjs <siteBaseUrl> <backstagePassword>
+const [siteBase, password] = process.argv.slice(2);
+if (!siteBase || !password) {
+  console.error("Usage: node test/e2e.mjs <siteBaseUrl> <backstagePassword>");
   process.exit(1);
 }
-const siteOrigin = new URL(siteBase).origin;
-const apiBase = siteBase.replace(/\/+$/, "") + "/api/backstage";
+const root = siteBase.replace(/\/+$/, "");
+const apiBase = root + "/api/backstage";
+const origin = new URL(siteBase).origin;
 
 let failures = 0;
 const step = (name, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? " — " + detail : ""}`);
   if (!ok) failures++;
 };
+const finish = async (code) => process.exit(code);
 
-// ——— Neon Auth REST handshake (with Origin header) ———
-const jar = new Map();
-function storeCookies(setCookie = []) {
-  for (const c of setCookie) {
-    const [pair] = c.split(";");
-    const i = pair.indexOf("=");
-    if (i > 0) jar.set(pair.slice(0, i).trim(), pair.slice(i + 1).trim());
-  }
-}
-function cookieHeader() {
-  return [...jar.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
-}
-function authRequest(path, { method = "GET", body } = {}) {
-  const url = new URL(authUrl.replace(/\/+$/, "") + path);
-  const payload = body ? JSON.stringify(body) : null;
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      url,
-      {
-        method,
-        headers: {
-          Origin: siteOrigin,
-          ...(payload ? { "content-type": "application/json" } : {}),
-          ...(jar.size ? { cookie: cookieHeader() } : {}),
-        },
-      },
-      (res) => {
-        let data = "";
-        res.on("data", (d) => (data += d));
-        res.on("end", () => {
-          storeCookies(res.headers["set-cookie"]);
-          let json = {};
-          try {
-            json = JSON.parse(data);
-          } catch {}
-          resolve({ status: res.statusCode ?? 0, json });
-        });
-      }
-    );
-    req.on("error", reject);
-    if (payload) req.write(payload);
-    req.end();
-  });
-}
-
-const su = await authRequest("/sign-up/email", {
-  method: "POST",
-  body: { email, password, name: "E2E Test" },
-});
-const suOk = su.status === 200 || /exist/i.test(su.json?.message ?? "");
-step("auth: sign-up (or already exists)", suOk, su.json?.message ?? `status ${su.status}`);
-
-// Backstage only admits verified email addresses. A fresh account must be
-// kept out: either Neon Auth refuses the sign-in, or our API answers 403.
-const tokenFor = async () => (await authRequest("/token")).json?.token;
-const rawState = async (tok) =>
-  fetch(apiBase + "/state", { headers: { Authorization: `Bearer ${tok}` } });
-
-let si = await authRequest("/sign-in/email", { method: "POST", body: { email, password } });
-if (si.status === 200) {
-  const early = await tokenFor();
-  const r = early ? await rawState(early) : { status: 0 };
-  const body = early ? await r.json().catch(() => ({})) : {};
-  const alreadyVerified = r.status === 200 || (r.status === 403 && body.code !== "unverified");
-  step(
-    "auth: unverified account is kept out by the API",
-    alreadyVerified || (r.status === 403 && body.code === "unverified"),
-    alreadyVerified ? "account was already verified" : `status ${r.status} ${body.code ?? ""}`
-  );
-} else {
-  step(
-    "auth: unverified account is refused at sign-in",
-    /verif/i.test(JSON.stringify(si.json)),
-    si.json?.message ?? `status ${si.status}`
-  );
-}
-
-// A test run can't read the emailed code. With E2E_DATABASE_URL set, the test
-// marks its own account verified in Neon Auth's table and removes it at the end.
-const dbUrl = process.env.E2E_DATABASE_URL;
-let pgClient = null;
-if (dbUrl) {
-  const { default: pg } = await import("pg");
-  pgClient = new pg.Client({ connectionString: dbUrl });
-  await pgClient.connect();
-  await pgClient.query(`update neon_auth."user" set "emailVerified" = true where email = $1`, [email]);
-  jar.clear();
-  si = await authRequest("/sign-in/email", { method: "POST", body: { email, password } });
-}
-const finish = async (code) => {
-  if (pgClient) {
-    const u = (await pgClient.query(`select id from neon_auth."user" where email = $1`, [email])).rows[0];
-    if (u) {
-      for (const t of ["session", "account", "member"]) {
-        await pgClient.query(`delete from neon_auth."${t}" where "userId" = $1`, [u.id]).catch(() => {});
-      }
-      await pgClient.query(`delete from neon_auth."user" where id = $1`, [u.id]);
-      console.log("     test account removed");
-    }
-    await pgClient.end();
-  }
-  process.exit(code);
-};
-
-step("auth: sign-in once verified", si.status === 200, si.json?.message ?? `status ${si.status}`);
-if (si.status !== 200) {
-  console.log("     Verify the test address first, or set E2E_DATABASE_URL so the test can.");
-  await finish(1);
-}
-
-const token = await tokenFor();
-step("auth: JWT issued", typeof token === "string" && token.length > 20);
-if (!token) await finish(1);
-
-// ——— site + API checks ———
-const api = async (path, method = "GET", body) => {
+let cookie = "";
+const call = async (path, method = "GET", body, headers = {}) => {
   const res = await fetch(apiBase + path, {
     method,
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...(cookie ? { cookie } : {}),
       ...(body ? { "Content-Type": "application/json" } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -150,27 +33,42 @@ const api = async (path, method = "GET", body) => {
   try {
     data = await res.json();
   } catch {}
-  return { status: res.status, data };
+  return { status: res.status, data, setCookie: res.headers.getSetCookie?.() ?? [] };
 };
+const api = (path, method, body) => call(path, method, body);
 
+// ——— the door ———
+const cfg = await call("/config");
+step("setup: password and database in place", cfg.data.password === "ok" && cfg.data.database === "ok", JSON.stringify(cfg.data));
+
+const anon = await call("/state");
+step("gate: no session, no board", anon.status === 401, `status ${anon.status}`);
+
+const wrong = await call("/login", "POST", { password: password + "x" });
+step("gate: wrong password refused", wrong.status === 401 && wrong.setCookie.length === 0, `status ${wrong.status}`);
+
+const forged = await call("/state", "GET", undefined, { cookie: "backstage_session=not-a-real-session" });
+step("gate: forged session refused", forged.status === 401, `status ${forged.status}`);
+
+const login = await call("/login", "POST", { password });
+const session = login.setCookie.find((c) => c.startsWith("backstage_session="));
+step("gate: right password opens a session", login.status === 200 && !!session, `status ${login.status}`);
+if (!session) await finish(1);
+step("gate: session cookie is HttpOnly", /httponly/i.test(session) && /samesite=lax/i.test(session));
+cookie = session.split(";")[0];
+
+const foreign = await call("/tasks", "POST", { title: "from another site" }, { Origin: "https://evil.example" });
+step("gate: request from another site refused", foreign.status === 403, `status ${foreign.status}`);
+
+// ——— site + API checks ———
 for (const p of ["/", "/cv", "/backstage"]) {
-  const r = await fetch(siteBase.replace(/\/+$/, "") + p);
+  const r = await fetch(root + p);
   step(`site: GET ${p}`, r.status === 200, `status ${r.status}`);
 }
 
-const anon = await fetch(apiBase + "/state");
-step("api: rejects missing token", anon.status === 401, `status ${anon.status}`);
-const badTok = await fetch(apiBase + "/state", {
-  headers: { Authorization: "Bearer not-a-real-token" },
-});
-step("api: rejects invalid token", badTok.status === 401, `status ${badTok.status}`);
 
 const st = await api("/state");
 step("api: GET /state", st.status === 200, `status ${st.status} ${st.data.error ?? ""}`);
-if (st.status === 403) {
-  console.log("     (owner lock working — this email is not in ALLOWED_EMAILS)");
-  await finish(failures ? 1 : 0);
-}
 if (st.status !== 200) await finish(1);
 step(
   "api: seeded starter projects",
@@ -229,7 +127,7 @@ await api(`/tasks/${t4.data.id}`, "DELETE");
 
 // contact form -> Messages in Backstage
 const post = (body) =>
-  fetch(siteBase.replace(/\/+$/, "") + "/api/contact", {
+  fetch(root + "/api/contact", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -250,6 +148,11 @@ if (got) {
   const dm = await api(`/messages/${got.id}`, "DELETE");
   step("backstage: delete message", dm.status === 200);
 }
+
+const out = await call("/logout", "POST", {});
+cookie = (out.setCookie.find((c) => c.startsWith("backstage_session=")) ?? "backstage_session=").split(";")[0];
+const after2 = await call("/state");
+step("gate: signing out closes the board", out.status === 200 && after2.status === 401, `status ${after2.status}`);
 
 console.log(failures ? `\n${failures} step(s) failed.` : "\nAll end-to-end steps passed.");
 await finish(failures ? 1 : 0);

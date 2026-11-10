@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { passwordConfigured } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// Public, non-secret configuration the Backstage client needs before sign-in,
-// plus a plain health reading so a broken setup says what is wrong.
+// A plain health reading for the sign-in screen, so a broken setup says what
+// is wrong. No secrets: only whether each piece is in place.
 export async function GET() {
   let database: "ok" | "missing" | "unreachable" = "missing";
   if (process.env.DATABASE_URL) {
@@ -17,8 +18,7 @@ export async function GET() {
     }
   }
   return NextResponse.json({
-    authUrl: process.env.NEON_AUTH_BASE_URL ?? "",
-    keys: process.env.NEON_AUTH_JWKS_URL ? "ok" : "missing",
+    password: passwordConfigured() ? "ok" : "missing",
     database,
   });
 }

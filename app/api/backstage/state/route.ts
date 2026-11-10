@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const auth = await requireMember(req);
   if (!auth.ok) return auth.res;
   try {
-    const who = { email: auth.email, name: auth.name, role: auth.role };
+    const who = { name: auth.name, role: auth.role };
 
     // A helper sees the Personal list only — no projects, no Work.
     if (auth.role === "helper") {

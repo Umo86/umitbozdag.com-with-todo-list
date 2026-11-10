@@ -129,7 +129,6 @@ export default function BackstageApp() {
               Turn on reminder alerts
             </button>
           )}
-          <span>{me.email}</span>
           <button onClick={bs.signOut}>Sign out</button>
         </div>
       </header>

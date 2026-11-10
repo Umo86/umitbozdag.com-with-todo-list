@@ -1,65 +1,32 @@
 "use client";
 
-// Everything Backstage needs from the outside world: the Neon Auth session,
+// Everything Backstage needs from the outside world: the password session,
 // the /api/backstage calls, and the board's data with optimistic updates.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createAuthClient } from "@neondatabase/auth";
 import type { Message, Project, Role, Task, TaskPatch } from "./types";
-
-type AuthResult = { data?: unknown; error?: { message?: string; code?: string; status?: number } | null } | null;
-type AuthLike = {
-  getSession(): Promise<AuthResult>;
-  signOut(): Promise<unknown>;
-  signIn: {
-    email(a: { email: string; password: string }): Promise<AuthResult>;
-    social(a: { provider: string; callbackURL: string }): Promise<AuthResult>;
-  };
-  signUp: { email(a: { email: string; password: string; name: string }): Promise<AuthResult> };
-  emailOtp?: {
-    sendVerificationOtp(a: { email: string; type: string }): Promise<AuthResult>;
-    verifyEmail(a: { email: string; otp: string }): Promise<AuthResult>;
-  };
-  getJWTToken?(allowAnonymous?: boolean): Promise<string | null>;
-  token?(): Promise<{ data?: { token?: string } | null } | null>;
-};
 
 export type Phase =
   | { kind: "loading" }
-  | { kind: "noconfig" }
+  | { kind: "noconfig"; missing: string }
   | { kind: "signin" }
-  | { kind: "signup" }
-  | { kind: "verify"; email: string }
   | { kind: "locked"; message: string }
   | { kind: "app" };
 
 class ApiError extends Error {
   status: number;
-  code?: string;
-  email?: string;
   constructor(status: number, body: Record<string, unknown>) {
     super(String(body.error ?? "Something went wrong."));
     this.status = status;
-    if (typeof body.code === "string") this.code = body.code;
-    if (typeof body.email === "string") this.email = body.email;
   }
 }
-
-async function tokenOf(auth: AuthLike): Promise<string | null> {
-  if (typeof auth.getJWTToken === "function") return auth.getJWTToken(false);
-  if (typeof auth.token === "function") return (await auth.token())?.data?.token ?? null;
-  return null;
-}
-
-const needsVerifying = (msg?: string) => !!msg && /verif/i.test(msg);
 
 export function useBackstage() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [me, setMe] = useState<{ email: string; name: string; role: Role } | null>(null);
+  const [me, setMe] = useState<{ name: string; role: Role } | null>(null);
   const [notice, setNotice] = useState("");
-  const authRef = useRef<AuthLike | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const say = useCallback((msg: string) => {
@@ -68,17 +35,13 @@ export function useBackstage() {
     noticeTimer.current = setTimeout(() => setNotice(""), 3200);
   }, []);
 
+  // The session is an HttpOnly cookie, sent automatically to this site.
   const api = useCallback(
     async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
-      const auth = authRef.current;
-      const token = auth ? await tokenOf(auth).catch(() => null) : null;
-      if (!token) throw new ApiError(401, { error: "Sign in to use Backstage." });
       const res = await fetch(`/api/backstage${path}`, {
         method: init?.method ?? "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...(init?.body !== undefined ? { "Content-Type": "application/json" } : {}),
-        },
+        credentials: "same-origin",
+        headers: init?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
         body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
       });
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -91,7 +54,6 @@ export function useBackstage() {
   const refresh = useCallback(async () => {
     try {
       const data = await api<{
-        email: string;
         name: string;
         role: Role;
         projects: Project[];
@@ -101,48 +63,47 @@ export function useBackstage() {
       setProjects(data.projects ?? []);
       setTasks(data.tasks ?? []);
       setMessages(data.messages ?? []);
-      setMe({ email: data.email, name: data.name, role: data.role });
+      setMe({ name: data.name, role: data.role });
       setPhase({ kind: "app" });
     } catch (e) {
       const err = e as ApiError;
       if (err.status === 401) setPhase({ kind: "signin" });
-      else if (err.status === 403 && err.code === "unverified")
-        setPhase({ kind: "verify", email: err.email ?? "" });
-      else if (err.status === 403) setPhase({ kind: "locked", message: err.message });
-      else say(`Can't reach Backstage right now. ${err.message}`);
+      else if (err.status === 503) setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
+      else {
+        // already on the board: keep it and say so; otherwise explain on the gate
+        setPhase((prev) =>
+          prev.kind === "app"
+            ? prev
+            : { kind: "locked", message: `Backstage couldn't load. ${err.message}` }
+        );
+        say(`Can't reach Backstage right now. ${err.message}`);
+      }
     }
   }, [api, say]);
 
-  // boot: read the public config, create the auth client, look for a session
+  // boot: check the server is set up, then see whether a session already exists
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const cfg = (await (await fetch("/api/backstage/config")).json()) as {
-          authUrl?: string;
-          keys?: string;
+          password?: string;
           database?: string;
         };
         if (cancelled) return;
-        if (!cfg.authUrl || cfg.keys === "missing" || cfg.database === "missing") {
-          return setPhase({ kind: "noconfig" });
-        }
-        if (cfg.database === "unreachable") {
+        if (cfg.password !== "ok") return setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
+        if (cfg.database === "missing") return setPhase({ kind: "noconfig", missing: "DATABASE_URL" });
+        if (cfg.database !== "ok") {
           return setPhase({
             kind: "locked",
             message:
               "Backstage can't reach its database right now, so nothing would save. Try again in a minute.",
           });
         }
-        authRef.current = createAuthClient(cfg.authUrl) as unknown as AuthLike;
-        const s = (await authRef.current.getSession().catch(() => null)) as {
-          data?: { user?: unknown; session?: unknown } | null;
-        } | null;
-        if (cancelled) return;
-        if (s?.data?.user || s?.data?.session) await refresh();
-        else setPhase({ kind: "signin" });
+        await refresh();
       } catch {
-        if (!cancelled) setPhase({ kind: "noconfig" });
+        if (!cancelled)
+          setPhase({ kind: "locked", message: "Backstage couldn't load. Check your connection and reload." });
       }
     })();
     return () => {
@@ -150,81 +111,18 @@ export function useBackstage() {
     };
   }, [refresh]);
 
-  // ——— sign-in actions (each returns an error message, or "" on success) ———
+  // returns an error message, or "" on success
   const signIn = useCallback(
-    async (email: string, password: string): Promise<string> => {
+    async (password: string): Promise<string> => {
       try {
-        const res = await authRef.current!.signIn.email({ email, password });
-        if (res?.error) {
-          if (needsVerifying(res.error.message) || res.error.status === 403) {
-            setPhase({ kind: "verify", email });
-            return "";
-          }
-          return res.error.message ?? "That didn't work. Check the details and try again.";
-        }
+        await api("/login", { method: "POST", body: { password } });
         await refresh();
         return "";
-      } catch {
-        return "Can't reach the sign-in service. Check your connection and try again.";
+      } catch (e) {
+        return (e as Error).message || "That didn't work. Try again.";
       }
     },
-    [refresh]
-  );
-
-  const signUp = useCallback(
-    async (name: string, email: string, password: string): Promise<string> => {
-      try {
-        const res = await authRef.current!.signUp.email({ email, password, name: name || "Umit" });
-        if (res?.error) return res.error.message ?? "That didn't work. Check the details and try again.";
-        // The server only lets verified addresses in; go straight to the code.
-        setPhase({ kind: "verify", email });
-        return "";
-      } catch {
-        return "Can't reach the sign-in service. Check your connection and try again.";
-      }
-    },
-    []
-  );
-
-  const signInWithGoogle = useCallback(async (): Promise<string> => {
-    try {
-      const res = await authRef.current!.signIn.social({
-        provider: "google",
-        callbackURL: `${window.location.origin}/backstage`,
-      });
-      return res?.error ? res.error.message ?? "Google sign-in didn't start." : "";
-    } catch {
-      return "Can't reach the sign-in service. Check your connection and try again.";
-    }
-  }, []);
-
-  const sendCode = useCallback(async (email: string): Promise<string> => {
-    const otp = authRef.current?.emailOtp;
-    if (!otp) return "Email codes aren't available. Use Google sign-in instead.";
-    try {
-      const res = await otp.sendVerificationOtp({ email, type: "email-verification" });
-      return res?.error ? res.error.message ?? "The code couldn't be sent." : "";
-    } catch {
-      return "The code couldn't be sent. Try again in a moment.";
-    }
-  }, []);
-
-  const verifyCode = useCallback(
-    async (email: string, code: string): Promise<string> => {
-      const otp = authRef.current?.emailOtp;
-      if (!otp) return "Email codes aren't available. Use Google sign-in instead.";
-      try {
-        const res = await otp.verifyEmail({ email, otp: code.trim() });
-        if (res?.error) return res.error.message ?? "That code didn't match.";
-        const token = await tokenOf(authRef.current!).catch(() => null);
-        if (token) await refresh();
-        else setPhase({ kind: "signin" });
-        return "";
-      } catch {
-        return "That code couldn't be checked. Try again.";
-      }
-    },
-    [refresh]
+    [api, refresh]
   );
 
   const signOut = useCallback(() => {
@@ -235,8 +133,8 @@ export function useBackstage() {
       setMe(null);
       setPhase({ kind: "signin" });
     };
-    authRef.current?.signOut().then(done, done);
-  }, []);
+    api("/logout", { method: "POST", body: {} }).then(done, done);
+  }, [api]);
 
   // ——— board actions (optimistic; the server's answer replaces the guess) ———
   const fail = useCallback(
@@ -337,10 +235,6 @@ export function useBackstage() {
     notice,
     say,
     signIn,
-    signUp,
-    signInWithGoogle,
-    sendCode,
-    verifyCode,
     signOut,
     addTask,
     patchTask,

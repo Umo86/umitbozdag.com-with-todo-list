@@ -83,6 +83,13 @@ create table if not exists messages (
   created_at timestamptz not null default now(),
   read_at    timestamptz
 );
+
+-- Wrong Backstage passwords, counted per address to slow guessing.
+create table if not exists login_attempts (
+  ip text not null,
+  at timestamptz not null default now()
+);
+create index if not exists login_attempts_ip_at_idx on login_attempts (ip, at);
 `;
 
 const client = new Client({ connectionString: url });
