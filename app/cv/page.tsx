@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import PrintButton from "@/components/PrintButton";
+import { CRAFT, ROLES, SHOWS, SITE } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "CV",
   description:
     "Curriculum vitae of Umit Bozdag, Senior Operations Manager — events and exhibitions, London.",
+  alternates: { canonical: "/cv" },
 };
 
 export default function CvPage() {
@@ -18,15 +20,11 @@ export default function CvPage() {
       </div>
 
       <header className="cv-head">
-        <h1>Umit Bozdag</h1>
-        <p className="role-line">
-          Senior Operations Manager — events &amp; exhibitions
-        </p>
+        <h1>{SITE.name}</h1>
+        <p className="role-line">{SITE.role} — events &amp; exhibitions</p>
         <p className="contact-line">
           London, United Kingdom —{" "}
-          <a href="mailto:umitbozdag@googlemail.com">
-            umitbozdag@googlemail.com
-          </a>
+          <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
         </p>
       </header>
 
@@ -41,95 +39,32 @@ export default function CvPage() {
       </p>
 
       <h2>Experience</h2>
-
-      <div className="cv-entry first">
-        <div className="when">
-          2026 — <span className="now">present</span>
+      {ROLES.map((r, i) => (
+        <div className={`cv-entry${i === 0 ? " first" : ""}`} key={r.org}>
+          <div className="when">{r.when ?? ""}</div>
+          <div>
+            <h3>{r.title}</h3>
+            <p className="org">
+              {r.org}
+              {r.place && !r.org.includes(r.place) ? `, ${r.place}` : ""}
+            </p>
+            <ul>
+              {r.points.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <div>
-          <h3>Senior Operations Manager</h3>
-          <p className="org">Media 10, London</p>
-          <ul>
-            <li>
-              Operational lead for UK Construction Week, delivered across NEC
-              Birmingham and ExCeL London
-            </li>
-            <li>
-              Owns build and breakdown schedules, contractor and supplier
-              management, and on-site delivery
-            </li>
-            <li>Runs signage, graphics and stand-design sign-off across the show</li>
-            <li>
-              Supports sales of stand space and sponsorship, shaping commercial
-              packages into deliverable features
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="cv-entry">
-        <div className="when">to 2026</div>
-        <div>
-          <h3>Operations Manager</h3>
-          <p className="org">DMG Events</p>
-          <ul>
-            <li>
-              Delivered Gastech, one of the world&rsquo;s leading energy
-              exhibitions and conferences
-            </li>
-            <li>Supported operations across DMG&rsquo;s international events portfolio</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="cv-entry">
-        <div className="when" />
-        <div>
-          <h3>Event Operations</h3>
-          <p className="org">Hyve Group</p>
-          <ul>
-            <li>
-              Operations across Breakbulk Europe and Breakbulk Americas —
-              project cargo and logistics exhibitions
-            </li>
-            <li>
-              Delivered Spring Fair at the NEC Birmingham and Pure London —
-              large-scale retail and fashion shows
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="cv-entry">
-        <div className="when" />
-        <div>
-          <h3>Culture &amp; Information Office</h3>
-          <p className="org">Turkish Embassy, London</p>
-          <ul>
-            <li>
-              Early career delivering cultural programmes and events for the
-              Embassy in London
-            </li>
-          </ul>
-        </div>
-      </div>
+      ))}
 
       <h2>Selected shows</h2>
-      <p className="cv-shows">
-        UK Construction Week — Gastech — Breakbulk Europe — Breakbulk Americas —
-        Spring Fair — Pure London
-      </p>
+      <p className="cv-shows">{SHOWS.map((s) => s.name).join(" — ")}</p>
 
       <h2>Capabilities</h2>
       <ul className="cv-skills">
-        <li>Venue &amp; floor planning</li>
-        <li>Contractor &amp; supplier management</li>
-        <li>Build &amp; breakdown scheduling</li>
-        <li>Health, safety &amp; CDM compliance</li>
-        <li>Signage, graphics &amp; wayfinding</li>
-        <li>Operations budgets</li>
-        <li>Sponsorship &amp; feature delivery</li>
-        <li>Exhibitor experience</li>
+        {CRAFT.map((c) => (
+          <li key={c}>{c}</li>
+        ))}
       </ul>
 
       <h2>Languages</h2>

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITE } from "@/lib/content";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,5 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/backstage", "/api/"],
     },
+    sitemap: `${SITE.url}/sitemap.xml`,
   };
 }
