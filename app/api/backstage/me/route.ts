@@ -43,3 +43,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Something went wrong on the server." }, { status: 500 });
   }
 }
+
+// Your birthday (so the other person gets a gift reminder two weeks before).
+export async function PATCH(req: Request) {
+  const auth = await requireUser(req);
+  if (!auth.ok) return auth.res;
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const b = body.birthday;
+  if (b !== null && !(typeof b === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b))) {
+    return NextResponse.json({ error: "Pick a date." }, { status: 400 });
+  }
+  try {
+    await db().query(`update users set birthday = $2::date where id = $1`, [auth.me.id, b]);
+    return NextResponse.json({ ok: true, birthday: b });
+  } catch (err) {
+    console.error("backstage birthday error:", err);
+    return NextResponse.json({ error: "Something went wrong on the server." }, { status: 500 });
+  }
+}

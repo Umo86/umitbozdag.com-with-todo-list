@@ -36,6 +36,9 @@ export type Task = {
   repeat: Repeat | null;
   owner: Owner;
   assignee: Assignee | null;
+  love_note: string | null;
+  completed_by: UserId | null;
+  nudges: number;
 };
 
 export type CalEvent = {
@@ -75,7 +78,7 @@ export type Message = {
 export type TaskPatch = Partial<
   Pick<
     Task,
-    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee"
+    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee" | "love_note"
   >
 >;
 
@@ -145,9 +148,30 @@ export type ChatMessage = {
   id: string;
   sender: UserId;
   body: string;
-  kind: "text" | "heart";
+  kind: "text" | "heart" | "nudge";
   created_at: string;
   read_at: string | null;
   pending?: boolean; // still sending
   failed?: boolean; // didn't send
 };
+
+export type UsKind = "countdown" | "memory" | "idea" | "shopping" | "gift" | "mood" | "vote";
+export type UsItem = {
+  id: string;
+  kind: UsKind;
+  owner: string;
+  added_by: UserId;
+  title: string;
+  body: string | null;
+  day: string | null;
+  emoji: string | null;
+  list: "date" | "dinner" | null;
+  ref: string | null;
+  yes: boolean | null;
+  done: boolean;
+  done_by: UserId | null;
+  for_user: UserId | null;
+  created_at: string;
+  updated_at: string;
+};
+export type Score = { who: UserId; this_week: number; last_week: number };

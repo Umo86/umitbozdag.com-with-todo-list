@@ -104,10 +104,18 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
           return (
             <div key={m.id}>
               {showDay && <div className="bs-chat-day">{day}</div>}
-              <div className={`bs-msg ${mine ? "mine" : "theirs"}${m.kind === "heart" ? " heart" : ""}${m.failed ? " failed" : ""}`}>
+              <div className={`bs-msg ${mine ? "mine" : "theirs"}${m.kind === "heart" ? " heart" : ""}${m.kind === "nudge" ? " nudge" : ""}${m.failed ? " failed" : ""}`}>
                 <button
                   className="bubble"
-                  style={m.kind === "heart" ? undefined : mine ? { background: colorOf(m.sender) } : { background: softOf(m.sender) }}
+                  style={
+                    m.kind === "heart"
+                      ? undefined
+                      : m.kind === "nudge"
+                        ? { borderColor: colorOf(m.sender), color: colorOf(m.sender) }
+                        : mine
+                          ? { background: colorOf(m.sender) }
+                          : { background: softOf(m.sender) }
+                  }
                   onClick={() => setOpen(open === m.id ? null : m.id)}
                   aria-expanded={open === m.id}
                   aria-label={`${mine ? "You" : nameOf(m.sender)} at ${time(m.created_at)}: ${m.body}`}
@@ -122,7 +130,7 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
                         className="bs-link danger"
                         onClick={() => {
                           bs.dropChat(m.id);
-                          void send(m.body, m.kind);
+                          void send(m.body, m.kind === "heart" ? "heart" : "text");
                         }}
                       >
                         Retry

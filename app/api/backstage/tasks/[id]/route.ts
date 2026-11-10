@@ -57,6 +57,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
       sets.push(
         body.status === "done" ? "completed_at = now()" : "completed_at = null"
       );
+      if (body.status === "done") add("completed_by = ?", me!.id);
+      else sets.push("completed_by = null");
     }
     if (body.priority !== undefined) {
       if (typeof body.priority !== "string" || !PRIORITIES.has(body.priority)) {
@@ -108,6 +110,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     }
     if (body.assignee !== undefined) {
       add("assignee = ?", cleanAssignee(body.assignee));
+    }
+    if (body.love_note !== undefined) {
+      add("love_note = ?", typeof body.love_note === "string" && body.love_note.trim() ? body.love_note.trim().slice(0, 1000) : null);
     }
     if (body.repeat !== undefined) {
       if (body.repeat !== null && !cleanRepeat(body.repeat)) {

@@ -289,6 +289,62 @@ if (password2) {
   const d2 = await asDil(`/chat/${hrt.data.id}`, "DELETE");
   step("chat: you can delete your own", d1.status === 200 && d2.status === 200);
 
+  // the fun bits
+  const cd = await asUmit("/us", "POST", { kind: "countdown", title: `${mark} trip`, day: "2027-01-10", emoji: "✈️" });
+  step("fun: add a countdown", cd.status === 201 && cd.data.owner === "joint" && cd.data.day === "2027-01-10");
+  const cdBad = await asUmit("/us", "POST", { kind: "countdown", title: "no date" });
+  step("fun: a countdown needs a date", cdBad.status === 400);
+  const gift = await asUmit("/us", "POST", { kind: "gift", title: `${mark} bracelet` });
+  const dSeesGift = ((await asDil("/state")).data.us || []).some((x) => x.id === gift.data.id);
+  step("fun: gift ideas are private", gift.status === 201 && gift.data.owner === "umit" && gift.data.for_user === "dilfiraz" && !dSeesGift);
+  const giftEdit = await asDil(`/us/${gift.data.id}`, "PATCH", { title: "peek" });
+  step("fun: …and the other can't touch them", giftEdit.status === 404);
+  const m1 = await asDil("/us", "POST", { kind: "mood", emoji: "😴" });
+  const m2 = await asDil("/us", "POST", { kind: "mood", emoji: "🤗" });
+  const moods = ((await asUmit("/state")).data.us || []).filter((x) => x.kind === "mood" && x.added_by === "dilfiraz" && x.day === m2.data.day);
+  step("fun: one mood per person per day (the latest)", m1.status === 201 && m2.status === 201 && moods.length === 1 && moods[0].emoji === "🤗");
+  const idea = await asUmit("/us", "POST", { kind: "idea", list: "dinner", title: `${mark} lahmacun` });
+  await asUmit("/us", "POST", { kind: "vote", ref: idea.data.id, yes: false });
+  await asUmit("/us", "POST", { kind: "vote", ref: idea.data.id, yes: true });
+  await asDil("/us", "POST", { kind: "vote", ref: idea.data.id, yes: true });
+  const votes = ((await asDil("/state")).data.us || []).filter((x) => x.kind === "vote" && x.ref === idea.data.id);
+  step("fun: dinner votes: one per person, both yes = match", votes.length === 2 && votes.every((v) => v.yes === true));
+  const shop = await asDil("/us", "POST", { kind: "shopping", title: `${mark} milk` });
+  const ticked = await asUmit(`/us/${shop.data.id}`, "PATCH", { done: true });
+  step("fun: shopping: Dilfiraz adds, Umit ticks it off", shop.status === 201 && ticked.status === 200 && ticked.data.done && ticked.data.done_by === "umit");
+  const memo = await asDil("/us", "POST", { kind: "memory", title: `${mark} sunset`, emoji: "🌅" });
+  step("fun: add a memory (today by default)", memo.status === 201 && /^\d{4}-\d{2}-\d{2}$/.test(memo.data.day));
+  const badKind = await asUmit("/us", "POST", { kind: "spaceship", title: "x" });
+  step("fun: unknown kinds are refused", badKind.status === 400);
+  // chore battle, love notes, nudges
+  const jt = await asUmit("/tasks", "POST", { title: `${mark} bins`, owner: "joint", assignee: "dilfiraz", priority: "high" });
+  const ln = await asUmit(`/tasks/${jt.data.id}`, "PATCH", { love_note: "come home early ❤️" });
+  const dSeesNote = ((await asDil("/state")).data.tasks || []).find((t) => t.id === jt.data.id);
+  step("fun: a love note on a joint to-do reaches the other", ln.status === 200 && dSeesNote?.love_note === "come home early ❤️");
+  const n1 = await asUmit(`/tasks/${jt.data.id}/nudge`, "POST", {});
+  const n2 = await asUmit(`/tasks/${jt.data.id}/nudge`, "POST", {});
+  const nudgeMsgs = ((await asDil("/chat")).data.messages || []).filter((m) => m.kind === "nudge" && m.body.includes(`${mark} bins`));
+  step("fun: nudges count up and land in the chat", n1.status === 200 && n2.data.nudges === 2 && nudgeMsgs.length === 2 && nudgeMsgs[1].body.includes("2nd time"));
+  const nudgePriv = await asUmit(`/tasks/${priv.data.id}/nudge`, "POST", {});
+  step("fun: private to-dos can't be nudged", nudgePriv.status === 404);
+  const before = ((await asDil("/state")).data.scores || []).find((x) => x.who === "dilfiraz")?.this_week ?? 0;
+  const done = await asDil(`/tasks/${jt.data.id}`, "PATCH", { status: "done" });
+  const after = ((await asDil("/state")).data.scores || []).find((x) => x.who === "dilfiraz")?.this_week ?? 0;
+  step("fun: ticking off a joint to-do scores (urgent = 2)", done.data.completed_by === "dilfiraz" && after - before === 2, `${before} → ${after}`);
+  const bd = await asDil("/me", "PATCH", { birthday: "1990-11-19" });
+  const bds = (await asUmit("/state")).data.birthdays || {};
+  step("fun: birthday saved and visible to the other", bd.status === 200 && bds.dilfiraz === "1990-11-19");
+  const bdBad = await asDil("/me", "PATCH", { birthday: "soon" });
+  step("fun: a birthday must be a date", bdBad.status === 400);
+  // tidy the fun bits
+  for (const m of nudgeMsgs) await asUmit(`/chat/${m.id}`, "DELETE");
+  await asUmit(`/tasks/${jt.data.id}`, "DELETE");
+  for (const [who, id] of [[asUmit, cd.data.id], [asUmit, gift.data.id], [asUmit, idea.data.id], [asDil, shop.data.id], [asDil, memo.data.id], [asDil, m2.data.id]]) if (id) await who(`/us/${id}`, "DELETE");
+  const bdBefore = process.env.E2E_KEEP_BIRTHDAY ?? null;
+  await asDil("/me", "PATCH", { birthday: bdBefore });
+  const leftovers = ((await asUmit("/state")).data.us || []).filter((x) => (x.title || "").startsWith(mark));
+  step("fun: test items cleaned up", leftovers.length === 0, String(leftovers.length));
+
   // tidy up
   for (const id of [evP.data.id, evJ.data.id, evA.data.id]) {
     const owner = id === evA.data.id ? asDil : asUmit;

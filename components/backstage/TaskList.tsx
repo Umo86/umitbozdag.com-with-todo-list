@@ -60,6 +60,8 @@ export function TaskRow({
         {t.remind_at && !done && <span>⏰ {fmtWhen(t.remind_at)}</span>}
         {t.repeat && <span title={REPEAT_LABEL[t.repeat]}>↻ {t.repeat}</span>}
         {t.priority === "high" && <span className="high">High</span>}
+        {t.love_note && t.added_by !== me && <span title="There's a note for you">💌</span>}
+        {t.nudges > 0 && !done && <span title="Nudges">👉 {t.nudges}</span>}
         {t.owner === "joint" && t.assignee && t.assignee !== "both" && (
           <span className="who" style={{ color: colorOf(t.assignee) }}>
             For {t.assignee === me ? "you" : nameOf(t.assignee)}

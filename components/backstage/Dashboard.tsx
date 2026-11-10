@@ -7,6 +7,9 @@ import { useMemo } from "react";
 import { ymd } from "@/lib/parse";
 import { hhmm, itemsByDay } from "./calendar";
 import { TaskRow } from "./TaskList";
+import { BirthdayNote, Countdowns, MemoryOfTheDay, MoodBar, Scoreboard } from "./Fun";
+import type { Backstage } from "./useBackstage";
+import type { Person } from "./types";
 import { colorOf, fmtDay, fmtWhen, nameOf, type CalEvent, type Me, type Project, type Task, type TaskPatch } from "./types";
 
 const DAY = 86_400_000;
@@ -40,6 +43,9 @@ export default function Dashboard({
   onPickProject,
   onManageProjects,
   onCapture,
+  bs,
+  users,
+  onUs,
 }: {
   me: Me;
   tasks: Task[];
@@ -52,6 +58,9 @@ export default function Dashboard({
   onPickProject: (id: string) => void;
   onManageProjects: () => void;
   onCapture: () => void;
+  bs: Backstage;
+  users: Person[];
+  onUs: (section: "gifts" | "memories") => void;
 }) {
   const today = ymd(new Date());
   const in7 = ymd(new Date(Date.now() + 7 * DAY));
@@ -102,6 +111,9 @@ export default function Dashboard({
         <Stat n={soon} label="Reminders in 24h" />
         <Stat n={doneToday} label="Done today" tone={doneToday ? "good" : undefined} />
       </div>
+
+      <MoodBar bs={bs} me={me} users={users} />
+      <BirthdayNote bs={bs} me={me} users={users} onGifts={() => onUs("gifts")} />
 
       <div className="bs-dash-grid">
         <section className="bs-dash-main" aria-label="Due">
@@ -169,6 +181,9 @@ export default function Dashboard({
         </section>
 
         <aside className="bs-dash-side">
+          <Countdowns bs={bs} />
+          <Scoreboard scores={bs.scores} users={users} me={me} />
+          <MemoryOfTheDay bs={bs} onOpen={() => onUs("memories")} />
           <section aria-labelledby="h-rem">
             <h2 id="h-rem">Coming up</h2>
             {reminders.length ? (

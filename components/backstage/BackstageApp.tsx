@@ -8,7 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseTasks, ymd } from "@/lib/parse";
 import Board from "./Board";
 import Calendar from "./Calendar";
-import Chat from "./Chat";
+import UsHub, { type UsSection } from "./UsHub";
+import Shopping from "./Shopping";
+import { lastWeekChampion, nextYearly } from "./Fun";
 import { Help, shouldWelcome, Welcome } from "./Help";
 import Capture from "./Capture";
 import Dashboard, { MicIcon } from "./Dashboard";
@@ -20,14 +22,14 @@ import Projects from "./Projects";
 import Settings from "./Settings";
 import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
-import { isApp, listen, prepareNotifications, syncReminders, type NotificationAction } from "./native";
+import { isApp, listen, prepareNotifications, syncReminders, type Extra, type NotificationAction } from "./native";
 import { forMe, nameOf, type ListName } from "./types";
 import { useBackstage } from "./useBackstage";
 
 type View = "today" | "mine" | "joint" | "calendar" | "us" | "messages";
 type Sheet =
   | { kind: "task"; id: string }
-  | { kind: "event"; id?: string; day?: string }
+  | { kind: "event"; id?: string; day?: string; preset?: { title: string; time: string; joint?: boolean } }
   | { kind: "new-task" }
   | { kind: "capture"; listen: boolean }
   | { kind: "projects" }
@@ -75,6 +77,8 @@ export default function BackstageApp() {
   const [list, setList] = useState<ListName>("work");
   const [project, setProject] = useState<string | null>(null);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
+  const [jointTab, setJointTab] = useState<"todos" | "shopping">("todos");
+  const [usSection, setUsSection] = useState<UsSection>("chat");
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [due, setDue] = useState<string[]>([]);
   const seen = useRef<Set<string>>(new Set());
@@ -127,8 +131,8 @@ export default function BackstageApp() {
   }, [phase.kind, tasks, me]);
 
   // ——— the Android app: phone reminders, notification buttons, shortcuts, back ———
-  const live = useRef({ tasks, events, sheet, view, patchTask: bs.patchTask, refresh: bs.refresh });
-  live.current = { tasks, events, sheet, view, patchTask: bs.patchTask, refresh: bs.refresh };
+  const live = useRef({ tasks, events, sheet, view, usSection: "chat" as string, patchTask: bs.patchTask, refresh: bs.refresh });
+  live.current = { tasks, events, sheet, view, usSection, patchTask: bs.patchTask, refresh: bs.refresh };
 
   const onNotification = useCallback((a: NotificationAction) => {
     const t = a.taskId ? live.current.tasks.find((x) => x.id === a.taskId) : undefined;
@@ -170,9 +174,22 @@ export default function BackstageApp() {
 
   useEffect(() => {
     if (phase.kind !== "app" || !isApp() || !me) return;
-    const timer = setTimeout(() => void syncReminders(tasks, events, me.id).catch(() => {}), 1200);
+    const extras: Extra[] = [];
+    const otherP = users.find((u) => u.id !== me.id);
+    const bday = otherP ? bs.birthdays[otherP.id] : null;
+    if (otherP && bday) {
+      const n = nextYearly(bday);
+      const twoWeeks = new Date(n.date.getFullYear(), n.date.getMonth(), n.date.getDate() - 14, 9, 0);
+      extras.push({ key: `bday-14-${n.date.getFullYear()}`, title: `🎁 ${otherP.name}'s birthday is in 2 weeks`, body: "Have a look at your gift ideas in Us › Gifts.", at: twoWeeks });
+      extras.push({ key: `bday-0-${n.date.getFullYear()}`, title: `🎂 It's ${otherP.name}'s birthday today!`, body: "Don't forget the card 😉", at: new Date(n.date.getFullYear(), n.date.getMonth(), n.date.getDate(), 8, 0) });
+    }
+    for (const c of bs.us.filter((x) => x.kind === "countdown" && x.day)) {
+      const d = new Date(c.day + "T08:30:00");
+      extras.push({ key: `cd-${c.id}`, title: `${c.emoji ?? "🎉"} Today: ${c.title}!`, body: "The countdown is over. Enjoy!", at: d });
+    }
+    const timer = setTimeout(() => void syncReminders(tasks, events, me.id, extras).catch(() => {}), 1200);
     return () => clearTimeout(timer);
-  }, [phase.kind, tasks, events, me]);
+  }, [phase.kind, tasks, events, me, users, bs.birthdays, bs.us]);
 
   // ——— welcome, once per person per device ———
   useEffect(() => {
@@ -192,23 +209,29 @@ export default function BackstageApp() {
         if (stop || !fresh.length) return;
         if (fresh.some((m) => m.kind === "heart")) setHearts((h) => h + 1);
         const last = fresh[fresh.length - 1];
-        if (live.current.view !== "us") {
+        if (live.current.view !== "us" || live.current.usSection !== "chat") {
           bs.say(
             last.kind === "heart" ? `${nameOf(last.sender)} is thinking of you ❤️` : `💬 ${nameOf(last.sender)}: ${last.body.slice(0, 80)}`,
             "info",
-            { label: "Open", run: () => setView("us") }
+            {
+              label: "Open",
+              run: () => {
+                setUsSection("chat");
+                setView("us");
+              },
+            }
           );
         }
       } catch {
         /* the next tick tries again */
       }
     };
-    const timer = setInterval(tick, view === "us" ? 4000 : 20000);
+    const timer = setInterval(tick, view === "us" && usSection === "chat" ? 4000 : 20000);
     return () => {
       stop = true;
       clearInterval(timer);
     };
-  }, [phase.kind, me, view, bs, setView]);
+  }, [phase.kind, me, view, usSection, bs, setView]);
 
   // keep everything fresh while the page is open (joint changes by the other person)
   useEffect(() => {
@@ -253,6 +276,7 @@ export default function BackstageApp() {
     .map((id) => tasks.find((t) => t.id === id))
     .filter((t): t is NonNullable<typeof t> => !!t && t.status !== "done");
   const other = users.find((u) => u.id !== me?.id);
+  const champion = lastWeekChampion(bs.scores, users);
 
   if (phase.kind !== "app" || !me) return <Gate bs={bs} />;
 
@@ -315,10 +339,26 @@ export default function BackstageApp() {
               {unread > 0 && <span className="badge">{unread}</span>}
             </button>
           )}
+          <button
+            className="bs-iconbtn bs-love"
+            aria-label={`Send ${other?.name ?? ""} a heart`}
+            title={`Thinking of ${other?.name ?? "you"}`}
+            onClick={() => {
+              void bs.sendChat("❤️", "heart").then((ok) => ok && bs.say(`❤️ sent to ${other?.name ?? ""}`));
+              setHearts((h) => h + 1);
+            }}
+          >
+            <IconHeart />
+          </button>
           <button className="bs-avatar-btn" onClick={() => setSheet({ kind: "settings" })} aria-label={`${me.name}: settings and sign out`}>
             <span className="bs-avatar" style={{ background: me.color }}>
               {me.name[0]}
             </span>
+            {champion === me.id && (
+              <span className="bs-crown" title="Last week's chore champion">
+                👑
+              </span>
+            )}
           </button>
         </div>
       </header>
@@ -369,6 +409,12 @@ export default function BackstageApp() {
             }}
             onManageProjects={() => setSheet({ kind: "projects" })}
             onCapture={() => setSheet({ kind: "capture", listen: true })}
+            bs={bs}
+            users={users}
+            onUs={(sec) => {
+              setUsSection(sec);
+              setView("us");
+            }}
           />
         )}
 
@@ -445,7 +491,15 @@ export default function BackstageApp() {
                 </span>
                 Shared with {other?.name ?? "each other"}. Blue = added by Umit, pink = added by Dilfiraz.
               </p>
-              <div className="bs-seg small" role="group" aria-label="Show">
+              <div className="bs-seg" role="tablist" aria-label="Joint">
+                <button role="tab" aria-pressed={jointTab === "todos"} aria-selected={jointTab === "todos"} onClick={() => setJointTab("todos")}>
+                  To-dos <span className="n">{jointOpen}</span>
+                </button>
+                <button role="tab" aria-pressed={jointTab === "shopping"} aria-selected={jointTab === "shopping"} onClick={() => setJointTab("shopping")}>
+                  🛒 Shopping <span className="n">{bs.us.filter((x) => x.kind === "shopping" && !x.done).length}</span>
+                </button>
+              </div>
+              {jointTab === "todos" && <div className="bs-seg small" role="group" aria-label="Show">
                 <button aria-pressed={jointFor === "all"} onClick={() => setJointFor("all")}>
                   Everything
                 </button>
@@ -457,9 +511,11 @@ export default function BackstageApp() {
                     For {other.name}
                   </button>
                 )}
-              </div>
+              </div>}
             </div>
-            {narrow ? (
+            {jointTab === "shopping" ? (
+              <Shopping bs={bs} me={me} />
+            ) : narrow ? (
               <TaskList
                 tasks={jointShown}
                 projects={projects}
@@ -496,7 +552,16 @@ export default function BackstageApp() {
           />
         )}
 
-        {view === "us" && <Chat bs={bs} me={me} users={users} />}
+        {view === "us" && (
+          <UsHub
+            bs={bs}
+            me={me}
+            users={users}
+            section={usSection}
+            onSection={setUsSection}
+            onPlan={(title, day, time) => setSheet({ kind: "event", day, preset: { title, time, joint: true } })}
+          />
+        )}
 
         {view === "messages" && me.admin && <Messages bs={bs} messages={bs.messages} />}
       </main>
@@ -513,7 +578,7 @@ export default function BackstageApp() {
         ))}
       </nav>
 
-      {!sheet && view !== "messages" && view !== "us" && (
+      {!sheet && view !== "messages" && !(view === "us" && usSection === "chat") && (
         <div className="bs-fabs">
           <button
             className="bs-fab plus"
@@ -540,6 +605,7 @@ export default function BackstageApp() {
           onDelete={bs.deleteTask}
           onClose={() => setSheet(null)}
           say={bs.say}
+          onNudge={bs.nudge}
         />
       )}
       {sheet?.kind === "event" && (!sheet.id || openEvent) && !openEvent?.busy && (
@@ -550,6 +616,7 @@ export default function BackstageApp() {
           users={users}
           event={openEvent}
           day={sheet.day}
+          preset={sheet.preset}
           onClose={() => setSheet(null)}
           onSwitchToTask={sheet.id ? undefined : () => setSheet({ kind: "new-task" })}
         />

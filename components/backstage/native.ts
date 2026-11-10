@@ -92,7 +92,9 @@ const ymd = (d: Date) =>
  * Replace everything scheduled on the phone with the current reminders:
  * the signed-in person's own items, and joint items meant for them.
  */
-export async function syncReminders(allTasks: Task[], events: CalEvent[], me: UserId): Promise<number> {
+export type Extra = { key: string; title: string; body: string; at: Date };
+
+export async function syncReminders(allTasks: Task[], events: CalEvent[], me: UserId, extras: Extra[] = []): Promise<number> {
   if (!isApp()) return 0;
   const [LN] = await plugins();
   const pending = await LN.getPending();
@@ -180,7 +182,22 @@ export async function syncReminders(allTasks: Task[], events: CalEvent[], me: Us
     });
   }
 
-  const all = [...reminders, ...eventAlerts, ...digests];
+  // birthdays, countdown days and the like
+  const special = extras
+    .filter((x) => x.at.getTime() > now + 5_000)
+    .slice(0, 40)
+    .map((x) => ({
+      id: idFor(`extra|${x.key}`),
+      title: x.title,
+      body: x.body,
+      schedule: { at: x.at, allowWhileIdle: true },
+      channelId: "reminders",
+      extra: { taskId: null },
+      smallIcon: "ic_stat_backstage",
+      iconColor: "#e0457b",
+    }));
+
+  const all = [...reminders, ...eventAlerts, ...digests, ...special];
   if (all.length) await LN.schedule({ notifications: all });
   return reminders.length;
 }

@@ -148,6 +148,32 @@ create table if not exists chat_messages (
   read_at    timestamptz
 );
 create index if not exists chat_messages_created_idx on chat_messages (created_at);
+
+-- The fun bits (Nov 2026): countdowns, memories, date/dinner ideas and
+-- votes, shopping list, gift ideas (private), daily moods - one table, by kind.
+create table if not exists us_items (
+  id         uuid primary key default gen_random_uuid(),
+  kind       text not null,
+  owner      text not null,
+  added_by   text not null,
+  title      text not null default '',
+  body       text,
+  day        date,
+  emoji      text,
+  list       text,
+  ref        uuid,
+  yes        boolean,
+  done       boolean not null default false,
+  done_by    text,
+  for_user   text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists us_items_kind_idx on us_items (kind, owner);
+alter table tasks add column if not exists love_note    text;
+alter table tasks add column if not exists completed_by text;
+alter table tasks add column if not exists nudges       int not null default 0;
+alter table users add column if not exists birthday     date;
 `;
 
 const client = new Client({ connectionString: url });

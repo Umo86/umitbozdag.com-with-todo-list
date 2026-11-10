@@ -32,6 +32,7 @@ export default function EventSheet({
   users,
   event,
   day,
+  preset,
   onClose,
   onSwitchToTask,
 }: {
@@ -40,19 +41,20 @@ export default function EventSheet({
   users: Person[];
   event?: CalEvent; // editing
   day?: string; // new event on this day
+  preset?: { title: string; time: string; joint?: boolean };
   onClose: () => void;
   onSwitchToTask?: () => void;
 }) {
   const start = event?.starts_at ? new Date(event.starts_at) : null;
   const end = event?.ends_at ? new Date(event.ends_at) : null;
-  const [title, setTitle] = useState(event?.title ?? "");
-  const [joint, setJoint] = useState(event ? event.owner === "joint" : false);
+  const [title, setTitle] = useState(event?.title ?? preset?.title ?? "");
+  const [joint, setJoint] = useState(event ? event.owner === "joint" : preset?.joint ?? false);
   const [assignee, setAssignee] = useState<Assignee>(event?.assignee ?? "both");
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
   const [date, setDate] = useState(event?.start_date ?? (start ? ymd(start) : day ?? ymd(new Date())));
   const [endDate, setEndDate] = useState(event?.end_date ?? "");
-  const [from, setFrom] = useState(start ? timeOf(start) : "09:00");
-  const [to, setTo] = useState(end ? timeOf(end) : start ? plusHour(timeOf(start)) : "10:00");
+  const [from, setFrom] = useState(start ? timeOf(start) : preset?.time ?? "09:00");
+  const [to, setTo] = useState(end ? timeOf(end) : start ? plusHour(timeOf(start)) : plusHour(preset?.time ?? "09:00"));
   const [location, setLocation] = useState(event?.location ?? "");
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [remind, setRemind] = useState<number | null>(event ? event.remind_minutes : 30);

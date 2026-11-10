@@ -111,6 +111,22 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
     ],
   },
   {
+    q: "The fun stuff (Us tab and Today)",
+    a: [
+      "❤️ in the top bar: sends a heart. Floating hearts pop up for the other person.",
+      "Mood: pick how you feel on the Today screen; the other person sees it (🤗 = needs a hug).",
+      "Countdowns: add a date (holiday, anniversary) and watch the days drop. Confetti on the day.",
+      "Chore battle: ticking off a joint to-do scores a point (urgent = 2). Last week's winner wears the 👑.",
+      "Nudge: open a joint to-do and tap 👉 Nudge. It lands in the chat (with a count, if it's become a habit…).",
+      "Love notes: on a joint to-do you added, write a hidden note. It shows as 💌 for the other person and opens when they tap it.",
+      "Us › Dinner: both swipe yes/no on dinner ideas. The first one you both like is a match.",
+      "Us › Dates: spin the roulette on your date ideas and book the winner for Saturday.",
+      "Us › Memories: keep little moments; one pops up on Today now and then.",
+      "Us › Gifts: a private list of gift ideas for the other person (they never see it), with a reminder two weeks before their birthday. Add your own birthday there too.",
+      "Joint › Shopping: a live shopping list. Type “milk, bread and eggs” to add three at once.",
+    ],
+  },
+  {
     q: "Reminders and notifications",
     a: [
       "In the Android app, reminders are set on the phone and go off even when it's closed. Done ticks it off; Snooze moves it an hour.",

@@ -32,7 +32,9 @@ export default function TaskDrawer({
   onDelete,
   onClose,
   say,
+  onNudge,
 }: {
+  onNudge?: (id: string) => void;
   task: Task;
   projects: Project[];
   me: Me;
@@ -43,6 +45,9 @@ export default function TaskDrawer({
   say: (msg: string) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const other = users.find((u) => u.id !== me.id);
+  const iWrote = task.added_by === me.id;
   const panel = useRef<HTMLDivElement>(null);
   const patch = (p: TaskPatch) => onPatch(task.id, p);
 
@@ -101,6 +106,36 @@ export default function TaskDrawer({
             if (v !== (task.notes ?? "")) patch({ notes: v });
           }}
         />
+
+        {task.owner === "joint" && iWrote && (
+          <>
+            <label htmlFor="d-love">💌 Hidden note for {other?.name ?? "them"}</label>
+            <textarea
+              id="d-love"
+              rows={2}
+              maxLength={1000}
+              defaultValue={task.love_note ?? ""}
+              placeholder={`Only shows when ${other?.name ?? "they"} opens this to-do… “and come home early, I miss you”`}
+              onBlur={(e) => {
+                const v = e.currentTarget.value.trim();
+                if (v !== (task.love_note ?? "")) patch({ love_note: v || null } as TaskPatch);
+              }}
+            />
+          </>
+        )}
+        {task.owner === "joint" && !iWrote && task.love_note && (
+          <div className={`bs-lovenote${revealed ? " open" : ""}`}>
+            {revealed ? (
+              <p>
+                <span aria-hidden="true">💌 </span>
+                {task.love_note}
+                <small> — {nameOf(task.added_by)}</small>
+              </p>
+            ) : (
+              <button onClick={() => setRevealed(true)}>💌 There&rsquo;s a note for you. Tap to open</button>
+            )}
+          </div>
+        )}
 
         <div className="bs-fields">
           <div>
@@ -221,6 +256,13 @@ export default function TaskDrawer({
             : "Reminders pop up here while Backstage is open, and on your phone through the Backstage Android app."}
           {task.repeat ? " When you tick this off, the next one is added." : ""}
         </p>
+
+        {task.owner === "joint" && task.status !== "done" && onNudge && (
+          <button className="bs-nudge" onClick={() => onNudge(task.id)}>
+            👉 Nudge {other?.name ?? "them"} about this
+            {task.nudges > 0 && <span className="quiet"> · nudged {task.nudges}×</span>}
+          </button>
+        )}
 
         <div className="bs-drawer-foot">
           <button

@@ -7,6 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Assignee,
   ChatMessage,
+  Score,
+  UsItem,
+  UsKind,
   CalEvent,
   EventPatch,
   ListName,
@@ -61,6 +64,9 @@ export function useBackstage() {
   const [notice, setNotice] = useState<{ text: string; tone: "info" | "error"; action?: { label: string; run: () => void } } | null>(null);
   const [online, setOnline] = useState(true);
   const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [us, setUs] = useState<UsItem[]>([]);
+  const [scores, setScores] = useState<Score[]>([]);
+  const [birthdays, setBirthdays] = useState<Record<string, string | null>>({});
   const [chatUnread, setChatUnread] = useState(0);
   const [seenUpTo, setSeenUpTo] = useState<string | null>(null);
   const [ai, setAi] = useState(false);
@@ -112,7 +118,13 @@ export function useBackstage() {
         events: CalEvent[];
         messages?: Message[];
         chat_unread?: number;
+        us?: UsItem[];
+        scores?: Score[];
+        birthdays?: Record<string, string | null>;
       }>("/state");
+      setUs(data.us ?? []);
+      setScores(data.scores ?? []);
+      setBirthdays(data.birthdays ?? {});
       setChatUnread(data.chat_unread ?? 0);
       setProjects(data.projects ?? []);
       setTasks(data.tasks ?? []);
@@ -316,6 +328,8 @@ export function useBackstage() {
     },
     [api, me]
   );
+  const pollChatRef = useRef<((full?: boolean) => Promise<ChatMessage[]>) | null>(null);
+  pollChatRef.current = pollChat;
   const sendChat = useCallback(
     async (body: string, kind: "text" | "heart" = "text"): Promise<boolean> => {
       if (!me) return false;
@@ -353,6 +367,83 @@ export function useBackstage() {
     setChatUnread(0);
     await api("/chat/read", { method: "POST", body: {} }).catch(() => {});
   }, [api]);
+
+  // ——— the fun bits ———
+  const addUs = useCallback(
+    async (body: Partial<UsItem> & { kind: UsKind }) => {
+      try {
+        const item = await api<UsItem>("/us", { method: "POST", body });
+        setUs((prev) => [
+          item,
+          ...prev.filter(
+            (x) =>
+              !(
+                (item.kind === "mood" && x.kind === "mood" && x.added_by === item.added_by && x.day === item.day) ||
+                (item.kind === "vote" && x.kind === "vote" && x.added_by === item.added_by && x.ref === item.ref)
+              )
+          ),
+        ]);
+        return item;
+      } catch (e) {
+        say((e as Error).message, "error");
+        return null;
+      }
+    },
+    [api, say]
+  );
+  const patchUs = useCallback(
+    (id: string, patch: Partial<UsItem>) => {
+      setUs((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+      api<UsItem>(`/us/${id}`, { method: "PATCH", body: patch }).then(
+        (item) => setUs((prev) => prev.map((x) => (x.id === id ? item : x))),
+        fail
+      );
+    },
+    [api, fail]
+  );
+  const deleteUs = useCallback(
+    (id: string) => {
+      setUs((prev) => prev.filter((x) => x.id !== id && x.ref !== id));
+      api(`/us/${id}`, { method: "DELETE" }).catch(fail);
+    },
+    [api, fail]
+  );
+  const clearUs = useCallback(
+    async (what: "my-votes" | "ticked-shopping") => {
+      setUs((prev) =>
+        prev.filter((x) =>
+          what === "my-votes" ? !(x.kind === "vote" && x.added_by === me?.id) : !(x.kind === "shopping" && x.done)
+        )
+      );
+      await api(`/us?what=${what}`, { method: "DELETE" }).catch(fail);
+    },
+    [api, fail, me]
+  );
+  const nudge = useCallback(
+    async (taskId: string) => {
+      try {
+        const r = await api<{ nudges: number }>(`/tasks/${taskId}/nudge`, { method: "POST", body: {} });
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, nudges: r.nudges } : t)));
+        say(r.nudges > 2 ? `Nudged (${r.nudges} times now 😅)` : "Nudged 👉");
+        void pollChatRef.current?.(false);
+      } catch (e) {
+        say((e as Error).message, "error");
+      }
+    },
+    [api, say]
+  );
+  const setBirthday = useCallback(
+    async (birthday: string | null) => {
+      try {
+        await api("/me", { method: "PATCH", body: { birthday } });
+        if (me) setBirthdays((b) => ({ ...b, [me.id]: birthday }));
+        say("Birthday saved 🎂");
+      } catch (e) {
+        say((e as Error).message, "error");
+      }
+    },
+    [api, say, me]
+  );
 
   // ——— calendar ———
   const addEvent = useCallback(
@@ -482,6 +573,15 @@ export function useBackstage() {
     sendChat,
     dropChat,
     deleteChat,
+    us,
+    scores,
+    birthdays,
+    addUs,
+    patchUs,
+    deleteUs,
+    clearUs,
+    nudge,
+    setBirthday,
     markChatRead,
     say,
     ai,
