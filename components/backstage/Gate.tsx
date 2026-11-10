@@ -38,6 +38,7 @@ export default function Gate({ bs }: { bs: Backstage }) {
             </button>
           </>
         )}
+        {phase.kind === "signin" && phase.reason && <p className="notice warn">{phase.reason}</p>}
         {phase.kind === "signin" && (
           <form
             onSubmit={async (e) => {
@@ -123,9 +124,15 @@ export default function Gate({ bs }: { bs: Backstage }) {
           </form>
         )}
       </div>
-      <a className="bs-back" href="/">
-        Back to the site
-      </a>
+      <p className="bs-gate-foot">
+        <a className="bs-back" href="/">
+          Back to the site
+        </a>
+        <a className="bs-back" href="/app">
+          Get the Android app
+        </a>
+      </p>
+      <p className="bs-gate-help">Forgotten your password? Umit can set a new one.</p>
     </div>
   );
 }

@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Assignee,
+  ChatMessage,
   CalEvent,
   EventPatch,
   ListName,
@@ -37,7 +38,7 @@ export type NewTask = {
 export type Phase =
   | { kind: "loading" }
   | { kind: "noconfig"; missing: string }
-  | { kind: "signin" }
+  | { kind: "signin"; reason?: string }
   | { kind: "locked"; message: string }
   | { kind: "app" };
 
@@ -57,27 +58,45 @@ export function useBackstage() {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [users, setUsers] = useState<Person[]>([]);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{ text: string; tone: "info" | "error"; action?: { label: string; run: () => void } } | null>(null);
+  const [online, setOnline] = useState(true);
+  const [chat, setChat] = useState<ChatMessage[]>([]);
+  const [chatUnread, setChatUnread] = useState(0);
+  const [seenUpTo, setSeenUpTo] = useState<string | null>(null);
   const [ai, setAi] = useState(false);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const say = useCallback((msg: string) => {
-    setNotice(msg);
+  const say = useCallback((msg: string, tone: "info" | "error" = "info", action?: { label: string; run: () => void }) => {
+    setNotice({ text: msg, tone, action });
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
-    noticeTimer.current = setTimeout(() => setNotice(""), 3200);
+    noticeTimer.current = setTimeout(() => setNotice(null), tone === "error" || action ? 6500 : 3200);
   }, []);
 
   // The session is an HttpOnly cookie, sent automatically to this site.
   const api = useCallback(
     async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
-      const res = await fetch(`/api/backstage${path}`, {
+      let res: Response;
+      try {
+        res = await fetch(`/api/backstage${path}`, {
         method: init?.method ?? "GET",
         credentials: "same-origin",
         headers: init?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
         body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
       });
+      } catch {
+        // no answer at all: offline, or the server is unreachable
+        throw new ApiError(0, {
+          error: typeof navigator !== "undefined" && !navigator.onLine
+            ? "You're offline. This didn't save. Try again when you're back online."
+            : "Can't reach Backstage right now. Check your connection and try again.",
+        });
+      }
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-      if (!res.ok) throw new ApiError(res.status, data);
+      if (!res.ok) {
+        if (res.status >= 500 && !data.error) data.error = "Something went wrong on the server. Try again in a moment.";
+        if (res.status === 429 && !data.error) data.error = "Too many tries. Wait a little and try again.";
+        throw new ApiError(res.status, data);
+      }
       return data as T;
     },
     []
@@ -92,7 +111,9 @@ export function useBackstage() {
         tasks: Task[];
         events: CalEvent[];
         messages?: Message[];
+        chat_unread?: number;
       }>("/state");
+      setChatUnread(data.chat_unread ?? 0);
       setProjects(data.projects ?? []);
       setTasks(data.tasks ?? []);
       setEvents(data.events ?? []);
@@ -102,8 +123,9 @@ export function useBackstage() {
       setPhase({ kind: "app" });
     } catch (e) {
       const err = e as ApiError;
-      if (err.status === 401) setPhase({ kind: "signin" });
-      else if (err.status === 503) setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
+      if (err.status === 401)
+        setPhase((prev) => ({ kind: "signin", reason: prev.kind === "app" ? "You were signed out (your session ended or your password changed). Sign in again." : undefined }));
+      else if (err.status === 503 && /password/i.test(err.message)) setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
       else {
         // already on the board: keep it and say so; otherwise explain on the gate
         setPhase((prev) =>
@@ -111,7 +133,7 @@ export function useBackstage() {
             ? prev
             : { kind: "locked", message: `Backstage couldn't load. ${err.message}` }
         );
-        say(`Can't reach Backstage right now. ${err.message}`);
+        say(err.message, "error");
       }
     }
   }, [api, say]);
@@ -177,7 +199,8 @@ export function useBackstage() {
   // ——— board actions (optimistic; the server's answer replaces the guess) ———
   const fail = useCallback(
     (e: unknown) => {
-      say((e as Error).message);
+      const err = e as ApiError;
+      if (err.status !== 401) say(err.message || "That didn't save. Try again.", "error");
       void refresh();
     },
     [say, refresh]
@@ -253,6 +276,76 @@ export function useBackstage() {
     },
     [api, say, me]
   );
+
+  // ——— online / offline ———
+  useEffect(() => {
+    const on = () => {
+      setOnline(true);
+      void refresh();
+    };
+    const off = () => setOnline(false);
+    setOnline(navigator.onLine);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, [refresh]);
+
+  // ——— chat ———
+  const chatRef = useRef<ChatMessage[]>([]);
+  chatRef.current = chat;
+  /** Fetch all (first time) or only new messages. Returns the new ones from the other person. */
+  const pollChat = useCallback(
+    async (full = false): Promise<ChatMessage[]> => {
+      const last = chatRef.current[chatRef.current.length - 1];
+      const r = await api<{ messages: ChatMessage[]; unread: number; seen_up_to: string | null }>(
+        full || !last ? "/chat" : `/chat?after=${encodeURIComponent(last.created_at)}`
+      );
+      setChatUnread(r.unread);
+      setSeenUpTo(r.seen_up_to);
+      if (full || !last) {
+        setChat(r.messages);
+        return [];
+      }
+      const known = new Set(chatRef.current.map((m) => m.id));
+      const fresh = r.messages.filter((m) => !known.has(m.id));
+      if (fresh.length) setChat((prev) => [...prev, ...fresh]);
+      return fresh.filter((m) => m.sender !== me?.id);
+    },
+    [api, me]
+  );
+  const sendChat = useCallback(
+    async (body: string, kind: "text" | "heart" = "text"): Promise<boolean> => {
+      if (!me) return false;
+      const temp: ChatMessage = {
+        id: `temp-${Date.now()}`,
+        sender: me.id,
+        body,
+        kind,
+        created_at: new Date().toISOString(),
+        read_at: null,
+        pending: true,
+      };
+      setChat((prev) => [...prev, temp]);
+      try {
+        const m = await api<ChatMessage>("/chat", { method: "POST", body: { body, kind } });
+        setChat((prev) => prev.map((x) => (x.id === temp.id ? m : x)));
+        return true;
+      } catch (e) {
+        setChat((prev) => prev.map((x) => (x.id === temp.id ? { ...x, pending: false, failed: true } : x)));
+        say((e as Error).message, "error");
+        return false;
+      }
+    },
+    [api, me, say]
+  );
+  const dropChat = useCallback((id: string) => setChat((prev) => prev.filter((m) => m.id !== id)), []);
+  const markChatRead = useCallback(async () => {
+    setChatUnread(0);
+    await api("/chat/read", { method: "POST", body: {} }).catch(() => {});
+  }, [api]);
 
   // ——— calendar ———
   const addEvent = useCallback(
@@ -374,6 +467,14 @@ export function useBackstage() {
     patchEvent,
     deleteEvent,
     notice,
+    online,
+    chat,
+    chatUnread,
+    seenUpTo,
+    pollChat,
+    sendChat,
+    dropChat,
+    markChatRead,
     say,
     ai,
     api,

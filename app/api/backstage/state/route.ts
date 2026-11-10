@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   const me = auth.me;
   try {
     await seedIfFirstRun();
-    const [projects, tasks, events, busy, messages] = await Promise.all([
+    const [projects, tasks, events, busy, messages, chat] = await Promise.all([
       db().query(`select ${PROJECT_COLS} from projects where ${visibleTo(1)} order by position, created_at`, [me.id]),
       db().query(`select ${TASK_COLS} from tasks where ${visibleTo(1)} ${TASK_ORDER}`, [me.id]),
       db().query(`select ${EVENT_COLS}, false as busy from events where ${visibleTo(1)} order by coalesce(start_date::timestamptz, starts_at)`, [me.id]),
@@ -35,6 +35,9 @@ export async function GET(req: Request) {
             )
             .catch(() => ({ rows: [] }))
         : Promise.resolve({ rows: [] }),
+      db()
+        .query(`select count(*)::int as n from chat_messages where sender <> $1 and read_at is null`, [me.id])
+        .catch(() => ({ rows: [{ n: 0 }] })),
     ]);
     return NextResponse.json({
       me,
@@ -43,6 +46,7 @@ export async function GET(req: Request) {
       tasks: tasks.rows,
       events: [...events.rows, ...busy.rows],
       messages: messages.rows,
+      chat_unread: chat.rows[0]?.n ?? 0,
     });
   } catch (err) {
     console.error("backstage state error:", err);

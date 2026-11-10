@@ -128,6 +128,7 @@ export default function Capture({
         setListening(false);
         stopRef.current = null;
         if (err) setError(err);
+        else if (latest === kept) setError("I didn't hear anything. Tap the mic and speak after it turns red, a little closer to the phone.");
         else void readWithAi(latest);
       },
     });

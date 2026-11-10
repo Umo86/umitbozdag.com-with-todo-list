@@ -15,6 +15,13 @@ export function SiteNav({ home = false }: { home?: boolean }) {
           <a href={to("#cycle")}>Show cycle</a>
           <a href={to("#events")}>Events</a>
           <a href={to("#contact")}>Contact</a>
+          <a className="nav__app" href="/app">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+              <path d="M11 18.5h2" />
+            </svg>
+            Get the app
+          </a>
           <a className="nav__cv" href="/cv">
             CV
           </a>
@@ -37,6 +44,7 @@ export function SiteFooter() {
           </a>
           <a href="/cv">CV</a>
           <a href="/backstage">Backstage</a>
+          <a href="/app">Android app</a>
         </nav>
       </div>
     </footer>

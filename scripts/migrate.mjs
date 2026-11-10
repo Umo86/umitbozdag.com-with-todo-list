@@ -137,6 +137,17 @@ create table if not exists events (
   updated_at     timestamptz not null default now()
 );
 create index if not exists events_owner_idx on events (owner);
+
+-- Chat between the two of them.
+create table if not exists chat_messages (
+  id         uuid primary key default gen_random_uuid(),
+  sender     text not null,
+  body       text not null,
+  kind       text not null default 'text',
+  created_at timestamptz not null default now(),
+  read_at    timestamptz
+);
+create index if not exists chat_messages_created_idx on chat_messages (created_at);
 `;
 
 const client = new Client({ connectionString: url });

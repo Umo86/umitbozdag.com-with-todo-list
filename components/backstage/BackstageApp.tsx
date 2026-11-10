@@ -8,6 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseTasks, ymd } from "@/lib/parse";
 import Board from "./Board";
 import Calendar from "./Calendar";
+import Chat from "./Chat";
+import { Help, shouldWelcome, Welcome } from "./Help";
 import Capture from "./Capture";
 import Dashboard, { MicIcon } from "./Dashboard";
 import EventSheet from "./EventSheet";
@@ -22,14 +24,16 @@ import { isApp, listen, prepareNotifications, syncReminders, type NotificationAc
 import { forMe, nameOf, type ListName } from "./types";
 import { useBackstage } from "./useBackstage";
 
-type View = "today" | "mine" | "joint" | "calendar" | "messages";
+type View = "today" | "mine" | "joint" | "calendar" | "us" | "messages";
 type Sheet =
   | { kind: "task"; id: string }
   | { kind: "event"; id?: string; day?: string }
   | { kind: "new-task" }
   | { kind: "capture"; listen: boolean }
   | { kind: "projects" }
-  | { kind: "settings" };
+  | { kind: "settings" }
+  | { kind: "help" }
+  | { kind: "welcome" };
 
 const LIST_KEY = "backstage:list";
 const VIEW_KEY = "backstage:view";
@@ -84,7 +88,7 @@ export default function BackstageApp() {
   useEffect(() => {
     setList(recall<ListName>(LIST_KEY, "work") === "personal" ? "personal" : "work");
     const v = recall<View>(VIEW_KEY, "today");
-    if (["today", "mine", "joint", "calendar", "messages"].includes(v)) setViewState(v);
+    if (["today", "mine", "joint", "calendar", "us", "messages"].includes(v)) setViewState(v);
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     const q = new URLSearchParams(window.location.search);
     if (q.has("capture")) setSheet({ kind: "capture", listen: false });
@@ -141,7 +145,7 @@ export default function BackstageApp() {
   useEffect(() => {
     if (phase.kind !== "app" || !isApp()) return;
     let off = () => {};
-    void prepareNotifications();
+    void prepareNotifications().then((p) => setNotifOff(p !== "granted"));
     void listen({
       onNotification,
       onLink: (path) => {
@@ -169,6 +173,56 @@ export default function BackstageApp() {
     const timer = setTimeout(() => void syncReminders(tasks, events, me.id).catch(() => {}), 1200);
     return () => clearTimeout(timer);
   }, [phase.kind, tasks, events, me]);
+
+  // ——— welcome, once per person per device ———
+  useEffect(() => {
+    if (phase.kind === "app" && me && shouldWelcome(me)) setSheet((s) => s ?? { kind: "welcome" });
+  }, [phase.kind, me]);
+
+  // ——— chat: look for new messages (often while it's open, now and then otherwise) ———
+  const [hearts, setHearts] = useState(0);
+  const [notifOff, setNotifOff] = useState(false);
+  useEffect(() => {
+    if (phase.kind !== "app" || !me) return;
+    let stop = false;
+    const tick = async () => {
+      if (document.hidden || !navigator.onLine) return;
+      try {
+        const fresh = await bs.pollChat(false);
+        if (stop || !fresh.length) return;
+        if (fresh.some((m) => m.kind === "heart")) setHearts((h) => h + 1);
+        const last = fresh[fresh.length - 1];
+        if (live.current.view !== "us") {
+          bs.say(
+            last.kind === "heart" ? `${nameOf(last.sender)} is thinking of you ❤️` : `💬 ${nameOf(last.sender)}: ${last.body.slice(0, 80)}`,
+            "info",
+            { label: "Open", run: () => setView("us") }
+          );
+        }
+      } catch {
+        /* the next tick tries again */
+      }
+    };
+    const timer = setInterval(tick, view === "us" ? 4000 : 20000);
+    return () => {
+      stop = true;
+      clearInterval(timer);
+    };
+  }, [phase.kind, me, view, bs, setView]);
+
+  // keep everything fresh while the page is open (joint changes by the other person)
+  useEffect(() => {
+    if (phase.kind !== "app") return;
+    const timer = setInterval(() => {
+      if (!document.hidden && navigator.onLine && !live.current.sheet) void live.current.refresh();
+    }, 60_000);
+    const onVis = () => !document.hidden && void live.current.refresh();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [phase.kind]);
 
   // ——— what each view shows ———
   const mineInList = useMemo(
@@ -225,6 +279,7 @@ export default function BackstageApp() {
     { id: "mine", label: "My tasks", n: openCount("work") + openCount("personal"), icon: <IconCheck /> },
     { id: "joint", label: "Joint", n: jointOpen, icon: <IconJoint /> },
     { id: "calendar", label: "Calendar", icon: <IconCal /> },
+    { id: "us", label: "Us", n: bs.chatUnread, icon: <IconHeart /> },
   ];
 
   return (
@@ -279,6 +334,19 @@ export default function BackstageApp() {
             ))}
           </ul>
           <button className="bs-x" onClick={() => setDue([])} aria-label="Dismiss reminders">
+            ×
+          </button>
+        </div>
+      )}
+
+      {notifOff && (
+        <div className="bs-due warn" role="status">
+          <strong>Reminders are off</strong>
+          <span>
+            Android isn&rsquo;t letting Backstage show notifications, so reminders won&rsquo;t go off. Open Settings ›
+            Apps › Backstage › Notifications and switch them on.
+          </span>
+          <button className="bs-x" onClick={() => setNotifOff(false)} aria-label="Dismiss">
             ×
           </button>
         </div>
@@ -428,6 +496,8 @@ export default function BackstageApp() {
           />
         )}
 
+        {view === "us" && <Chat bs={bs} me={me} users={users} />}
+
         {view === "messages" && me.admin && <Messages bs={bs} messages={bs.messages} />}
       </main>
 
@@ -436,14 +506,14 @@ export default function BackstageApp() {
           <button key={n.id} aria-current={view === n.id ? "page" : undefined} onClick={() => setView(n.id)}>
             <span className="ico">
               {n.icon}
-              {!!n.n && n.id === "joint" && <span className="badge">{n.n}</span>}
+              {!!n.n && (n.id === "joint" || n.id === "us") && <span className={`badge${n.id === "us" ? " us" : ""}`}>{n.n}</span>}
             </span>
             <span className="lbl">{n.label}</span>
           </button>
         ))}
       </nav>
 
-      {!sheet && view !== "messages" && (
+      {!sheet && view !== "messages" && view !== "us" && (
         <div className="bs-fabs">
           <button
             className="bs-fab plus"
@@ -510,10 +580,29 @@ export default function BackstageApp() {
         />
       )}
       {sheet?.kind === "projects" && <Projects bs={bs} projects={myProjects} onClose={() => setSheet(null)} />}
-      {sheet?.kind === "settings" && <Settings bs={bs} me={me} onClose={() => setSheet(null)} />}
+      {sheet?.kind === "settings" && (
+        <Settings bs={bs} me={me} onClose={() => setSheet(null)} onHelp={() => setSheet({ kind: "help" })} />
+      )}
+      {sheet?.kind === "help" && <Help onClose={() => setSheet(null)} onReplayWelcome={() => setSheet({ kind: "welcome" })} />}
+      {sheet?.kind === "welcome" && <Welcome me={me} users={users} onClose={() => setSheet(null)} />}
+      {!bs.online && (
+        <div className="bs-offline" role="alert">
+          <strong>You&rsquo;re offline.</strong> You can look around, but changes won&rsquo;t save until you&rsquo;re back online.
+        </div>
+      )}
+      {hearts > 0 && <Hearts key={hearts} />}
       {bs.notice && (
-        <div className="bs-toast" role="status">
-          {bs.notice}
+        <div className={`bs-toast${bs.notice.tone === "error" ? " error" : ""}`} role={bs.notice.tone === "error" ? "alert" : "status"}>
+          <span>{bs.notice.text}</span>
+          {bs.notice.action && (
+            <button
+              onClick={() => {
+                bs.notice?.action?.run();
+              }}
+            >
+              {bs.notice.action.label}
+            </button>
+          )}
         </div>
       )}
       <span hidden>{nameOf(me.id)}</span>
@@ -554,6 +643,31 @@ function IconCal() {
       <rect x="3.5" y="5" width="17" height="15.5" rx="3" />
       <path d="M3.5 10h17M8 3v4M16 3v4" />
     </svg>
+  );
+}
+function IconHeart() {
+  return (
+    <svg {...S}>
+      <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z" />
+    </svg>
+  );
+}
+/** Hearts floating up the screen (a heart arrived). */
+function Hearts() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setOn(false), 3200);
+    return () => clearTimeout(t);
+  }, []);
+  if (!on) return null;
+  return (
+    <div className="bs-hearts" aria-hidden="true">
+      {Array.from({ length: 14 }, (_, i) => (
+        <span key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 7) * 0.18}s`, fontSize: `${18 + ((i * 13) % 22)}px` }}>
+          ❤️
+        </span>
+      ))}
+    </div>
   );
 }
 function IconMail() {

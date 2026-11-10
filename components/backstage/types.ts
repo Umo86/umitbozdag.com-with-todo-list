@@ -140,3 +140,14 @@ export function assigneeLabel(a: Assignee | null, me: UserId): string | null {
 /** A joint item is "for me" when it's assigned to me or to both (or no one). */
 export const forMe = (owner: Owner, assignee: Assignee | null, me: UserId) =>
   owner === me || (owner === "joint" && (!assignee || assignee === "both" || assignee === me));
+
+export type ChatMessage = {
+  id: string;
+  sender: UserId;
+  body: string;
+  kind: "text" | "heart";
+  created_at: string;
+  read_at: string | null;
+  pending?: boolean; // still sending
+  failed?: boolean; // didn't send
+};

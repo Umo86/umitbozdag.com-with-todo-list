@@ -265,6 +265,25 @@ if (password2) {
   const old = await fetch(root + feedPath);
   step("two: making a new link stops the old one", newLink.status === 200 && old.status === 404 && newLink.data.calendar_url !== meU.data.calendar_url);
 
+  // chat
+  const c1 = await asUmit("/chat", "POST", { body: `${mark} hello from Umit` });
+  step("chat: Umit sends a message", c1.status === 201 && c1.data.sender === "umit");
+  const empty = await asUmit("/chat", "POST", { body: "   " });
+  step("chat: an empty message is refused", empty.status === 400);
+  const dChat = await asDil("/chat");
+  step("chat: Dilfiraz sees it, unread", dChat.status === 200 && dChat.data.messages.some((m) => m.id === c1.data.id) && dChat.data.unread >= 1);
+  const since = await asDil(`/chat?after=${encodeURIComponent(c1.data.created_at)}`);
+  step("chat: asking for newer messages returns none yet", since.status === 200 && !since.data.messages.some((m) => m.id === c1.data.id));
+  const hrt = await asDil("/chat", "POST", { body: "❤️", kind: "heart" });
+  step("chat: Dilfiraz sends a heart", hrt.status === 201 && hrt.data.kind === "heart");
+  const rd = await asDil("/chat/read", "POST", {});
+  const uChat = await asUmit("/chat");
+  step("chat: Umit sees 'Seen' after Dilfiraz reads", rd.status === 200 && !!uChat.data.seen_up_to && new Date(uChat.data.seen_up_to) >= new Date(c1.data.created_at));
+  step("chat: Umit has the heart unread", uChat.data.unread >= 1);
+  const st = await asUmit("/state");
+  step("chat: unread count in state", typeof st.data.chat_unread === "number" && st.data.chat_unread >= 1);
+  await asUmit("/chat/read", "POST", {});
+
   // tidy up
   for (const id of [evP.data.id, evJ.data.id, evA.data.id]) {
     const owner = id === evA.data.id ? asDil : asUmit;

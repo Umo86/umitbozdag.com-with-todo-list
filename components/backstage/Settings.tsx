@@ -7,7 +7,7 @@ import { exactAlarms, isApp, openExactAlarmSetting, prepareNotifications } from 
 import type { Me } from "./types";
 import type { Backstage } from "./useBackstage";
 
-export default function Settings({ bs, me, onClose }: { bs: Backstage; me: Me; onClose: () => void }) {
+export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; me: Me; onClose: () => void; onHelp: () => void }) {
   const [url, setUrl] = useState("");
   const [confirmNew, setConfirmNew] = useState(false);
   const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
@@ -45,6 +45,11 @@ export default function Settings({ bs, me, onClose }: { bs: Backstage; me: Me; o
             <span className="quiet">Things you add show in {me.id === "umit" ? "blue" : "pink"}.</span>
           </div>
         </div>
+
+        <button className="bs-helprow" onClick={onHelp}>
+          <span aria-hidden="true">?</span>
+          How Backstage works, tips and fixes
+        </button>
 
         <h3 className="bs-sub">Your calendar in Google or Samsung Calendar</h3>
         <p className="bs-hint">

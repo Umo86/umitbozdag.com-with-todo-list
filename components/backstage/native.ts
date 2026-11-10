@@ -257,13 +257,13 @@ export async function listenForSpeech(opts: {
     const { SpeechRecognition } = await import("@capacitor-community/speech-recognition");
     const ok = await SpeechRecognition.available().catch(() => ({ available: false }));
     if (!ok.available) {
-      opts.onEnd("This phone has no speech recogniser. Install or update the Google app.");
+      opts.onEnd("This phone has no speech recogniser. Install or update the Google app from the Play Store, then try again. You can type in the meantime.");
       return () => {};
     }
     let perm = await SpeechRecognition.checkPermissions();
     if (perm.speechRecognition !== "granted") perm = await SpeechRecognition.requestPermissions();
     if (perm.speechRecognition !== "granted") {
-      opts.onEnd("Backstage needs the microphone. Allow it in Android Settings › Apps › Backstage.");
+      opts.onEnd("Backstage needs the microphone. Open Android Settings › Apps › Backstage › Permissions › Microphone › Allow, then try again.");
       return () => {};
     }
     let ended = false;
@@ -281,7 +281,16 @@ export async function listenForSpeech(opts: {
       if (d.status === "stopped") finish();
     });
     SpeechRecognition.start({ language: opts.lang, partialResults: true, popup: false, maxResults: 1 }).catch(
-      (e: Error) => finish(/no match|didn't|not understand/i.test(e.message) ? undefined : e.message)
+      (e: Error) =>
+        finish(
+          /no match|didn't|not understand/i.test(e.message)
+            ? undefined
+            : /network|connect/i.test(e.message)
+              ? "Speech needs an internet connection. Check it and try again, or type instead."
+              : /busy/i.test(e.message)
+                ? "The microphone is busy (another app may be using it). Close it and try again."
+                : `Listening stopped: ${e.message}`
+        )
     );
     return () => {
       void SpeechRecognition.stop().catch(() => {});
@@ -310,16 +319,20 @@ export async function listenForSpeech(opts: {
     rec.onerror = (e) => {
       failed =
         e.error === "not-allowed" || e.error === "service-not-allowed"
-          ? "The browser blocked the microphone. Allow it for this site and try again."
-          : e.error === "no-speech" || e.error === "aborted"
-            ? undefined
-            : `Speech stopped (${e.error}).`;
+          ? "The browser blocked the microphone. Click the mic icon in the address bar, allow it, and try again."
+          : e.error === "audio-capture"
+            ? "No microphone found. Plug one in or use your phone."
+            : e.error === "network"
+              ? "Speech needs an internet connection. Check it and try again, or type instead."
+              : e.error === "no-speech" || e.error === "aborted"
+                ? undefined
+                : `Listening stopped (${e.error}). Try again, or type instead.`;
     };
     rec.onend = () => opts.onEnd(failed);
     rec.start();
     return () => rec.stop();
   }
 
-  opts.onEnd("This browser can't listen. Type instead, or use Chrome or the Android app.");
+  opts.onEnd("This browser can't listen. Type instead, or use Chrome or the Backstage Android app.");
   return () => {};
 }
