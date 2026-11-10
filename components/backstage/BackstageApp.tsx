@@ -11,6 +11,7 @@ import Dashboard, { MicIcon } from "./Dashboard";
 import Gate from "./Gate";
 import { parseTasks } from "@/lib/parse";
 import Messages from "./Messages";
+import NewTask from "./NewTask";
 import Projects from "./Projects";
 import TaskDrawer from "./TaskDrawer";
 import {
@@ -51,6 +52,7 @@ export default function BackstageApp() {
   const [view, setView] = useState<View>("today");
   const [list, setList] = useState<ListName>("work");
   const [capture, setCapture] = useState<null | { listen: boolean }>(null);
+  const [adding, setAdding] = useState(false);
   const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
   const [project, setProject] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -178,8 +180,8 @@ export default function BackstageApp() {
         </div>
         <div className="who">
           {isOwner && (
-            <button className="bs-add" onClick={() => setCapture({ listen: false })}>
-              + Add tasks
+            <button className="bs-add" onClick={() => setAdding(true)}>
+              + New task
             </button>
           )}
           {exact === "denied" && (
@@ -336,10 +338,26 @@ export default function BackstageApp() {
           onClose={() => setCapture(null)}
         />
       )}
-      {isOwner && !capture && !openTask && !managing && (
-        <button className="bs-fab" onClick={() => setCapture({ listen: true })} aria-label="Speak tasks">
-          <MicIcon size={26} />
-        </button>
+      {adding && isOwner && (
+        <NewTask
+          bs={bs}
+          projects={projects}
+          defaultList={view === "personal" ? "personal" : "work"}
+          defaultProject={view === "work" || view === "personal" ? project : null}
+          onClose={() => setAdding(false)}
+        />
+      )}
+      {isOwner && !capture && !adding && !openTask && !managing && (
+        <div className="bs-fabs">
+          <button className="bs-fab plus" onClick={() => setAdding(true)} aria-label="Add a task by hand" title="Add a task">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+          <button className="bs-fab" onClick={() => setCapture({ listen: true })} aria-label="Speak tasks" title="Speak tasks">
+            <MicIcon size={26} />
+          </button>
+        </div>
       )}
       {bs.notice && (
         <div className="bs-toast" role="status">
