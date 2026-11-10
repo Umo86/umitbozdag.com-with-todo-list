@@ -8,7 +8,9 @@ import { db } from "./db";
 //            everything.
 //   helper — HELPER_EMAILS (comma-separated, optional — e.g. a partner):
 //            can see the Personal list and add tasks to it, nothing else.
-const DEFAULT_OWNER = "umitbozdag@googlemail.com";
+// Google treats googlemail.com and gmail.com as one mailbox and may report
+// either, so both spellings of the owner's address are accepted by default.
+const DEFAULT_OWNER = "umitbozdag@googlemail.com,umitbozdag@gmail.com";
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 function getJwks() {

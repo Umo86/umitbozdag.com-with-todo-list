@@ -118,9 +118,22 @@ export function useBackstage() {
     let cancelled = false;
     (async () => {
       try {
-        const cfg = (await (await fetch("/api/backstage/config")).json()) as { authUrl?: string };
+        const cfg = (await (await fetch("/api/backstage/config")).json()) as {
+          authUrl?: string;
+          keys?: string;
+          database?: string;
+        };
         if (cancelled) return;
-        if (!cfg.authUrl) return setPhase({ kind: "noconfig" });
+        if (!cfg.authUrl || cfg.keys === "missing" || cfg.database === "missing") {
+          return setPhase({ kind: "noconfig" });
+        }
+        if (cfg.database === "unreachable") {
+          return setPhase({
+            kind: "locked",
+            message:
+              "Backstage can't reach its database right now, so nothing would save. Try again in a minute.",
+          });
+        }
         authRef.current = createAuthClient(cfg.authUrl) as unknown as AuthLike;
         const s = (await authRef.current.getSession().catch(() => null)) as {
           data?: { user?: unknown; session?: unknown } | null;
