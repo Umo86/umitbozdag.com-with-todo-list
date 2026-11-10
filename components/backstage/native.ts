@@ -9,7 +9,8 @@
 // - an 8am summary for each of the next 7 days
 // - "Speak a task" shortcut and backstage:// links
 import { Capacitor } from "@capacitor/core";
-import type { Task } from "./types";
+import { occurrences } from "./calendar";
+import { forMe, type CalEvent, type Task, type UserId } from "./types";
 
 export const isApp = () => typeof window !== "undefined" && Capacitor.isNativePlatform();
 
@@ -27,7 +28,7 @@ function idFor(taskId: string): number {
 }
 const DIGEST_BASE = 900_000_000; // + day offset 0..6
 
-export type NotificationAction = { action: "open" | "done" | "snooze"; taskId: string | null };
+export type NotificationAction = { action: "open" | "done" | "snooze"; taskId: string | null; eventId: string | null };
 
 const DIGEST_HOUR = 8;
 const MAX_SCHEDULED = 200; // Android keeps at most 500 alarms per app
@@ -87,8 +88,11 @@ export async function openExactAlarmSetting() {
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** Replace everything scheduled on the phone with the current reminders. */
-export async function syncReminders(tasks: Task[]): Promise<number> {
+/**
+ * Replace everything scheduled on the phone with the current reminders:
+ * the signed-in person's own items, and joint items meant for them.
+ */
+export async function syncReminders(allTasks: Task[], events: CalEvent[], me: UserId): Promise<number> {
   if (!isApp()) return 0;
   const [LN] = await plugins();
   const pending = await LN.getPending();
@@ -96,7 +100,11 @@ export async function syncReminders(tasks: Task[]): Promise<number> {
     await LN.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) });
   }
   const now = Date.now();
+  const tasks = allTasks.filter((t) => forMe(t.owner, t.assignee, me));
   const open = tasks.filter((t) => t.status !== "done");
+  const mine = events.filter((e) => !e.busy && forMe(e.owner, e.assignee, me));
+  const from = ymd(new Date());
+  const to = ymd(new Date(now + 14 * 86_400_000));
 
   const reminders = open
     .filter((t) => t.remind_at && new Date(t.remind_at).getTime() > now + 5_000)
@@ -114,6 +122,31 @@ export async function syncReminders(tasks: Task[]): Promise<number> {
       iconColor: "#1a47ff",
     }));
 
+  // Event reminders for the next two weeks (each repeat counts separately).
+  const eventAlerts = mine
+    .filter((e) => e.remind_minutes !== null)
+    .flatMap((e) => occurrences(e, from, to).map((o) => ({ e, o })))
+    .map(({ e, o }) => {
+      const start = o.start ?? new Date(`${o.day}T09:00`); // all-day: from 9am that day
+      const at = new Date(start.getTime() - (e.remind_minutes ?? 0) * 60_000);
+      const when = o.start
+        ? o.start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        : "All day";
+      return {
+        id: idFor(`${e.id}|${o.day}`),
+        title: e.title,
+        body: [when, e.location, e.owner === "joint" ? "Joint" : null].filter(Boolean).join(" · "),
+        schedule: { at, allowWhileIdle: true },
+        channelId: "reminders",
+        extra: { taskId: null, eventId: e.id },
+        smallIcon: "ic_stat_backstage",
+        iconColor: e.added_by === "dilfiraz" ? "#e0457b" : "#1a47ff",
+      };
+    })
+    .filter((n) => n.schedule.at.getTime() > now + 5_000)
+    .sort((a, b) => a.schedule.at.getTime() - b.schedule.at.getTime())
+    .slice(0, 150);
+
   // An 8am summary for today (if it's still before 8) and the next six days.
   const digests = [];
   const today = new Date();
@@ -123,15 +156,18 @@ export async function syncReminders(tasks: Task[]): Promise<number> {
     const day = ymd(at);
     const due = open.filter((t) => t.due_date === day).length;
     const late = open.filter((t) => t.due_date && t.due_date < day).length;
-    if (!due && !late) continue;
+    const evs = mine.flatMap((e) => occurrences(e, day, day));
+    if (!due && !late && !evs.length) continue;
     const parts = [];
+    if (evs.length) parts.push(`${evs.length} event${evs.length === 1 ? "" : "s"}`);
     if (due) parts.push(`${due} due today`);
     if (late) parts.push(`${late} overdue`);
-    const first = open
-      .filter((t) => t.due_date === day)
-      .sort((a, b) => (a.priority === "high" ? -1 : 0) - (b.priority === "high" ? -1 : 0))
-      .slice(0, 3)
-      .map((t) => t.title);
+    const first = [
+      ...evs
+        .sort((a, b) => (a.start?.getTime() ?? 0) - (b.start?.getTime() ?? 0))
+        .map((o) => (o.start ? `${o.start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} ${o.title}` : o.title)),
+      ...open.filter((t) => t.due_date === day).map((t) => t.title),
+    ].slice(0, 3);
     digests.push({
       id: DIGEST_BASE + i,
       title: parts.join(", "),
@@ -144,7 +180,7 @@ export async function syncReminders(tasks: Task[]): Promise<number> {
     });
   }
 
-  const all = [...reminders, ...digests];
+  const all = [...reminders, ...eventAlerts, ...digests];
   if (all.length) await LN.schedule({ notifications: all });
   return reminders.length;
 }
@@ -157,6 +193,8 @@ export async function listen(handlers: {
   onNotification: (a: NotificationAction) => void;
   onLink: (path: "capture" | "today" | "other") => void;
   onResume: () => void;
+  /** Android back button: return true if something was closed. */
+  onBack: () => boolean;
 }): Promise<() => void> {
   if (!isApp()) return () => {};
   const [LN, App] = await plugins();
@@ -166,11 +204,15 @@ export async function listen(handlers: {
   const subs = await Promise.all([
     LN.addListener("localNotificationActionPerformed", (e) => {
       const taskId = (e.notification.extra?.taskId as string | null) ?? null;
+      const eventId = (e.notification.extra?.eventId as string | null) ?? null;
       const action = e.actionId === "done" ? "done" : e.actionId === "snooze" ? "snooze" : "open";
-      handlers.onNotification({ action, taskId });
+      handlers.onNotification({ action, taskId, eventId });
     }),
     App.addListener("appUrlOpen", (e) => handlers.onLink(linkPath(e.url))),
     App.addListener("resume", () => handlers.onResume()),
+    App.addListener("backButton", () => {
+      if (!handlers.onBack()) void App.minimizeApp();
+    }),
   ]);
   // opened from the shortcut while the app was closed
   const launch = await App.getLaunchUrl().catch(() => undefined);

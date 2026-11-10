@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwner } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { DATE, REPEATS, UUID } from "@/lib/backstage";
 import type { Draft } from "@/lib/parse";
 
@@ -25,6 +25,11 @@ const TOOL = {
         items: {
           type: "object",
           properties: {
+            kind: { type: "string", enum: ["task", "event"], description: "event = something that happens at a time (meeting, dinner, appointment, flight, birthday); task = something to get done" },
+            joint: { type: "boolean", description: "true for the couple's shared list/calendar (said joint, together, for us, for the family, or it's for the other person)" },
+            assignee: { type: ["string", "null"], enum: ["umit", "dilfiraz", "both", null], description: "joint items: who it's for" },
+            start_local: { type: ["string", "null"], description: "events with a clock time: YYYY-MM-DDTHH:MM; null for all-day" },
+            remind_minutes: { type: ["integer", "null"], description: "events: minutes before to remind; 30 if a time is given and nothing said" },
             title: { type: "string", description: "Short imperative title in English, e.g. 'Chase the signage quote'. No dates, times or list names in it." },
             list: { type: ["string", "null"], enum: ["work", "personal", null] },
             project_id: { type: ["string", "null"], description: "id of the matching project, or null" },
@@ -33,7 +38,7 @@ const TOOL = {
             remind_local: { type: ["string", "null"], description: "YYYY-MM-DDTHH:MM in the person's clock, or null" },
             repeat: { type: ["string", "null"], enum: [...REPEATS, null] },
           },
-          required: ["title", "list", "project_id", "priority", "due_date", "remind_local", "repeat"],
+          required: ["kind", "joint", "assignee", "start_local", "remind_minutes", "title", "list", "project_id", "priority", "due_date", "remind_local", "repeat"],
         },
       },
     },
@@ -42,7 +47,7 @@ const TOOL = {
 };
 
 export async function POST(req: Request) {
-  const auth = await requireOwner(req);
+  const auth = await requireUser(req);
   if (!auth.ok) return auth.res;
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ error: "AI reading is off." }, { status: 501 });
@@ -61,9 +66,12 @@ export async function POST(req: Request) {
         .map((p) => ({ id: p.id as string, name: (p.name as string).slice(0, 120) }))
     : [];
 
+  const other = auth.me.id === "umit" ? "Dilfiraz (his wife, id 'dilfiraz')" : "Umit (her husband, id 'umit')";
   const system = [
-    "You turn what an events operations manager in London says into to-do items for his task board.",
-    `It is now ${weekday} ${nowLocal} on his device. Weeks run Monday to Sunday; 'next Friday' means Friday of next week.`,
+    `You turn what ${auth.me.name} says into items for the planner they share with ${other}, in London.`,
+    "Each item is a task (to-do) or an event (calendar). Events have a day (due_date) and, if said, a start time.",
+    `It is now ${weekday} ${nowLocal} on their device. Weeks run Monday to Sunday; 'next Friday' means Friday of next week.`,
+    `joint = true when it's for both of them or for ${other.split(" ")[0]}; then assignee says who it's for.`,
     "Split the words into separate tasks. Keep titles short and imperative, in English even if he spoke Turkish.",
     "list: 'work' or 'personal' only if he says so or it is obvious (e.g. dentist, family = personal); otherwise null.",
     "Set remind_local when he asks to be reminded or gives a clock time; a reminder with a day but no time is 09:00.",
@@ -99,6 +107,19 @@ export async function POST(req: Request) {
     const ids = new Set(projects.map((p) => p.id));
     const drafts: Draft[] = (Array.isArray(raw) ? raw : [])
       .map((t: Record<string, unknown>): Draft => ({
+        kind: t.kind === "event" ? "event" : "task",
+        joint: t.joint === true,
+        assignee:
+          t.joint === true && (t.assignee === "umit" || t.assignee === "dilfiraz" || t.assignee === "both")
+            ? t.assignee
+            : t.joint === true
+              ? "both"
+              : null,
+        start_local: typeof t.start_local === "string" && LOCAL.test(t.start_local) ? t.start_local : null,
+        remind_minutes:
+          typeof t.remind_minutes === "number" && Number.isInteger(t.remind_minutes) && t.remind_minutes >= 0
+            ? Math.min(t.remind_minutes, 20160)
+            : null,
         title: typeof t.title === "string" ? t.title.trim().slice(0, 200) : "",
         list: t.list === "work" ? "work" : t.list === "personal" ? "personal" : null,
         project_id: typeof t.project_id === "string" && ids.has(t.project_id) ? t.project_id : null,

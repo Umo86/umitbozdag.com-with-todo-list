@@ -4,10 +4,10 @@
 // add them all. Built-in rules read the words instantly; when the server has
 // an AI key, the words are read again by AI after you stop speaking.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseTasks, REPEAT_LABEL, REPEATS, type Draft, type Repeat } from "@/lib/parse";
+import { parseTasks, REPEAT_LABEL, REPEATS, ymd, type Draft, type Repeat } from "@/lib/parse";
 import { MicIcon } from "./Dashboard";
 import { listenForSpeech, speechSupport } from "./native";
-import { fmtDay, type ListName, type Project } from "./types";
+import { fmtDay, nameOf, type ListName, type Me, type Person, type Project } from "./types";
 import type { Backstage } from "./useBackstage";
 
 const LANG_KEY = "backstage:speech-lang";
@@ -24,12 +24,18 @@ const localNow = () => {
 
 export default function Capture({
   bs,
+  me,
+  users,
   projects,
   defaultList,
+  defaultJoint,
   autoListen,
   onClose,
 }: {
   bs: Backstage;
+  me: Me;
+  users: Person[];
+  defaultJoint: boolean;
   projects: Project[];
   defaultList: ListName;
   autoListen: boolean;
@@ -47,6 +53,14 @@ export default function Capture({
   const stopRef = useRef<(() => void) | null>(null);
   const support = useMemo(() => speechSupport(), []);
   const projList = useMemo(() => projects.map((p) => ({ id: p.id, name: p.name })), [projects]);
+  const others = useMemo(() => users.filter((u) => u.id !== me.id).map((u) => ({ id: u.id, name: u.name })), [users, me.id]);
+  const read = useCallback(
+    (t: string) =>
+      parseTasks(t, { projects: projList, others }).map((d) =>
+        defaultJoint && !d.joint ? { ...d, joint: true, assignee: d.assignee ?? "both" } : d
+      ),
+    [projList, others, defaultJoint]
+  );
 
   useEffect(() => {
     try {
@@ -60,9 +74,9 @@ export default function Capture({
   // rules: instant, as the words come in
   useEffect(() => {
     if (edited) return;
-    setDrafts(parseTasks(text, { projects: projList }));
+    setDrafts(read(text));
     setEngine("rules");
-  }, [text, projList, edited]);
+  }, [text, read, edited]);
 
   const readWithAi = useCallback(
     async (words: string) => {
@@ -154,7 +168,7 @@ export default function Capture({
     <div className="bs-scrim center" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bs-capture" role="dialog" aria-modal="true" aria-labelledby="cap-h">
         <div className="bs-drawer-head">
-          <h2 id="cap-h">Add tasks</h2>
+          <h2 id="cap-h">Speak or type</h2>
           <button className="bs-x" onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -182,7 +196,7 @@ export default function Capture({
                     : "Tap and say your to-dos"}
             </strong>
             <span className="quiet">
-              Say several at once. Add &ldquo;tomorrow at 10&rdquo;, &ldquo;remind me Friday&rdquo;, &ldquo;for UKCW&rdquo;, &ldquo;urgent&rdquo;, &ldquo;every Monday&rdquo;.
+              Say several at once: &ldquo;tomorrow at 10&rdquo;, &ldquo;remind me Friday&rdquo;, &ldquo;dinner Saturday at 7, joint&rdquo;, &ldquo;for {others[0]?.name ?? "Dilfiraz"}&rdquo;, &ldquo;every Monday&rdquo;.
             </span>
           </div>
           {support !== "none" && (
@@ -225,7 +239,7 @@ export default function Capture({
           <>
             <div className="bs-cap-sub">
               <span>
-                {drafts.length === 1 ? "1 task" : `${drafts.length} tasks`}
+                {drafts.length === 1 ? "1 item" : `${drafts.length} items`}
                 <span className="quiet"> · {busy === "ai" ? "reading with AI…" : engine === "ai" ? "read by AI" : "check before adding"}</span>
               </span>
               {edited && engine === "rules" && (
@@ -257,12 +271,45 @@ export default function Capture({
                   </div>
                   <div className="opts">
                     <select
-                      aria-label="List"
-                      value={d.list ?? defaultList}
-                      onChange={(e) => change(i, { list: e.target.value as ListName })}
+                      aria-label="Task or event"
+                      value={d.kind}
+                      onChange={(e) => {
+                        const kind = e.target.value as Draft["kind"];
+                        change(i, {
+                          kind,
+                          start_local: kind === "event" ? d.remind_local : null,
+                          remind_local: kind === "task" ? d.start_local : null,
+                          remind_minutes: kind === "event" && d.remind_local ? 30 : null,
+                          due_date: d.due_date ?? (kind === "event" ? ymd(new Date()) : null),
+                        });
+                      }}
                     >
-                      <option value="work">Work</option>
-                      <option value="personal">Personal</option>
+                      <option value="task">Task</option>
+                      <option value="event">Event</option>
+                    </select>
+                    <select
+                      aria-label="Whose"
+                      value={d.joint ? `joint:${d.assignee ?? "both"}` : d.kind === "task" ? `mine:${d.list ?? defaultList}` : "mine"}
+                      onChange={(e) => {
+                        const [w, x] = e.target.value.split(":");
+                        if (w === "joint") change(i, { joint: true, assignee: x as Draft["assignee"] });
+                        else change(i, { joint: false, assignee: null, list: (x as ListName) ?? d.list });
+                      }}
+                    >
+                      {d.kind === "task" ? (
+                        <>
+                          <option value="mine:work">My work</option>
+                          <option value="mine:personal">My personal</option>
+                        </>
+                      ) : (
+                        <option value="mine">My calendar</option>
+                      )}
+                      <option value="joint:both">Joint · both</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={`joint:${u.id}`}>
+                          Joint · for {u.id === me.id ? "me" : u.name}
+                        </option>
+                      ))}
                     </select>
                     <select
                       aria-label="Project"
@@ -277,21 +324,42 @@ export default function Capture({
                       ))}
                     </select>
                     <label className="mini">
-                      <span>Due</span>
+                      <span>{d.kind === "event" ? "Day" : "Due"}</span>
                       <input
                         type="date"
                         value={d.due_date ?? ""}
-                        onChange={(e) => change(i, { due_date: e.target.value || null })}
+                        onChange={(e) =>
+                          change(i, {
+                            due_date: e.target.value || null,
+                            start_local: d.start_local && e.target.value ? `${e.target.value}T${d.start_local.slice(11, 16)}` : d.start_local,
+                          })
+                        }
                       />
                     </label>
-                    <label className="mini">
-                      <span>Remind</span>
-                      <input
-                        type="datetime-local"
-                        value={d.remind_local ?? ""}
-                        onChange={(e) => change(i, { remind_local: e.target.value || null })}
-                      />
-                    </label>
+                    {d.kind === "event" ? (
+                      <label className="mini">
+                        <span>Time</span>
+                        <input
+                          type="time"
+                          value={d.start_local ? d.start_local.slice(11, 16) : ""}
+                          onChange={(e) =>
+                            change(i, {
+                              start_local: e.target.value ? `${d.due_date ?? ymd(new Date())}T${e.target.value}` : null,
+                              remind_minutes: e.target.value ? d.remind_minutes ?? 30 : null,
+                            })
+                          }
+                        />
+                      </label>
+                    ) : (
+                      <label className="mini">
+                        <span>Remind</span>
+                        <input
+                          type="datetime-local"
+                          value={d.remind_local ?? ""}
+                          onChange={(e) => change(i, { remind_local: e.target.value || null })}
+                        />
+                      </label>
+                    )}
                     <select
                       aria-label="Priority"
                       value={d.priority}
@@ -315,7 +383,7 @@ export default function Capture({
                     </select>
                   </div>
                   <p className="sum">
-                    {summary(d, projects, defaultList)}
+                    {summary(d, projects, defaultList, me.id)}
                   </p>
                 </li>
               ))}
@@ -331,8 +399,10 @@ export default function Capture({
             {busy === "saving"
               ? "Adding…"
               : drafts.length > 1
-                ? `Add ${drafts.length} tasks`
-                : "Add task"}
+                ? `Add all ${drafts.length}`
+                : drafts[0]?.kind === "event"
+                  ? "Add event"
+                  : "Add task"}
           </button>
         </div>
       </div>
@@ -340,8 +410,21 @@ export default function Capture({
   );
 }
 
-function summary(d: Draft, projects: Project[], fallback: ListName): string {
-  const bits: string[] = [(d.list ?? fallback) === "work" ? "Work" : "Personal"];
+function summary(d: Draft, projects: Project[], fallback: ListName, me: string): string {
+  const whose = d.joint
+    ? `Joint${d.assignee && d.assignee !== "both" ? ` · for ${d.assignee === me ? "you" : nameOf(d.assignee)}` : ""}`
+    : d.kind === "event"
+      ? "Your calendar"
+      : (d.list ?? fallback) === "work"
+        ? "Work"
+        : "Personal";
+  const bits: string[] = [d.kind === "event" ? `📅 Event · ${whose}` : whose];
+  if (d.kind === "event") {
+    if (d.due_date) bits.push(fmtDay(d.due_date) + (d.start_local ? ` at ${d.start_local.slice(11, 16)}` : " (all day)"));
+    if (d.remind_minutes !== null) bits.push(`reminder ${d.remind_minutes} min before`);
+    if (d.repeat) bits.push(REPEAT_LABEL[d.repeat].toLowerCase());
+    return bits.join(" · ");
+  }
   const p = projects.find((x) => x.id === d.project_id);
   if (p) bits.push(p.name);
   if (d.due_date) bits.push(`due ${fmtDay(d.due_date)}`);

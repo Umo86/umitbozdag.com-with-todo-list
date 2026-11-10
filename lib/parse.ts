@@ -14,7 +14,14 @@ export type DraftList = "work" | "personal";
 export type DraftPriority = "low" | "normal" | "high";
 export type Repeat = "daily" | "weekdays" | "weekly" | "fortnightly" | "monthly" | "yearly";
 
+export type DraftAssignee = "umit" | "dilfiraz" | "both";
+
 export type Draft = {
+  kind: "task" | "event";
+  joint: boolean; // on the joint list / calendar instead of your own
+  assignee: DraftAssignee | null; // joint items: who it's for
+  start_local: string | null; // events with a time: YYYY-MM-DDTHH:MM, local (day is due_date)
+  remind_minutes: number | null; // events: minutes before the start
   title: string;
   list: DraftList | null; // null: whichever list is open
   project_id: string | null;
@@ -27,6 +34,8 @@ export type Draft = {
 export type ParseOptions = {
   now?: Date;
   projects?: Array<{ id: string; name: string }>;
+  /** the other person, so "for Dilfiraz" / "Umit to …" can be understood */
+  others?: Array<{ id: "umit" | "dilfiraz"; name: string }>;
 };
 
 export const REPEATS: Repeat[] = ["daily", "weekdays", "weekly", "fortnightly", "monthly", "yearly"];
@@ -116,7 +125,7 @@ const VERBS = [
 ];
 const VERB = `(?:${VERBS.join("|")})`;
 
-function splitIntoChunks(text: string): string[] {
+function splitIntoChunks(text: string, names: string[] = []): string[] {
   const t = text
     .replace(/\s+/g, " ")
     .replace(/[“”]/g, '"')
@@ -128,6 +137,12 @@ function splitIntoChunks(text: string): string[] {
     .flatMap((s) => s.split(/\s*,?\s*\b(?:and then|and also|after that|then|also|plus)\b\s*/i))
     // "... and chase ...", ", book ..."
     .flatMap((s) => s.split(new RegExp(`\\s*(?:,\\s*and|,|\\band)\\s+(?=(?:i need to |i have to |i've got to |need to |to |please |also )?${VERB}\\b)`, "i")))
+    // "... and Dilfiraz to book the vet"
+    .flatMap((s) =>
+      names.length
+        ? s.split(new RegExp(`\\s*(?:,\\s*and|,|\\band)\\s+(?=(?:${names.join("|")})\\s+(?:to|needs to|has to|should)\\b)`, "i"))
+        : [s]
+    )
     .map((s) => s.replace(/^[\s,.\-–—]+|[\s,.\-–—]+$/g, ""))
     .filter(Boolean);
 }
@@ -143,9 +158,23 @@ type Found = {
   list: DraftList | null;
   projectId: string | null;
   repeat: Repeat | null;
+  joint: boolean;
+  assignee: DraftAssignee | null;
+  calendar: boolean; // said "calendar"
+  guessedTime: boolean; // "at 7" with no am/pm
 };
 
-function extract(chunk: string, now: Date, projects: Array<{ id: string; name: string }>) {
+// Things that happen at a time (an event), rather than things to get done.
+const EVENT_WORDS = /\b(?:meeting|meet(?:ing)? (?:with|up)|dinner|lunch|breakfast|brunch|coffee with|drinks|party|wedding|engagement|appointment|appt|interview|flight|train to|trip|holiday|concert|gig|cinema|movie|theatre|match|class|lesson|session|viewing|catch[ -]up|call with|conference|exhibition|show day|build[ -]up|open day|ceremony|celebration|date night|picnic|bbq|barbecue|visit to|visiting|check[ -]?in|check[ -]?out|doctor'?s|dentist appointment|haircut|gym)\b/i;
+
+const EVENING = /\b(?:dinner|supper|drinks|party|concert|gig|cinema|movie|theatre|date night|bbq|barbecue|wedding|celebration)\b/i;
+
+function extract(
+  chunk: string,
+  now: Date,
+  projects: Array<{ id: string; name: string }>,
+  others: Array<{ id: "umit" | "dilfiraz"; name: string }> = []
+) {
   const today = atMidnight(now);
   let s = ` ${chunk} `;
   const f: Found = {
@@ -157,6 +186,10 @@ function extract(chunk: string, now: Date, projects: Array<{ id: string; name: s
     list: null,
     projectId: null,
     repeat: null,
+    joint: false,
+    assignee: null,
+    calendar: false,
+    guessedTime: false,
   };
   // Remove a match from the text and hand back its groups.
   const take = (re: RegExp): RegExpExecArray | null => {
@@ -201,6 +234,23 @@ function extract(chunk: string, now: Date, projects: Array<{ id: string; name: s
   else if (take(new RegExp(`${B}(?:low priority|no rush|whenever|at some point|when i (?:can|get a chance))${E}`, "i")))
     f.priority = "low";
 
+  // joint, and who it's for
+  if (take(new RegExp(`${B}(?:on |in |to |for )?(?:the |our )?(?:joint(?: list| calendar)?|shared(?: list| calendar)?|together|for us|for both of us|both of us|for the family|family calendar)${E}`, "i"))) {
+    f.joint = true;
+    if (!f.assignee) f.assignee = "both";
+  }
+  for (const o of others) {
+    const nm = o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (
+      take(new RegExp(`${B}(?:for|ask|tell|remind) ${nm}(?: to)?${E}`, "i")) ||
+      take(new RegExp(`^\\s*${nm}(?: needs to| has to| should| to|,)${E}`, "i"))
+    ) {
+      f.joint = true;
+      f.assignee = o.id;
+    }
+  }
+  if (take(new RegExp(`${B}(?:add (?:it )?)?(?:to|in|on|into) (?:the |my |our )?calendar${E}`, "i"))) f.calendar = true;
+
   // list
   if (take(new RegExp(`${B}(?:(?:on|to|for|in|at) (?:the |my )?work(?: list| task)?|work (?:list|task))${E}`, "i"))) f.list = "work";
   else if (take(new RegExp(`${B}(?:on |to |for |in )?(?:the |my )?(?:personal(?: list| task)?|home list|for home|at home)${E}`, "i"))) f.list = "personal";
@@ -242,6 +292,7 @@ function extract(chunk: string, now: Date, projects: Array<{ id: string; name: s
     } else if ((m = take(new RegExp(`${B}at (\\d{1,2})${E}(?! ?(?:st|nd|rd|th)\\b)`, "i")))) {
       const h = +m[1];
       setT(h >= 1 && h <= 6 ? h + 12 : h, 0);
+      f.guessedTime = true;
     } else if (take(new RegExp(`${B}(?:at )?(?:noon|midday|lunch ?time)${E}`, "i"))) setT(12, 0);
     else if (take(new RegExp(`${B}(?:at )?midnight${E}`, "i"))) setT(23, 59);
   }
@@ -360,10 +411,41 @@ function extract(chunk: string, now: Date, projects: Array<{ id: string; name: s
 // Clearly personal things, when the list wasn't said.
 const PERSONAL = /\b(?:dentist|doctor|gp|hospital|optician|haircut|barber|gym|mum|mom|dad|mother|father|wife|husband|girlfriend|boyfriend|fianc[eé]e?|family|kids?|birthday|anniversary|rent|mortgage|council tax|groceries|milk|bread|shopping|car|mot|insurance|pension|bank|passport|holiday|flight home|cleaner|laundry|bins?)\b/i;
 
-function toDraft(title: string, f: Found, now: Date): Draft {
+function toDraft(title: string, found: Found, now: Date): Draft {
+  let f = found;
   const today = atMidnight(now);
   let date = f.date;
   let remind: Date | null = f.remindAt;
+  const isEvent = f.calendar || (EVENT_WORDS.test(title) && !!(f.time || f.date));
+
+  if (isEvent) {
+    // "dinner at 7" is in the evening
+    if (f.time && f.guessedTime && f.time.h >= 7 && f.time.h <= 11 && EVENING.test(title)) {
+      f = { ...f, time: { h: f.time.h + 12, m: f.time.m } };
+    }
+    let start: Date | null = null;
+    if (f.time) {
+      const base = date ?? today;
+      start = new Date(base.getFullYear(), base.getMonth(), base.getDate(), f.time.h, f.time.m);
+      if (!date && start.getTime() <= now.getTime()) start = new Date(start.getTime() + DAY);
+      date = atMidnight(start);
+    }
+    if (!date) date = f.repeat ? today : addDays(today, 1);
+    return {
+      kind: "event",
+      joint: f.joint,
+      assignee: f.joint ? f.assignee ?? "both" : null,
+      start_local: start ? `${ymd(start)}T${p2(start.getHours())}:${p2(start.getMinutes())}` : null,
+      remind_minutes: start ? 30 : null,
+      title,
+      list: null,
+      project_id: f.projectId,
+      priority: f.priority,
+      due_date: ymd(date),
+      remind_local: null,
+      repeat: f.repeat,
+    };
+  }
 
   if (!remind && f.time) {
     const base = date ?? today;
@@ -387,6 +469,11 @@ function toDraft(title: string, f: Found, now: Date): Draft {
   if (!date && f.repeat) date = today;
 
   return {
+    kind: "task",
+    joint: f.joint,
+    assignee: f.joint ? f.assignee ?? "both" : null,
+    start_local: null,
+    remind_minutes: null,
     title,
     list: f.list ?? (!f.projectId && PERSONAL.test(title) ? "personal" : null),
     project_id: f.projectId,
@@ -402,8 +489,8 @@ export function parseTasks(text: string, opts: ParseOptions = {}): Draft[] {
   const now = opts.now ?? new Date();
   const projects = opts.projects ?? [];
   const drafts: Draft[] = [];
-  for (const chunk of splitIntoChunks(text)) {
-    const { title, f } = extract(chunk, now, projects);
+  for (const chunk of splitIntoChunks(text, (opts.others ?? []).map((o) => o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))) {
+    const { title, f } = extract(chunk, now, projects, opts.others);
     const bare = !title || /^(?:it|that|this|about (?:it|that)|me)$/i.test(title);
     const prev = drafts[drafts.length - 1];
     if (bare && prev) {
@@ -415,6 +502,10 @@ export function parseTasks(text: string, opts: ParseOptions = {}): Draft[] {
       if (f.list) prev.list = f.list;
       if (f.projectId) prev.project_id = f.projectId;
       if (f.repeat) prev.repeat = f.repeat;
+      if (f.joint) {
+        prev.joint = true;
+        prev.assignee = f.assignee ?? "both";
+      }
       continue;
     }
     if (bare) continue;

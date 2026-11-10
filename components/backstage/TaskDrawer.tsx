@@ -10,7 +10,12 @@ import {
   STATUSES,
   fromLocalInput,
   toLocalInput,
+  colorOf,
+  nameOf,
+  type Assignee,
   type ListName,
+  type Me,
+  type Person,
   type Priority,
   type Project,
   type Status,
@@ -21,6 +26,8 @@ import {
 export default function TaskDrawer({
   task,
   projects,
+  me,
+  users,
   onPatch,
   onDelete,
   onClose,
@@ -28,6 +35,8 @@ export default function TaskDrawer({
 }: {
   task: Task;
   projects: Project[];
+  me: Me;
+  users: Person[];
   onPatch: (id: string, patch: TaskPatch) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
@@ -47,7 +56,7 @@ export default function TaskDrawer({
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
-        className="bs-drawer"
+        className="bs-drawer bs-sheet"
         role="dialog"
         aria-modal="true"
         aria-label="Task details"
@@ -55,10 +64,12 @@ export default function TaskDrawer({
         ref={panel}
         key={task.id}
       >
+        <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
-          <span className="quiet">
-            Added {new Date(task.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-            {task.added_by !== "umit" ? ` by ${task.added_by}` : ""}
+          <span className="bs-byline">
+            <span className="bs-dot" style={{ background: colorOf(task.added_by) }} />
+            Added by {task.added_by === me.id ? "you" : nameOf(task.added_by)},{" "}
+            {new Date(task.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </span>
           <button className="bs-x" onClick={onClose} aria-label="Close">
             ×
@@ -110,13 +121,35 @@ export default function TaskDrawer({
             <label htmlFor="d-list">List</label>
             <select
               id="d-list"
-              value={task.list}
-              onChange={(e) => patch({ list: e.target.value as ListName })}
+              value={task.owner === "joint" ? "joint" : task.list}
+              onChange={(e) =>
+                e.target.value === "joint"
+                  ? patch({ owner: "joint", assignee: task.assignee ?? "both" })
+                  : patch({ owner: me.id, list: e.target.value as ListName })
+              }
             >
-              <option value="personal">Personal</option>
-              <option value="work">Work</option>
+              <option value="work">My work</option>
+              <option value="personal">My personal</option>
+              <option value="joint">Joint</option>
             </select>
           </div>
+          {task.owner === "joint" && (
+            <div>
+              <label htmlFor="d-for">For</label>
+              <select
+                id="d-for"
+                value={task.assignee ?? "both"}
+                onChange={(e) => patch({ assignee: e.target.value as Assignee })}
+              >
+                <option value="both">Both of us</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.id === me.id ? `Me (${u.name})` : u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label htmlFor="d-project">Project</label>
             <select

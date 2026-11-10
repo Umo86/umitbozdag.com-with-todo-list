@@ -29,6 +29,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   STATUSES,
+  colorOf,
+  nameOf,
   fmtDay,
   fmtWhen,
   isOverdue,
@@ -305,7 +307,10 @@ function Card({
   const done = t.status === "done";
   const reminderDue = !!t.remind_at && !done && new Date(t.remind_at) <= new Date();
   return (
-    <article className={`bs-cardlet${done ? " done" : ""}${lifted ? " lifted" : ""}`}>
+    <article
+      className={`bs-cardlet${done ? " done" : ""}${lifted ? " lifted" : ""}`}
+      style={{ ["--who" as string]: colorOf(t.added_by) }}
+    >
       {onToggle && (
         <input
           type="checkbox"
@@ -328,7 +333,7 @@ function Card({
         ) : (
           <p className="title">{t.title}</p>
         )}
-        {(project || t.due_date || t.remind_at || t.repeat || t.priority !== "normal" || t.added_by !== "umit" || t.notes) && (
+        {(project || t.due_date || t.remind_at || t.repeat || t.priority !== "normal" || t.owner === "joint" || t.notes) && (
           <div className="meta">
             {project && (
               <span className="proj">
@@ -350,7 +355,11 @@ function Card({
             {t.priority === "high" && <span className="high">High</span>}
             {t.priority === "low" && <span>Low priority</span>}
             {t.notes && <span>Has notes</span>}
-            {t.added_by !== "umit" && <span>Added by {t.added_by}</span>}
+            {t.owner === "joint" && t.assignee && (
+              <span className="who" style={{ color: t.assignee === "both" ? undefined : colorOf(t.assignee) }}>
+                {t.assignee === "both" ? "For both" : `For ${nameOf(t.assignee)}`}
+              </span>
+            )}
           </div>
         )}
       </div>

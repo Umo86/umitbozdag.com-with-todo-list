@@ -1,4 +1,5 @@
 import { db } from "./db";
+import type { Me } from "./auth";
 
 export const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -15,7 +16,31 @@ export function cleanRepeat(v: unknown): string | null {
   return typeof v === "string" && REPEATS.has(v) ? v : null;
 }
 
-export const PROJECT_COLS = `id, name, color, position, to_char(due_date, 'YYYY-MM-DD') as due_date`;
+export const PROJECT_COLS = `id, name, color, position, owner, to_char(due_date, 'YYYY-MM-DD') as due_date`;
+
+// ——— who owns what ———
+// Tasks, projects and events belong to one person ('umit' / 'dilfiraz') or to
+// both ('joint'). Each person sees their own and the joint ones.
+export const JOINT = "joint";
+/** SQL: rows this person can see/change; $n is their id. */
+export const visibleTo = (n: number) => `owner in ($${n}, 'joint')`;
+/** An owner the person may set: themselves or joint. */
+export function cleanOwner(v: unknown, me: Me): string | null {
+  return v === JOINT ? JOINT : v === me.id ? me.id : v === undefined ? me.id : null;
+}
+export const ASSIGNEES = new Set(["umit", "dilfiraz", "both"]);
+export function cleanAssignee(v: unknown): string | null {
+  return typeof v === "string" && ASSIGNEES.has(v) ? v : null;
+}
+
+export const EVENT_COLS = `id, owner, assignee, added_by, title, notes, location, all_day,
+  starts_at, ends_at, to_char(start_date, 'YYYY-MM-DD') as start_date,
+  to_char(end_date, 'YYYY-MM-DD') as end_date, remind_minutes, repeat, created_at, updated_at`;
+/** The other person's private events: when, never what. */
+export const BUSY_COLS = `id, owner, null as assignee, owner as added_by, 'Busy' as title, null as notes,
+  null as location, all_day, starts_at, ends_at, to_char(start_date, 'YYYY-MM-DD') as start_date,
+  to_char(end_date, 'YYYY-MM-DD') as end_date, null::int as remind_minutes, repeat, created_at, updated_at,
+  true as busy`;
 
 export function cleanTitle(v: unknown, max = 500): string | null {
   if (typeof v !== "string") return null;
@@ -44,7 +69,7 @@ export function cleanPosition(v: unknown): number | null {
 
 export const TASK_COLS = `id, project_id, list, title, notes, status, priority,
   to_char(due_date, 'YYYY-MM-DD') as due_date, remind_at, added_by, position,
-  calendar_ref, repeat, created_at, updated_at, completed_at`;
+  calendar_ref, repeat, owner, assignee, created_at, updated_at, completed_at`;
 
 export const TASK_ORDER = `order by position asc, created_at desc`;
 

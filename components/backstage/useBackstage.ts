@@ -1,14 +1,31 @@
 "use client";
 
-// Everything Backstage needs from the outside world: the password session,
-// the /api/backstage calls, and the board's data with optimistic updates.
+// Everything Backstage needs from the outside world: the signed-in person,
+// the /api/backstage calls, and the data (tasks, projects, events) with
+// optimistic updates.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ListName, Message, Priority, Project, Repeat, Role, Task, TaskPatch } from "./types";
-import { localToIso, type Draft } from "@/lib/parse";
+import type {
+  Assignee,
+  CalEvent,
+  EventPatch,
+  ListName,
+  Me,
+  Message,
+  Owner,
+  Person,
+  Priority,
+  Project,
+  Repeat,
+  Task,
+  TaskPatch,
+} from "./types";
+import { localToIso, ymd, type Draft } from "@/lib/parse";
 
 export type NewTask = {
   title: string;
   list: ListName;
+  owner?: Owner;
+  assignee?: Assignee | null;
   project_id?: string | null;
   notes?: string | null;
   priority?: Priority;
@@ -37,7 +54,9 @@ export function useBackstage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [me, setMe] = useState<{ name: string; role: Role } | null>(null);
+  const [events, setEvents] = useState<CalEvent[]>([]);
+  const [me, setMe] = useState<Me | null>(null);
+  const [users, setUsers] = useState<Person[]>([]);
   const [notice, setNotice] = useState("");
   const [ai, setAi] = useState(false);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,16 +86,19 @@ export function useBackstage() {
   const refresh = useCallback(async () => {
     try {
       const data = await api<{
-        name: string;
-        role: Role;
+        me: Me;
+        users: Person[];
         projects: Project[];
         tasks: Task[];
+        events: CalEvent[];
         messages?: Message[];
       }>("/state");
       setProjects(data.projects ?? []);
       setTasks(data.tasks ?? []);
+      setEvents(data.events ?? []);
       setMessages(data.messages ?? []);
-      setMe({ name: data.name, role: data.role });
+      setUsers(data.users ?? []);
+      setMe(data.me);
       setPhase({ kind: "app" });
     } catch (e) {
       const err = e as ApiError;
@@ -128,9 +150,9 @@ export function useBackstage() {
 
   // returns an error message, or "" on success
   const signIn = useCallback(
-    async (password: string): Promise<string> => {
+    async (username: string, password: string): Promise<string> => {
       try {
-        await api("/login", { method: "POST", body: { password } });
+        await api("/login", { method: "POST", body: { username, password } });
         await refresh();
         return "";
       } catch (e) {
@@ -143,6 +165,7 @@ export function useBackstage() {
   const signOut = useCallback(() => {
     const done = () => {
       setTasks([]);
+      setEvents([]);
       setMessages([]);
       setProjects([]);
       setMe(null);
@@ -179,12 +202,37 @@ export function useBackstage() {
     async (drafts: Draft[], fallbackList: ListName): Promise<number> => {
       let saved = 0;
       const made: Task[] = [];
+      const evs: CalEvent[] = [];
       for (const d of drafts) {
         try {
+          if (d.kind === "event") {
+            const day = d.due_date ?? ymd(new Date());
+            const e = await api<CalEvent>("/events", {
+              method: "POST",
+              body: {
+                title: d.title,
+                owner: d.joint ? "joint" : me?.id,
+                assignee: d.joint ? d.assignee ?? "both" : null,
+                all_day: !d.start_local,
+                start_date: d.start_local ? undefined : day,
+                starts_at: d.start_local ? localToIso(d.start_local) : undefined,
+                ends_at: d.start_local
+                  ? new Date(new Date(d.start_local).getTime() + 60 * 60_000).toISOString()
+                  : undefined,
+                remind_minutes: d.remind_minutes,
+                repeat: d.repeat,
+              },
+            });
+            evs.push(e);
+            saved++;
+            continue;
+          }
           const t = await api<Task>("/tasks", {
             method: "POST",
             body: {
               title: d.title,
+              owner: d.joint ? "joint" : me?.id,
+              assignee: d.joint ? d.assignee ?? "both" : null,
               list: d.list ?? fallbackList,
               project_id: d.project_id,
               priority: d.priority,
@@ -200,9 +248,46 @@ export function useBackstage() {
         }
       }
       if (made.length) setTasks((prev) => [...made.reverse(), ...prev]);
+      if (evs.length) setEvents((prev) => [...prev, ...evs]);
       return saved;
     },
+    [api, say, me]
+  );
+
+  // ——— calendar ———
+  const addEvent = useCallback(
+    async (body: EventPatch & { title: string }) => {
+      try {
+        const e = await api<CalEvent>("/events", { method: "POST", body });
+        setEvents((prev) => [...prev, e]);
+        return e;
+      } catch (e) {
+        say((e as Error).message);
+        return null;
+      }
+    },
     [api, say]
+  );
+  const patchEvent = useCallback(
+    async (id: string, patch: EventPatch) => {
+      setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+      try {
+        const e = await api<CalEvent>(`/events/${id}`, { method: "PATCH", body: patch });
+        setEvents((prev) => prev.map((x) => (x.id === id ? e : x)));
+        return true;
+      } catch (e) {
+        fail(e);
+        return false;
+      }
+    },
+    [api, fail]
+  );
+  const deleteEvent = useCallback(
+    (id: string) => {
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+      api(`/events/${id}`, { method: "DELETE" }).catch(fail);
+    },
+    [api, fail]
   );
 
   const patchTask = useCallback(
@@ -230,9 +315,9 @@ export function useBackstage() {
   );
 
   const addProject = useCallback(
-    async (name: string, color: string, due_date: string | null = null) => {
+    async (name: string, color: string, due_date: string | null = null, owner: Owner | null = null) => {
       try {
-        const p = await api<Project>("/projects", { method: "POST", body: { name, color, due_date } });
+        const p = await api<Project>("/projects", { method: "POST", body: { name, color, due_date, owner: owner ?? undefined } });
         setProjects((prev) => [...prev, p]);
       } catch (e) {
         fail(e);
@@ -242,7 +327,7 @@ export function useBackstage() {
   );
 
   const patchProject = useCallback(
-    (id: string, patch: { name?: string; color?: string; due_date?: string | null }) => {
+    (id: string, patch: { name?: string; color?: string; due_date?: string | null; owner?: Owner }) => {
       setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
       api(`/projects/${id}`, { method: "PATCH", body: patch }).catch(fail);
     },
@@ -282,7 +367,12 @@ export function useBackstage() {
     me,
     projects,
     tasks,
+    events,
+    users,
     messages,
+    addEvent,
+    patchEvent,
+    deleteEvent,
     notice,
     say,
     ai,

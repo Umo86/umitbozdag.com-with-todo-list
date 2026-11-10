@@ -3,22 +3,33 @@
 // Add one task by hand: every field as an ordinary control, nothing guessed.
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
-import { fromLocalInput, type ListName, type Priority, type Project } from "./types";
+import { fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, type Priority, type Project } from "./types";
 import type { Backstage } from "./useBackstage";
 
 export default function NewTask({
   bs,
+  me,
+  users,
   projects,
   defaultList,
   defaultProject,
+  defaultOwner,
   onClose,
+  onSwitchToEvent,
 }: {
   bs: Backstage;
+  me: Me;
+  users: Person[];
   projects: Project[];
   defaultList: ListName;
   defaultProject: string | null;
+  defaultOwner: Owner;
   onClose: () => void;
+  onSwitchToEvent?: () => void;
 }) {
+  const [joint, setJoint] = useState(defaultOwner === "joint");
+  const [assignee, setAssignee] = useState<Assignee>("both");
+  const other = users.find((u) => u.id !== me.id);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const title = useRef<HTMLTextAreaElement>(null);
@@ -33,7 +44,7 @@ export default function NewTask({
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <form
-        className="bs-drawer"
+        className="bs-drawer bs-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby="nt-h"
@@ -47,6 +58,8 @@ export default function NewTask({
             title: name,
             notes: String(f.get("notes") ?? "").trim() || null,
             list: f.get("list") === "personal" ? "personal" : "work",
+            owner: joint ? "joint" : me.id,
+            assignee: joint ? assignee : null,
             project_id: String(f.get("project") ?? "") || null,
             priority: (String(f.get("priority")) as Priority) || "normal",
             due_date: String(f.get("due") ?? "") || null,
@@ -60,6 +73,7 @@ export default function NewTask({
           }
         }}
       >
+        <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
           <h2 id="nt-h">New task</h2>
           <button type="button" className="bs-x" onClick={onClose} aria-label="Close">
@@ -67,6 +81,16 @@ export default function NewTask({
           </button>
         </div>
 
+        {onSwitchToEvent && (
+          <div className="bs-seg wide" role="group" aria-label="Add">
+            <button type="button" aria-pressed="true">
+              Task
+            </button>
+            <button type="button" onClick={onSwitchToEvent}>
+              Event
+            </button>
+          </div>
+        )}
         <label htmlFor="nt-title">Task</label>
         <textarea
           id="nt-title"
@@ -87,14 +111,35 @@ export default function NewTask({
         <label htmlFor="nt-notes">Notes</label>
         <textarea id="nt-notes" name="notes" rows={3} maxLength={4000} placeholder="Phone numbers, links, what was agreed…" />
 
-        <div className="bs-fields">
-          <div>
-            <label htmlFor="nt-list">List</label>
-            <select id="nt-list" name="list" defaultValue={defaultList}>
-              <option value="work">Work</option>
-              <option value="personal">Personal</option>
-            </select>
+        <label>Whose</label>
+        <div className="bs-seg" role="group" aria-label="Whose list">
+          <button type="button" aria-pressed={!joint} onClick={() => setJoint(false)}>
+            Mine
+          </button>
+          <button type="button" aria-pressed={joint} onClick={() => setJoint(true)}>
+            Joint
+          </button>
+        </div>
+        {joint && (
+          <div className="bs-seg small" role="group" aria-label="Who it's for">
+            {(["both", me.id, other?.id].filter(Boolean) as Assignee[]).map((a) => (
+              <button type="button" key={a} aria-pressed={assignee === a} onClick={() => setAssignee(a)}>
+                {a === "both" ? "Both of us" : a === me.id ? "Me" : nameOf(a)}
+              </button>
+            ))}
           </div>
+        )}
+
+        <div className="bs-fields">
+          {!joint && (
+            <div>
+              <label htmlFor="nt-list">List</label>
+              <select id="nt-list" name="list" defaultValue={defaultList}>
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+              </select>
+            </div>
+          )}
           <div>
             <label htmlFor="nt-project">Project</label>
             <select id="nt-project" name="project" defaultValue={defaultProject ?? ""}>

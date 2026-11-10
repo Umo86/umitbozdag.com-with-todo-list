@@ -40,7 +40,7 @@ a private task manager behind one password, storing its data in Neon Postgres.
 | Name | Value | Notes |
 | --- | --- | --- |
 | `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
-| `BACKSTAGE_PASSWORD` | the password for `/backstage` | keep it secret; changing it signs every device out |
+| `BACKSTAGE_PASSWORD` | Umit's Backstage password | keep it secret; changing it signs Umit out everywhere |
 | `BACKSTAGE_SECRET` | optional | extra random text mixed into the session signature |
 | `ANTHROPIC_API_KEY` | optional | turns on AI reading of spoken tasks (better with rambling speech and Turkish). Without it, built-in rules read them |
 | `ANTHROPIC_MODEL` | optional | model for that, default `claude-haiku-5-5` |
@@ -53,14 +53,31 @@ notice naming the missing setting instead of the password field.
 Run the schema: `npm install && npm run migrate` (needs `DATABASE_URL` or
 `DATABASE_URL_UNPOOLED` in `.env.local`).
 
-## Signing in
+## Signing in (two people)
 
-Open `/backstage` and enter the password (the `BACKSTAGE_PASSWORD` setting). A
-correct password keeps that browser signed in for 30 days. Ten wrong guesses
+Backstage has two people, **Umit** and **Dilfiraz**. Open `/backstage`, pick
+your name and enter your password. Umit's is the `BACKSTAGE_PASSWORD`
+setting; Dilfiraz's is stored hashed in the `users` table. To set or change
+either one (it signs that person out everywhere):
+
+```bash
+DATABASE_URL=... node scripts/set-password.mjs dilfiraz 'new password'
+```
+
+A correct password keeps that browser signed in for 30 days. Ten wrong guesses
 from one address in fifteen minutes lock that address out for the rest of the
 fifteen minutes. The password is never stored in this repository.
 
 ## Backstage in brief
+
+- **Who sees what:** each person has their own Work and Personal lists and
+  projects (private), plus a **joint** list and **joint** calendar for both.
+  Things Umit adds are blue, things Dilfiraz adds are pink. A private event
+  shows to the other person as a grey "Busy" block with no details.
+- **Calendar:** month view and the day's agenda; events (timed or all day,
+  with place, reminder and repeat), plus to-dos with a due date and project
+  deadlines. Each person gets a private calendar link (You → Copy link) to add
+  to Google or Samsung Calendar.
 
 - Two lists, **Work** and **Personal**, each a board of To do / In progress / Done.
 - Drag cards between columns or reorder them (mouse, touch or keyboard); open a

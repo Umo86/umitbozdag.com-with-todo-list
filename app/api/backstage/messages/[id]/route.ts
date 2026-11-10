@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireOwner } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { UUID } from "@/lib/backstage";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ const COLS = `id, name, email, company, message, created_at, read_at`;
 
 // Mark a contact-form message read or unread.
 export async function PATCH(req: Request, ctx: Ctx) {
-  const auth = await requireOwner(req);
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   if (!UUID.test(id)) return NextResponse.json({ error: "Unknown message." }, { status: 400 });
@@ -33,7 +33,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const auth = await requireOwner(req);
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   if (!UUID.test(id)) return NextResponse.json({ error: "Unknown message." }, { status: 400 });

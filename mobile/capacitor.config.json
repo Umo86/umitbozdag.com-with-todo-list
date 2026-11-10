@@ -8,8 +8,9 @@
     "errorPath": "offline.html"
   },
   "android": {
-    "appendUserAgent": "BackstageApp/1",
-    "backgroundColor": "#f5f6fb"
+    "appendUserAgent": "BackstageApp/2",
+    "backgroundColor": "#f5f6fb",
+    "adjustMarginsForEdgeToEdge": "auto"
   },
   "plugins": {
     "LocalNotifications": {

@@ -1,7 +1,11 @@
 export type Status = "todo" | "doing" | "done";
 export type ListName = "personal" | "work";
 export type Priority = "low" | "normal" | "high";
-export type Role = "owner" | "helper";
+export type UserId = "umit" | "dilfiraz";
+export type Owner = UserId | "joint";
+export type Assignee = UserId | "both";
+export type Person = { id: UserId; name: string; color: string };
+export type Me = Person & { admin: boolean };
 import type { Repeat } from "@/lib/parse";
 export type { Repeat };
 
@@ -11,6 +15,7 @@ export type Project = {
   color: string;
   position: number;
   due_date: string | null; // YYYY-MM-DD
+  owner: Owner;
 };
 
 export type Task = {
@@ -29,7 +34,33 @@ export type Task = {
   updated_at: string;
   completed_at: string | null;
   repeat: Repeat | null;
+  owner: Owner;
+  assignee: Assignee | null;
 };
+
+export type CalEvent = {
+  id: string;
+  owner: Owner;
+  assignee: Assignee | null;
+  added_by: UserId;
+  title: string;
+  notes: string | null;
+  location: string | null;
+  all_day: boolean;
+  starts_at: string | null; // ISO
+  ends_at: string | null;
+  start_date: string | null; // YYYY-MM-DD (all-day)
+  end_date: string | null; // inclusive
+  remind_minutes: number | null;
+  repeat: Repeat | null;
+  busy: boolean; // the other person's private event: only the time is known
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventPatch = Partial<
+  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee">
+>;
 
 export type Message = {
   id: string;
@@ -44,7 +75,7 @@ export type Message = {
 export type TaskPatch = Partial<
   Pick<
     Task,
-    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat"
+    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee"
   >
 >;
 
@@ -90,3 +121,22 @@ export function fromLocalInput(v: string): string | null {
   const t = new Date(v).getTime();
   return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
+
+// ——— people ———
+export const PEOPLE: Record<UserId, { name: string; color: string; soft: string }> = {
+  umit: { name: "Umit", color: "#1a47ff", soft: "#e8edff" },
+  dilfiraz: { name: "Dilfiraz", color: "#e0457b", soft: "#fde8ef" },
+};
+export const BUSY = { color: "#9aa1b2", soft: "#eef0f4" };
+/** Colour for something, by who added it. */
+export const colorOf = (addedBy: string) => PEOPLE[addedBy as UserId]?.color ?? "#6b7280";
+export const softOf = (addedBy: string) => PEOPLE[addedBy as UserId]?.soft ?? "#f1f2f6";
+export const nameOf = (id: string) => PEOPLE[id as UserId]?.name ?? id;
+export function assigneeLabel(a: Assignee | null, me: UserId): string | null {
+  if (!a) return null;
+  if (a === "both") return "Both";
+  return a === me ? "You" : nameOf(a);
+}
+/** A joint item is "for me" when it's assigned to me or to both (or no one). */
+export const forMe = (owner: Owner, assignee: Assignee | null, me: UserId) =>
+  owner === me || (owner === "joint" && (!assignee || assignee === "both" || assignee === me));

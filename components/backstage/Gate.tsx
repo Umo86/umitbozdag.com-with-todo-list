@@ -1,7 +1,7 @@
 "use client";
 
-// The door to Backstage: one password.
-import { useState } from "react";
+// The door to Backstage: your name and your password.
+import { useEffect, useState } from "react";
 import type { Backstage } from "./useBackstage";
 
 export default function Gate({ bs }: { bs: Backstage }) {
@@ -9,11 +9,19 @@ export default function Gate({ bs }: { bs: Backstage }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
+  const [name, setName] = useState("");
+  useEffect(() => {
+    try {
+      setName(localStorage.getItem("backstage:last-user") ?? "");
+    } catch {
+      /* fine */
+    }
+  }, []);
   return (
     <div className="bs-gate">
       <div className="bs-card">
         <h1>Backstage</h1>
-        <p className="sub">The private production office for umitbozdag.com</p>
+        <p className="sub">Umit &amp; Dilfiraz&rsquo;s planner</p>
         {phase.kind === "loading" && <p className="notice">Opening…</p>}
         {phase.kind === "noconfig" && (
           <p className="notice">
@@ -34,13 +42,52 @@ export default function Gate({ bs }: { bs: Backstage }) {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              const password = String(new FormData(e.currentTarget).get("password") ?? "");
+              const f = new FormData(e.currentTarget);
+              const password = String(f.get("password") ?? "");
+              const username = String(f.get("username") ?? "").trim();
               setErr("");
               setBusy(true);
-              setErr(await bs.signIn(password));
+              const problem = await bs.signIn(username, password);
+              if (!problem) {
+                try {
+                  localStorage.setItem("backstage:last-user", username);
+                } catch {
+                  /* fine */
+                }
+              }
+              setErr(problem);
               setBusy(false);
             }}
           >
+            <label htmlFor="f-user">Name</label>
+            <div className="bs-who-pick" role="group" aria-label="Who are you?">
+              {["Umit", "Dilfiraz"].map((n) => (
+                <button
+                  type="button"
+                  key={n}
+                  aria-pressed={name.toLowerCase() === n.toLowerCase()}
+                  className={n.toLowerCase()}
+                  onClick={() => {
+                    setName(n);
+                    (document.getElementById("f-pass") as HTMLInputElement | null)?.focus();
+                  }}
+                >
+                  <span className="bs-avatar">{n[0]}</span>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <input
+              id="f-user"
+              name="username"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="username"
+              autoCapitalize="words"
+              spellCheck={false}
+              className="bs-user-input"
+            />
             <label htmlFor="f-pass">Password</label>
             <div className="bs-pass">
               <input
@@ -48,7 +95,6 @@ export default function Gate({ bs }: { bs: Backstage }) {
                 name="password"
                 type={show ? "text" : "password"}
                 required
-                autoFocus
                 autoComplete="current-password"
                 autoCapitalize="off"
                 autoCorrect="off"

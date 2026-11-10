@@ -19,7 +19,8 @@ export default function Projects({
   const [confirm, setConfirm] = useState<string | null>(null);
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bs-drawer" role="dialog" aria-modal="true" aria-label="Projects">
+      <div className="bs-drawer bs-sheet" role="dialog" aria-modal="true" aria-label="Projects">
+        <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
           <h2>Projects</h2>
           <button className="bs-x" onClick={onClose} aria-label="Close">
@@ -28,7 +29,7 @@ export default function Projects({
         </div>
         <ul className="bs-projlist">
           {projects.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className={p.owner === "joint" ? "joint" : undefined}>
               <span className="bs-swatches small">
                 {SWATCHES.map((c) => (
                   <button
@@ -52,6 +53,15 @@ export default function Projects({
                   else e.currentTarget.value = p.name;
                 }}
               />
+              <select
+                className="bs-owner"
+                value={p.owner === "joint" ? "joint" : "mine"}
+                aria-label={`Whose project is ${p.name}`}
+                onChange={(e) => bs.patchProject(p.id, { owner: e.target.value === "joint" ? "joint" : (bs.me?.id ?? "umit") })}
+              >
+                <option value="mine">Mine</option>
+                <option value="joint">Joint</option>
+              </select>
               <span className="bs-deadline">
                 <span>Deadline</span>
                 <input
@@ -88,13 +98,19 @@ export default function Projects({
             const name = input.value.trim();
             if (!name) return;
             const due = e.currentTarget.elements.namedItem("pdue") as HTMLInputElement;
-            void bs.addProject(name, color, due.value || null);
+            const own = e.currentTarget.elements.namedItem("powner") as HTMLSelectElement;
+            void bs.addProject(name, color, due.value || null, own.value === "joint" ? "joint" : null);
             input.value = "";
             due.value = "";
           }}
         >
           <label htmlFor="p-new">New project</label>
           <input id="p-new" name="pname" maxLength={120} placeholder="Project name, e.g. UKCW London 2027" />
+          <label htmlFor="p-owner">Whose</label>
+          <select id="p-owner" name="powner" defaultValue="mine">
+            <option value="mine">Mine (only I see it)</option>
+            <option value="joint">Joint (we both see it)</option>
+          </select>
           <label htmlFor="p-due">Deadline (optional)</label>
           <input id="p-due" name="pdue" type="date" />
           <div className="bs-swatches">

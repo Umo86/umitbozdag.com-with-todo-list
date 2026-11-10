@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireMember } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import {
+  cleanAssignee,
   cleanList,
+  cleanOwner,
   cleanPosition,
   cleanRepeat,
   cleanTitle,
   cleanWhen,
   DATE,
+  JOINT,
   PRIORITIES,
   TASK_COLS,
   UUID,
@@ -15,73 +18,56 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// Owner: add to either list. Helper: add to the Personal list only.
+// Add a task to your own list (Work or Personal) or to the joint list.
 export async function POST(req: Request) {
-  const auth = await requireMember(req);
+  const auth = await requireUser(req);
   if (!auth.ok) return auth.res;
+  const me = auth.me;
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const title = cleanTitle(body.title);
-    if (!title) {
-      return NextResponse.json({ error: "A task needs a title." }, { status: 400 });
-    }
-    const isOwner = auth.role === "owner";
+    if (!title) return NextResponse.json({ error: "A task needs a title." }, { status: 400 });
+
+    const owner = cleanOwner(body.owner, me);
+    if (!owner) return NextResponse.json({ error: "You can add to your own list or the joint one." }, { status: 400 });
 
     let list = "personal";
-    if (isOwner && body.list !== undefined) {
+    if (body.list !== undefined) {
       const l = cleanList(body.list);
-      if (!l) {
-        return NextResponse.json({ error: "Unknown list." }, { status: 400 });
-      }
+      if (!l) return NextResponse.json({ error: "Unknown list." }, { status: 400 });
       list = l;
     }
+    if (owner === JOINT) list = "personal";
 
     let remindAt: string | null = null;
     if (body.remind_at !== undefined && body.remind_at !== null) {
       remindAt = cleanWhen(body.remind_at);
       if (!remindAt) {
-        return NextResponse.json(
-          { error: "A reminder needs a date and time with a time zone." },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "A reminder needs a date and time with a time zone." }, { status: 400 });
       }
     }
-
-    const projectId =
-      isOwner && typeof body.project_id === "string" && UUID.test(body.project_id)
-        ? body.project_id
-        : null;
-    const due =
-      typeof body.due_date === "string" && DATE.test(body.due_date)
-        ? body.due_date
-        : null;
-    const priority =
-      typeof body.priority === "string" && PRIORITIES.has(body.priority)
-        ? body.priority
-        : "normal";
-    const notes =
-      typeof body.notes === "string" ? body.notes.slice(0, 4000) : null;
+    const projectId = typeof body.project_id === "string" && UUID.test(body.project_id) ? body.project_id : null;
+    const due = typeof body.due_date === "string" && DATE.test(body.due_date) ? body.due_date : null;
+    const priority = typeof body.priority === "string" && PRIORITIES.has(body.priority) ? body.priority : "normal";
+    const notes = typeof body.notes === "string" ? body.notes.slice(0, 4000) : null;
     const position = cleanPosition(body.position);
     const repeat = cleanRepeat(body.repeat);
-    const addedBy = isOwner ? "umit" : auth.name;
+    const assignee = owner === JOINT ? cleanAssignee(body.assignee) : null;
 
     // New cards go to the top of To do unless a position is given.
     const r = await db().query(
       `insert into tasks
-         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, position)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $10,
+         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, owner, assignee, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, $12,
          coalesce($9::double precision,
-           (select min(position) - 1 from tasks where list = $1 and status = 'todo'),
+           (select min(position) - 1 from tasks where list = $1 and owner = $11 and status = 'todo'),
            0))
        returning ${TASK_COLS}`,
-      [list, projectId, title, notes, priority, due, remindAt, addedBy, position, repeat]
+      [list, projectId, title, notes, priority, due, remindAt, me.id, position, repeat, owner, assignee]
     );
     return NextResponse.json(r.rows[0], { status: 201 });
   } catch (err) {
     console.error("backstage task create error:", err);
-    return NextResponse.json(
-      { error: "Something went wrong on the server." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Something went wrong on the server." }, { status: 500 });
   }
 }

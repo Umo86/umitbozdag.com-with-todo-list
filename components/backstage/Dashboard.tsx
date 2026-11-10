@@ -4,8 +4,10 @@
 // what's late, what's due today and this week, the next reminders, and how
 // each project stands against its deadline.
 import { useMemo } from "react";
-import { REPEAT_LABEL, ymd } from "@/lib/parse";
-import { fmtDay, fmtWhen, type Project, type Task, type TaskPatch } from "./types";
+import { ymd } from "@/lib/parse";
+import { hhmm, itemsByDay } from "./calendar";
+import { TaskRow } from "./TaskList";
+import { colorOf, fmtDay, fmtWhen, nameOf, type CalEvent, type Me, type Project, type Task, type TaskPatch } from "./types";
 
 const DAY = 86_400_000;
 const daysBetween = (from: string, to: string) =>
@@ -27,17 +29,25 @@ const byUrgency = (a: Task, b: Task) =>
   (a.remind_at ?? "").localeCompare(b.remind_at ?? "");
 
 export default function Dashboard({
+  me,
   tasks,
+  events,
   projects,
   onOpen,
+  onOpenEvent,
+  onCalendar,
   onPatch,
   onPickProject,
   onManageProjects,
   onCapture,
 }: {
+  me: Me;
   tasks: Task[];
+  events: CalEvent[];
   projects: Project[];
   onOpen: (id: string) => void;
+  onOpenEvent: (id: string) => void;
+  onCalendar: () => void;
   onPatch: (id: string, patch: TaskPatch) => void;
   onPickProject: (id: string) => void;
   onManageProjects: () => void;
@@ -70,14 +80,25 @@ export default function Dashboard({
         (a.p.due_date ?? "9999").localeCompare(b.p.due_date ?? "9999") || b.left - a.left
     );
 
+  const tomorrow = ymd(new Date(Date.now() + DAY));
+  const schedule = itemsByDay(today, tomorrow, events.filter((e) => !e.busy), [], []);
+  const todayEvents = schedule.get(today) ?? [];
+  const tomorrowEvents = schedule.get(tomorrow) ?? [];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   const nothing = !overdue.length && !dueToday.length && !week.length && !urgentUndated.length;
 
   return (
     <div className="bs-dash">
+      <p className="bs-hello">
+        {greeting}, <span style={{ color: me.color }}>{me.name}</span>
+      </p>
       <div className="bs-stats">
         <Stat n={overdue.length} label="Overdue" tone={overdue.length ? "bad" : undefined} />
         <Stat n={dueToday.length} label="Due today" tone={dueToday.length ? "accent" : undefined} />
         <Stat n={week.length} label="Next 7 days" />
+        <Stat n={todayEvents.length} label="Events today" />
         <Stat n={soon} label="Reminders in 24h" />
         <Stat n={doneToday} label="Done today" tone={doneToday ? "good" : undefined} />
       </div>
@@ -96,15 +117,55 @@ export default function Dashboard({
             </span>
           </button>
 
+          <section className="bs-schedule" aria-labelledby="h-sched">
+            <div className="bs-side-head">
+              <h2 id="h-sched">Today&rsquo;s plan</h2>
+              <button className="bs-link" onClick={onCalendar}>
+                Calendar
+              </button>
+            </div>
+            {todayEvents.length ? (
+              <ul>
+                {todayEvents.map((it) => (
+                  <li key={it.key}>
+                    <button onClick={() => onOpenEvent(it.event!.id)} style={{ ["--who" as string]: colorOf(it.event!.added_by) }}>
+                      <time>{it.start ? hhmm(it.start) : "All day"}</time>
+                      <span>
+                        <strong>{it.title}</strong>
+                        {(it.event!.location || it.event!.owner === "joint") && (
+                          <small>
+                            {[it.event!.location, it.event!.owner === "joint" ? "Joint" : null].filter(Boolean).join(" · ")}
+                          </small>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="quiet small">Nothing in the calendar today.</p>
+            )}
+            {tomorrowEvents.length > 0 && (
+              <p className="bs-tomorrow quiet small">
+                Tomorrow:{" "}
+                {tomorrowEvents
+                  .slice(0, 3)
+                  .map((it) => (it.start ? `${hhmm(it.start)} ${it.title}` : it.title))
+                  .join(" · ")}
+                {tomorrowEvents.length > 3 ? ` +${tomorrowEvents.length - 3}` : ""}
+              </p>
+            )}
+          </section>
+
           {nothing && (
             <p className="bs-empty">
               Nothing due this week. Anything with a date or a reminder shows up here.
             </p>
           )}
-          <Group title="Overdue" tone="bad" items={overdue} {...{ projects, onOpen, onPatch, today }} />
-          <Group title="Today" items={dueToday} {...{ projects, onOpen, onPatch, today }} />
-          <Group title="Next 7 days" items={week} {...{ projects, onOpen, onPatch, today }} />
-          <Group title="Urgent, no date" items={urgentUndated} {...{ projects, onOpen, onPatch, today }} />
+          <Group title="Overdue" tone="bad" items={overdue} {...{ projects, onOpen, onPatch, today, me: me.id }} />
+          <Group title="Today" items={dueToday} {...{ projects, onOpen, onPatch, today, me: me.id }} />
+          <Group title="Next 7 days" items={week} {...{ projects, onOpen, onPatch, today, me: me.id }} />
+          <Group title="Urgent, no date" items={urgentUndated} {...{ projects, onOpen, onPatch, today, me: me.id }} />
         </section>
 
         <aside className="bs-dash-side">
@@ -192,6 +253,7 @@ function Group({
   onOpen,
   onPatch,
   today,
+  me,
 }: {
   title: string;
   items: Task[];
@@ -200,6 +262,7 @@ function Group({
   onOpen: (id: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
   today: string;
+  me: Me["id"];
 }) {
   if (!items.length) return null;
   return (
@@ -208,37 +271,9 @@ function Group({
         {title} <span className="n">{items.length}</span>
       </h2>
       <ul>
-        {items.map((t) => {
-          const p = projects.find((x) => x.id === t.project_id);
-          return (
-            <li key={t.id} className="bs-row">
-              <input
-                type="checkbox"
-                aria-label={`Mark "${t.title}" done`}
-                checked={false}
-                onChange={() => onPatch(t.id, { status: "done" })}
-              />
-              <button className="title" onClick={() => onOpen(t.id)}>
-                {t.title}
-              </button>
-              <span className="meta">
-                {p && (
-                  <span className="proj">
-                    <span className="bs-dot" style={{ background: p.color }} />
-                    {p.name}
-                  </span>
-                )}
-                {t.due_date && t.due_date !== today && (
-                  <span className={t.due_date < today ? "late" : undefined}>{fmtDay(t.due_date)}</span>
-                )}
-                {t.remind_at && <span>⏰ {fmtWhen(t.remind_at)}</span>}
-                {t.repeat && <span title={REPEAT_LABEL[t.repeat]}>↻ {t.repeat}</span>}
-                {t.priority === "high" && <span className="high">High</span>}
-                <span className="tag">{t.list === "work" ? "Work" : "Personal"}</span>
-              </span>
-            </li>
-          );
-        })}
+        {items.map((t) => (
+          <TaskRow key={t.id} task={t} projects={projects} me={me} onOpen={onOpen} onPatch={onPatch} hideDay={today} />
+        ))}
       </ul>
     </section>
   );

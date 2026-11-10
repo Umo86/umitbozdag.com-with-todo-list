@@ -96,6 +96,47 @@ create index if not exists login_attempts_ip_at_idx on login_attempts (ip, at);
 alter table tasks    add column if not exists repeat   text;
 alter table tasks    add column if not exists next_id  uuid;
 alter table projects add column if not exists due_date date;
+
+-- Two people (Nov 2026): Umit and Dilfiraz. Passwords are hashed; set them
+-- with scripts/set-password.mjs. Tasks, projects and events belong to one
+-- person or to both ('joint').
+create table if not exists users (
+  id             text primary key,
+  name           text not null,
+  color          text not null,
+  admin          boolean not null default false,
+  password_hash  text,
+  calendar_token text unique,
+  created_at     timestamptz not null default now()
+);
+insert into users (id, name, color, admin) values
+  ('umit', 'Umit', '#1a47ff', true), ('dilfiraz', 'Dilfiraz', '#e0457b', false)
+  on conflict (id) do nothing;
+
+alter table tasks    add column if not exists owner    text not null default 'umit';
+alter table tasks    add column if not exists assignee text;
+alter table projects add column if not exists owner    text not null default 'umit';
+create index if not exists tasks_owner_idx on tasks (owner);
+
+create table if not exists events (
+  id             uuid primary key default gen_random_uuid(),
+  owner          text not null,
+  assignee       text,
+  added_by       text not null,
+  title          text not null,
+  notes          text,
+  location       text,
+  all_day        boolean not null default false,
+  starts_at      timestamptz,
+  ends_at        timestamptz,
+  start_date     date,
+  end_date       date,
+  remind_minutes int,
+  repeat         text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists events_owner_idx on events (owner);
 `;
 
 const client = new Client({ connectionString: url });

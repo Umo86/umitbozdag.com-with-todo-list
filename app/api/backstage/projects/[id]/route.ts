@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireOwner } from "@/lib/auth";
-import { cleanTitle, COLOR, DATE, PROJECT_COLS, UUID } from "@/lib/backstage";
+import { requireUser } from "@/lib/auth";
+import { cleanOwner, cleanTitle, COLOR, DATE, PROJECT_COLS, UUID } from "@/lib/backstage";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const auth = await requireOwner(req);
+  const auth = await requireUser(req);
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   if (!UUID.test(id)) {
@@ -32,14 +32,20 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (dueGiven && body.due_date !== null && !(typeof body.due_date === "string" && DATE.test(body.due_date))) {
       return NextResponse.json({ error: "A deadline needs a date." }, { status: 400 });
     }
-    if (name === undefined && color === null && !dueGiven) {
+    let owner: string | null = null;
+    if (body.owner !== undefined) {
+      owner = cleanOwner(body.owner, auth.me);
+      if (!owner) return NextResponse.json({ error: "A project is yours or joint." }, { status: 400 });
+    }
+    if (name === undefined && color === null && !dueGiven && !owner) {
       return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
     }
     const r = await db().query(
       `update projects set name = coalesce($2, name), color = coalesce($3, color),
-         due_date = case when $4 then $5::date else due_date end
-       where id = $1 returning ${PROJECT_COLS}`,
-      [id, name ?? null, color, dueGiven, dueGiven ? body.due_date : null]
+         due_date = case when $4 then $5::date else due_date end,
+         owner = coalesce($7, owner)
+       where id = $1 and owner in ($6, 'joint') returning ${PROJECT_COLS}`,
+      [id, name ?? null, color, dueGiven, dueGiven ? body.due_date : null, auth.me.id, owner]
     );
     if (!r.rows.length) {
       return NextResponse.json({ error: "Unknown project." }, { status: 404 });
@@ -55,14 +61,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const auth = await requireOwner(req);
+  const auth = await requireUser(req);
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   if (!UUID.test(id)) {
     return NextResponse.json({ error: "Unknown project." }, { status: 400 });
   }
   try {
-    await db().query(`delete from projects where id = $1`, [id]);
+    await db().query(`delete from projects where id = $1 and owner in ($2, 'joint')`, [id, auth.me.id]);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("backstage project delete error:", err);

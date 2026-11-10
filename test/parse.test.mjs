@@ -64,3 +64,33 @@ assert.equal(nextOccurrence("2026-11-13", "weekdays"), "2026-11-16");
 assert.equal(nextOccurrence("2026-01-31", "monthly"), "2026-02-28");
 assert.equal(nextOccurrence("2026-11-10", "fortnightly"), "2026-11-24");
 console.log(`${n} parse checks passed${process.exitCode ? " (some failed)" : ""}`);
+
+// ——— events and joint (two people) ———
+const P2 = (t) => parseTasks(t, { now, projects, others: [{ id: "dilfiraz", name: "Dilfiraz" }] });
+const check2 = (text, want) => {
+  const got = P2(text);
+  try {
+    assert.equal(got.length, want.length, "number of items");
+    want.forEach((w, i) => { for (const [k, v] of Object.entries(w)) assert.deepEqual(got[i][k], v, `item ${i + 1} ${k}`); });
+    n++;
+  } catch (e) {
+    console.error(`\n✗ ${text}\n  ${e.message}\n  got: ${JSON.stringify(got, null, 1)}`);
+    process.exitCode = 1;
+  }
+};
+check2("dinner with the family Saturday at 7 joint", [{ kind: "event", title: "Dinner with the family", joint: true, assignee: "both", due_date: "2026-11-14", start_local: "2026-11-14T19:00", remind_minutes: 30 }]);
+check2("Dilfiraz to book the vet on Monday", [{ kind: "task", title: "Book the vet", joint: true, assignee: "dilfiraz", due_date: "2026-11-16" }]);
+check2("pay the council tax by Friday", [{ kind: "task", joint: false, due_date: "2026-11-13", list: "personal" }]);
+check2("meeting with the NEC team on Thursday at 2pm and chase the quote", [
+  { kind: "event", title: "Meeting with the NEC team", start_local: "2026-11-12T14:00", joint: false },
+  { kind: "task", title: "Chase the quote" },
+]);
+check2("Ayşe's birthday on 3rd December add to calendar every year", [{ kind: "event", title: "Ayşe's birthday", due_date: "2026-12-03", start_local: null, repeat: "yearly" }]);
+check2("buy a present for the wedding together", [{ kind: "task", joint: true, title: "Buy a present for the wedding" }]);
+console.log(`${n} parse checks passed in total${process.exitCode ? " (some failed)" : ""}`);
+check2("dinner with the family Saturday at 7 joint and Dilfiraz to book the vet on Monday and chase the stand plans for UKCW", [
+  { kind: "event", joint: true, start_local: "2026-11-14T19:00" },
+  { kind: "task", title: "Book the vet", assignee: "dilfiraz", due_date: "2026-11-16" },
+  { kind: "task", title: "Chase the stand plans", project_id: "p-ukcw", joint: false },
+]);
+console.log(`${n} checks after split test`);

@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireOwner } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import {
+  cleanAssignee,
   cleanList,
+  cleanOwner,
   cleanPosition,
   cleanRepeat,
   cleanTitle,
   cleanWhen,
   DATE,
+  JOINT,
   PRIORITIES,
   STATUSES,
   TASK_COLS,
@@ -20,7 +23,8 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const auth = await requireOwner(req);
+  const auth = await requireUser(req);
+  const me = auth.ok ? auth.me : null;
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   if (!UUID.test(id)) {
@@ -29,7 +33,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const sets: string[] = [];
-    const vals: unknown[] = [id];
+    const vals: unknown[] = [id, me!.id];
     const add = (frag: string, v: unknown) => {
       vals.push(v);
       sets.push(frag.replace("?", `$${vals.length}`));
@@ -95,6 +99,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
         add("remind_at = ?", when);
       }
     }
+    if (body.owner !== undefined) {
+      const o = cleanOwner(body.owner, me!);
+      if (!o) return NextResponse.json({ error: "You can move it to your own list or the joint one." }, { status: 400 });
+      add("owner = ?", o);
+      if (o === JOINT) sets.push("list = 'personal'");
+      else sets.push("assignee = null");
+    }
+    if (body.assignee !== undefined) {
+      add("assignee = ?", cleanAssignee(body.assignee));
+    }
     if (body.repeat !== undefined) {
       if (body.repeat !== null && !cleanRepeat(body.repeat)) {
         return NextResponse.json({ error: "Unknown repeat." }, { status: 400 });
@@ -116,11 +130,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
     // Finishing a repeating task creates the next one (once).
     const before =
       body.status === "done"
-        ? await db().query(`select status from tasks where id = $1`, [id])
+        ? await db().query(`select status from tasks where id = $1 and owner in ($2, 'joint')`, [id, me!.id])
         : null;
 
     const r = await db().query(
-      `update tasks set ${sets.join(", ")} where id = $1 returning ${TASK_COLS}, next_id`,
+      `update tasks set ${sets.join(", ")} where id = $1 and owner in ($2, 'joint') returning ${TASK_COLS}, next_id`,
       vals
     );
     if (!r.rows.length) {
@@ -142,14 +156,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const auth = await requireOwner(req);
+  const auth = await requireUser(req);
+  const me = auth.ok ? auth.me : null;
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   if (!UUID.test(id)) {
     return NextResponse.json({ error: "Unknown task." }, { status: 400 });
   }
   try {
-    await db().query(`delete from tasks where id = $1`, [id]);
+    await db().query(`delete from tasks where id = $1 and owner in ($2, 'joint')`, [id, me!.id]);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("backstage task delete error:", err);
@@ -170,17 +185,17 @@ async function spawnNext(row: Record<string, unknown>) {
   for (let i = 0; next < london && i < 400; i++) next = nextOccurrence(next, row.repeat as Repeat);
   const r = await db().query(
     `insert into tasks
-       (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, position)
+       (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, owner, assignee, position)
      values ($1, $2, $3, $4, $5, $6::date,
        case when $7::timestamptz is null then null
             else ((($7::timestamptz at time zone 'Europe/London')
                    + ($6::date - coalesce($8::date, (now() at time zone 'Europe/London')::date)) * interval '1 day')
                   at time zone 'Europe/London') end,
-       $9, $10,
-       coalesce((select min(position) - 1 from tasks where list = $1 and status = 'todo'), 0))
+       $9, $10, $11, $12,
+       coalesce((select min(position) - 1 from tasks where list = $1 and owner = $11 and status = 'todo'), 0))
      returning ${TASK_COLS}`,
     [row.list, row.project_id, row.title, row.notes, row.priority, next,
-     row.remind_at, row.due_date, row.added_by, row.repeat]
+     row.remind_at, row.due_date, row.added_by, row.repeat, row.owner, row.assignee]
   );
   await db().query(`update tasks set next_id = $2 where id = $1`, [row.id, r.rows[0].id]);
   return r.rows[0];

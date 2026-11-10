@@ -1,8 +1,10 @@
 // End-to-end test against a running instance of the site: the password
 // gate, then task, project and message handling in Backstage.
 //
-// Usage: node test/e2e.mjs <siteBaseUrl> <backstagePassword>
-const [siteBase, password] = process.argv.slice(2);
+// Usage: node test/e2e.mjs <siteBaseUrl> <umitPassword> [dilfirazPassword]
+// With Dilfiraz's password it also checks the two-person rules: own lists
+// stay private, joint ones are shared, private events show only as "Busy".
+const [siteBase, password, password2] = process.argv.slice(2);
 if (!siteBase || !password) {
   console.error("Usage: node test/e2e.mjs <siteBaseUrl> <backstagePassword>");
   process.exit(1);
@@ -179,6 +181,103 @@ if (got) {
   step("backstage: mark message read", rd.status === 200 && !!rd.data.read_at);
   const dm = await api(`/messages/${got.id}`, "DELETE");
   step("backstage: delete message", dm.status === 200);
+}
+
+// ——— two people ———
+if (password2) {
+  const umitCookie = cookie;
+  const asUmit = (path, method, body) => {
+    cookie = umitCookie;
+    return call(path, method, body);
+  };
+  const named = await call("/login", "POST", { username: "Umit", password });
+  step("two: Umit signs in by name", named.status === 200);
+  const wrongPerson = await call("/login", "POST", { username: "dilfiraz", password });
+  step("two: Umit's password doesn't open Dilfiraz", wrongPerson.status === 401, `status ${wrongPerson.status}`);
+  const d = await call("/login", "POST", { username: "Dilfiraz", password: password2 });
+  const dCookie = (d.setCookie.find((c) => c.startsWith("backstage_session=")) ?? "").split(";")[0];
+  step("two: Dilfiraz signs in", d.status === 200 && !!dCookie, `status ${d.status}`);
+  const asDil = (path, method, body) => {
+    cookie = dCookie;
+    return call(path, method, body);
+  };
+
+  const mark = `E2E-${Date.now()}`;
+  const priv = await asUmit("/tasks", "POST", { title: `${mark} Umit private`, list: "work" });
+  const joint = await asUmit("/tasks", "POST", { title: `${mark} joint`, owner: "joint", assignee: "dilfiraz" });
+  step("two: Umit adds a private and a joint task", priv.status === 201 && joint.status === 201 && joint.data.owner === "joint" && joint.data.added_by === "umit");
+  const dState = await asDil("/state");
+  const dTitles = (dState.data.tasks || []).map((t) => t.title);
+  step("two: Dilfiraz sees the joint task", dTitles.includes(`${mark} joint`));
+  step("two: Dilfiraz can't see Umit's private task", !dTitles.includes(`${mark} Umit private`));
+  step("two: Dilfiraz isn't Umit (no messages, not admin)", dState.data.me?.id === "dilfiraz" && !dState.data.me?.admin && (dState.data.messages || []).length === 0);
+  const sneak = await asDil(`/tasks/${priv.data.id}`, "PATCH", { title: "changed by Dilfiraz" });
+  step("two: Dilfiraz can't change Umit's private task", sneak.status === 404, `status ${sneak.status}`);
+  const sneakDel = await asDil(`/tasks/${priv.data.id}`, "DELETE");
+  const still = await asUmit("/state");
+  step("two: …or delete it", sneakDel.status === 200 && (still.data.tasks || []).some((t) => t.id === priv.data.id));
+  const jd = await asDil(`/tasks/${joint.data.id}`, "PATCH", { status: "done" });
+  step("two: Dilfiraz ticks off the joint task", jd.status === 200 && jd.data.status === "done");
+  const notMine = await asDil("/tasks", "POST", { title: `${mark} sneaky`, owner: "umit" });
+  step("two: Dilfiraz can't add to Umit's list", notMine.status === 400, `status ${notMine.status}`);
+  const dTask = await asDil("/tasks", "POST", { title: `${mark} Dilfiraz own`, list: "personal" });
+  step("two: Dilfiraz adds to her own list", dTask.status === 201 && dTask.data.owner === "dilfiraz" && dTask.data.added_by === "dilfiraz");
+  const uState = await asUmit("/state");
+  step("two: Umit can't see Dilfiraz's own task", !(uState.data.tasks || []).some((t) => t.id === dTask.data.id));
+  const dMsg = await asDil("/messages/00000000-0000-0000-0000-000000000000", "DELETE");
+  step("two: Dilfiraz can't touch website messages", dMsg.status === 403, `status ${dMsg.status}`);
+
+  // calendar
+  const start = new Date(Date.now() + 2 * 86_400_000);
+  start.setUTCHours(18, 0, 0, 0);
+  const evP = await asUmit("/events", "POST", { title: `${mark} Umit private event`, starts_at: start.toISOString(), ends_at: new Date(start.getTime() + 3_600_000).toISOString(), location: "Secret place", remind_minutes: 30 });
+  const evJ = await asDil("/events", "POST", { title: `${mark} joint dinner`, owner: "joint", assignee: "both", starts_at: start.toISOString(), repeat: "weekly" });
+  const evA = await asDil("/events", "POST", { title: `${mark} all day`, all_day: true, start_date: "2026-12-24", end_date: "2026-12-26" });
+  step("two: events added (timed, joint repeating, all-day span)", evP.status === 201 && evJ.status === 201 && evA.status === 201, `${evP.status} ${evJ.status} ${evA.status} ${evA.data.error ?? ""}`);
+  const bad = await asUmit("/events", "POST", { title: "no time" });
+  step("two: an event needs a time", bad.status === 400);
+  const backwards = await asUmit("/events", "POST", { title: "x", all_day: true, start_date: "2026-12-26", end_date: "2026-12-24" });
+  step("two: an event can't end before it starts", backwards.status === 400);
+  const dCal = await asDil("/state");
+  const busy = (dCal.data.events || []).find((e) => e.id === evP.data.id);
+  step("two: Dilfiraz sees Umit's private event only as Busy", !!busy && busy.busy === true && busy.title === "Busy" && busy.location === null && busy.notes === null);
+  const uCal = await asUmit("/state");
+  const seenJ = (uCal.data.events || []).find((e) => e.id === evJ.data.id);
+  step("two: Umit sees the joint event in full, added by Dilfiraz", !!seenJ && !seenJ.busy && seenJ.added_by === "dilfiraz" && seenJ.repeat === "weekly");
+  const busyA = (uCal.data.events || []).find((e) => e.id === evA.data.id);
+  step("two: Dilfiraz's all-day event is Busy for Umit", !!busyA && busyA.busy && busyA.title === "Busy" && busyA.start_date === "2026-12-24");
+  const editOther = await asUmit(`/events/${evA.data.id}`, "PATCH", { title: "nope" });
+  step("two: Umit can't edit Dilfiraz's private event", editOther.status === 404, `status ${editOther.status}`);
+  const editJ = await asUmit(`/events/${evJ.data.id}`, "PATCH", { location: "Mangal, Dalston" });
+  step("two: Umit can edit the joint event", editJ.status === 200 && editJ.data.location === "Mangal, Dalston");
+
+  // calendar link
+  const meU = await asUmit("/me");
+  step("two: Umit gets a private calendar link", meU.status === 200 && /\/api\/calendar\/[A-Za-z0-9_-]{20,}$/.test(meU.data.calendar_url ?? ""), meU.data.calendar_url);
+  const feedPath = new URL(meU.data.calendar_url).pathname;
+  const feed = await fetch(root + feedPath).then(async (r) => ({ status: r.status, type: r.headers.get("content-type"), text: await r.text() }));
+  step("two: the link serves a calendar", feed.status === 200 && /text\/calendar/.test(feed.type ?? "") && feed.text.startsWith("BEGIN:VCALENDAR"));
+  step("two: it has Umit's event and the joint one", feed.text.includes(`${mark} Umit private event`) && feed.text.includes(`${mark} joint dinner`) && feed.text.includes("RRULE:FREQ=WEEKLY"));
+  step("two: it leaves out Dilfiraz's private event", !feed.text.includes(`${mark} all day`));
+  const bogus = await fetch(root + "/api/calendar/not-a-real-token-123456789");
+  step("two: a made-up link finds nothing", bogus.status === 404);
+  const newLink = await asUmit("/me", "POST", {});
+  const old = await fetch(root + feedPath);
+  step("two: making a new link stops the old one", newLink.status === 200 && old.status === 404 && newLink.data.calendar_url !== meU.data.calendar_url);
+
+  // tidy up
+  for (const id of [evP.data.id, evJ.data.id, evA.data.id]) {
+    const owner = id === evA.data.id ? asDil : asUmit;
+    if (id) await owner(`/events/${id}`, "DELETE");
+  }
+  await asUmit(`/tasks/${priv.data.id}`, "DELETE");
+  await asUmit(`/tasks/${joint.data.id}`, "DELETE");
+  await asDil(`/tasks/${dTask.data.id}`, "DELETE");
+  const left = await asUmit("/state");
+  step("two: test items cleaned up", !(left.data.tasks || []).some((t) => t.title.startsWith(mark)) && !(left.data.events || []).some((e) => !e.busy && e.title.startsWith(mark)));
+  const dOut = await asDil("/logout", "POST", {});
+  step("two: Dilfiraz signs out", dOut.status === 200);
+  cookie = umitCookie;
 }
 
 const out = await call("/logout", "POST", {});

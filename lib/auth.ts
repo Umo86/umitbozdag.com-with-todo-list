@@ -1,35 +1,98 @@
 import { NextResponse } from "next/server";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import { SignJWT, jwtVerify } from "jose";
+import { db } from "./db";
 
-// Backstage is behind one password, held in the BACKSTAGE_PASSWORD setting
-// (never in the code: this repository is public). A correct password earns a
-// signed, HttpOnly session cookie that lasts 30 days; changing the password
-// signs everyone out, because the password is part of the signing key.
+// Backstage has two people, Umit and Dilfiraz, each with a name and a
+// password. Passwords are never in the code (this repository is public):
+// each person's is stored hashed in the users table, and Umit's can instead
+// come from the BACKSTAGE_PASSWORD setting. A correct name and password earn
+// a signed, HttpOnly session cookie for 30 days. Changing someone's password
+// signs that person out everywhere, because a fingerprint of the password is
+// inside their session.
+
 export const SESSION_COOKIE = "backstage_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
-
 const sha = (s: string) => createHash("sha256").update(s).digest();
-const password = () => process.env.BACKSTAGE_PASSWORD ?? "";
+const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
+
+export const USERS = [
+  { id: "umit", name: "Umit", color: "#1a47ff", admin: true },
+  { id: "dilfiraz", name: "Dilfiraz", color: "#e0457b", admin: false },
+] as const;
+export type UserId = "umit" | "dilfiraz";
+export const USER_IDS = new Set<string>(USERS.map((u) => u.id));
+
+const envPassword = () => process.env.BACKSTAGE_PASSWORD ?? "";
 const signingKey = () =>
-  sha(
-    `backstage-session|${password()}|${
-      process.env.BACKSTAGE_SECRET ?? process.env.DATABASE_URL ?? ""
-    }`
-  );
+  sha(`backstage-session|${process.env.BACKSTAGE_SECRET ?? process.env.DATABASE_URL ?? envPassword()}`);
 
+/** True when at least Umit can sign in (his password is set somewhere). */
 export function passwordConfigured(): boolean {
-  return password().length > 0;
+  return envPassword().length > 0;
 }
 
-export function checkPassword(given: unknown): boolean {
-  if (typeof given !== "string" || !passwordConfigured()) return false;
-  return timingSafeEqual(sha(given), sha(password()));
+// ——— password hashing (scrypt, stored as "scrypt$<salt b64>$<hash b64>") ———
+export async function hashPassword(pw: string): Promise<string> {
+  const salt = randomBytes(16);
+  const key = await scrypt(pw, salt, 32);
+  return `scrypt$${salt.toString("base64")}$${key.toString("base64")}`;
+}
+async function verifyHash(pw: string, stored: string): Promise<boolean> {
+  const [kind, s, h] = stored.split("$");
+  if (kind !== "scrypt" || !s || !h) return false;
+  const want = Buffer.from(h, "base64");
+  const got = await scrypt(pw, Buffer.from(s, "base64"), want.length);
+  return timingSafeEqual(got, want);
 }
 
-export async function issueSession(): Promise<string> {
-  return new SignJWT({ role: "owner" })
+type UserRow = { id: string; name: string; color: string; admin: boolean; password_hash: string | null };
+export type Me = { id: UserId; name: string; color: string; admin: boolean };
+
+/** Makes sure both people exist (without passwords; those are set separately). */
+export async function ensureUsers(): Promise<void> {
+  for (const u of USERS) {
+    await db().query(
+      `insert into users (id, name, color, admin) values ($1, $2, $3, $4) on conflict (id) do nothing`,
+      [u.id, u.name, u.color, u.admin]
+    );
+  }
+}
+
+async function loadUser(id: string): Promise<UserRow | null> {
+  const r = await db().query(
+    `select id, name, color, admin, password_hash from users where id = $1`,
+    [id]
+  );
+  return r.rows[0] ?? null;
+}
+
+// The secret behind a person's password, used only as a fingerprint.
+const secretOf = (u: UserRow) => u.password_hash ?? (u.id === "umit" ? envPassword() : "");
+const fingerprint = (u: UserRow) => sha(`pv|${secretOf(u)}`).toString("base64url").slice(0, 16);
+
+/** The person, if the name and password match. Names are matched loosely. */
+export async function checkLogin(username: unknown, password: unknown): Promise<Me | null> {
+  if (typeof username !== "string" || typeof password !== "string" || !password) return null;
+  const id = username.trim().toLowerCase();
+  if (!USER_IDS.has(id)) {
+    await scrypt(password, randomBytes(16), 32); // same time either way
+    return null;
+  }
+  const u = await loadUser(id);
+  if (!u) return null;
+  let ok = false;
+  if (u.password_hash) ok = await verifyHash(password, u.password_hash);
+  else if (u.id === "umit" && envPassword()) ok = timingSafeEqual(sha(password), sha(envPassword()));
+  return ok ? { id: u.id as UserId, name: u.name, color: u.color, admin: u.admin } : null;
+}
+
+export async function issueSession(me: Me): Promise<string> {
+  const u = await loadUser(me.id);
+  return new SignJWT({ pv: u ? fingerprint(u) : "" })
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject(me.id)
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE_SECONDS}s`)
     .sign(signingKey());
@@ -66,29 +129,42 @@ export function sameOrigin(req: Request): boolean {
   }
 }
 
-export type Role = "owner" | "helper";
-export type AuthResult =
-  | { ok: true; userId: string; email: string; name: string; role: Role }
-  | { ok: false; res: NextResponse };
+export type AuthResult = { ok: true; me: Me } | { ok: false; res: NextResponse };
 
 const refuse = (status: number, error: string): AuthResult => ({
   ok: false,
   res: NextResponse.json({ error }, { status }),
 });
 
-export async function requireOwner(req: Request): Promise<AuthResult> {
+/** Either person, signed in. */
+export async function requireUser(req: Request): Promise<AuthResult> {
   if (!passwordConfigured()) return refuse(503, "Backstage has no password set on the server.");
   if (req.method !== "GET" && !sameOrigin(req)) return refuse(403, "That request came from another site.");
   const token = readCookie(req, SESSION_COOKIE);
-  if (!token) return refuse(401, "Enter the password to open Backstage.");
+  if (!token) return refuse(401, "Sign in to open Backstage.");
+  let sub = "";
+  let pv = "";
   try {
-    await jwtVerify(token, signingKey(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, signingKey(), { algorithms: ["HS256"] });
+    sub = String(payload.sub ?? "");
+    pv = String(payload.pv ?? "");
   } catch {
-    return refuse(401, "Your session has ended. Enter the password again.");
+    return refuse(401, "Your session has ended. Sign in again.");
   }
-  return { ok: true, userId: "owner", email: "", name: "Umit", role: "owner" };
+  if (!USER_IDS.has(sub)) return refuse(401, "Your session has ended. Sign in again.");
+  let u: UserRow | null;
+  try {
+    u = await loadUser(sub);
+  } catch {
+    return refuse(503, "Backstage can't reach its database right now.");
+  }
+  if (!u || fingerprint(u) !== pv) return refuse(401, "Your password changed. Sign in again.");
+  return { ok: true, me: { id: u.id as UserId, name: u.name, color: u.color, admin: u.admin } };
 }
 
-// There is one way in now, so a member is the owner. Kept so the routes that
-// were written for owner-or-helper read the same.
-export const requireMember = requireOwner;
+/** Umit only (the website's contact messages). */
+export async function requireAdmin(req: Request): Promise<AuthResult> {
+  const a = await requireUser(req);
+  if (a.ok && !a.me.admin) return refuse(403, "Only Umit can see this.");
+  return a;
+}
