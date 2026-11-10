@@ -43,8 +43,6 @@ export function SiteFooter() {
             LinkedIn
           </a>
           <a href="/cv">CV</a>
-          <a href="/backstage">Backstage</a>
-          <a href="/app">Android app</a>
         </nav>
       </div>
     </footer>
