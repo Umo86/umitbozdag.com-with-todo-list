@@ -181,7 +181,9 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
         )}
 
         <div className="bs-drawer-foot">
-          <span className="quiet small">Backstage · umitbozdag.com</span>
+          <a className="bs-link" href="/app/updates" target="_blank" rel="noreferrer">
+            What&rsquo;s new · version {(process.env.NEXT_PUBLIC_BUILD_ID || "dev").slice(0, 7)}
+          </a>
           <button className="btn ghost" onClick={bs.signOut}>
             Sign out
           </button>

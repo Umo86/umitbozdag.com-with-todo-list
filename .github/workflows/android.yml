@@ -1,12 +1,14 @@
-# Builds the Backstage Android app and publishes it as the "android-latest"
-# release, so the newest APK is always at:
+# Builds the Backstage Android app on every update that goes live (push to
+# main) and publishes it as the "android-latest" release, so the newest APK
+# is always at umitbozdag.com/app (button) and at:
 # https://github.com/Umo86/umitbozdag.com-with-todo-list/releases/download/android-latest/Backstage.apk
+# The release notes come from the newest entry in lib/changelog.json.
 name: Android app
 
 on:
   push:
-    branches: [main, backstage-board]
-    paths: ["mobile/**", ".github/workflows/android.yml"]
+    branches: [main]
+    paths-ignore: ["**.md", "test/**"]
   workflow_dispatch:
 
 permissions:
@@ -67,9 +69,14 @@ jobs:
           cp mobile/android/app/build/outputs/apk/release/app-release.apk Backstage.apk
           gh release delete android-latest --yes --cleanup-tag || true
           gh release delete android-build-log --yes --cleanup-tag || true
+          node -e '
+            const c = require("./lib/changelog.json")[0] || { title: "Update", items: [] };
+            const lines = [`Build ${process.env.VERSION_CODE} · ${c.title}`, "", ...c.items.map((i) => "- " + i), "", `From ${process.env.GITHUB_SHA.slice(0, 7)}. Download Backstage.apk on your phone and open it to install.`];
+            require("fs").writeFileSync("notes.md", lines.join("\n"));
+          '
           gh release create android-latest Backstage.apk \
-            --title "Backstage for Android" \
-            --notes "Build ${VERSION_CODE} from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}. Download Backstage.apk on your phone and open it to install." \
+            --title "Backstage for Android · build ${VERSION_CODE}" \
+            --notes-file notes.md \
             --prerelease --target "$GITHUB_SHA"
 
       - name: Publish the build log (failed builds only)

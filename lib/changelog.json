@@ -1,0 +1,45 @@
+[
+  {
+    "date": "2026-11-10",
+    "title": "Newest app always on the download page",
+    "items": [
+      "Every update now publishes a fresh Android app on umitbozdag.com/app automatically",
+      "The download page shows the version, date and what's new",
+      "Already installed? The app updates itself, no reinstall needed",
+      "New Updates page with every feature and its date"
+    ]
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Always up to date, browser notifications",
+    "items": [
+      "Backstage reloads itself when a new version goes live, also inside the app.",
+      "Browser notifications for messages, hearts, nudges and new joint things (Chrome)."
+    ]
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Just for the two of us",
+    "items": [
+      "Mood check-ins, countdowns, chore battle with a crown, birthday heads-up.",
+      "Us tab: chat, dinner swipe, date roulette, memory jar, private gift ideas.",
+      "Shopping list in Joint, love notes and nudges on joint to-dos, hearts."
+    ]
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Chat, help and clearer errors",
+    "items": [
+      "Chat between Umit and Dilfiraz with Seen and hearts.",
+      "Welcome guide, 'How Backstage works', offline banner and friendlier errors."
+    ]
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Backstage for two",
+    "items": [
+      "Sign in as Umit or Dilfiraz; your own lists plus a joint list and calendar.",
+      "Calendar with events, Busy blocks and a Google Calendar link; phone layout with bottom tabs."
+    ]
+  }
+]

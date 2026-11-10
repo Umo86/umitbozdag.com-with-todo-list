@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import QRCode from "qrcode";
 import { SiteFooter, SiteNav } from "@/components/SiteChrome";
-import { APK_URL } from "@/lib/app-download";
+import { latestRelease } from "@/lib/app-download";
+import changelog from "@/lib/changelog.json";
+
+export const revalidate = 300;
+const DOWNLOAD = "/app/download";
 
 export const metadata: Metadata = {
   title: "Backstage app for Android",
@@ -28,7 +32,9 @@ const FIXES: Array<[string, React.ReactNode]> = [
 ];
 
 export default async function AppPage() {
-  const qr = await QRCode.toString(APK_URL, { type: "svg", margin: 0, color: { dark: "#0b0b0c", light: "#ffffff" } });
+  const rel = await latestRelease();
+  const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://umitbozdag-com-with-todo-list.vercel.app";
+  const qr = await QRCode.toString(`${site}${DOWNLOAD}`, { type: "svg", margin: 0, color: { dark: "#0b0b0c", light: "#ffffff" } });
   return (
     <>
       <SiteNav />
@@ -43,7 +49,7 @@ export default async function AppPage() {
                 and get reminders even when the app is closed. You need a Backstage name and password to sign in.
               </p>
               <div className="appdl__cta">
-                <a className="appdl__btn" href={APK_URL} download>
+                <a className="appdl__btn" href={DOWNLOAD}>
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12 3v12M7 10l5 5 5-5M5 21h14" />
                   </svg>
@@ -53,13 +59,45 @@ export default async function AppPage() {
                   Open in the browser instead
                 </a>
               </div>
-              <p className="appdl__small">Android 6 or newer · about 3 MB · updates: download again from this page.</p>
+              <p className="appdl__small">
+                {rel.build ? `Version ${rel.build}` : "Latest version"}
+                {rel.published ? ` · updated ${new Date(rel.published).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : ""}
+                {rel.size ? ` · ${(rel.size / 1_048_576).toFixed(1)} MB` : ""} · Android 6 or newer
+              </p>
+              <p className="appdl__small">
+                Already installed? You don&rsquo;t need to download again for new features: the app updates itself the next time you open it.
+              </p>
             </div>
             <figure className="appdl__qr">
               <div dangerouslySetInnerHTML={{ __html: qr }} />
               <figcaption>On a computer? Scan with your phone&rsquo;s camera.</figcaption>
             </figure>
           </div>
+        </section>
+
+        <section className="wrap appdl__section">
+          <h2>What&rsquo;s new</h2>
+          <p className="appdl__small">
+            <a href="/app/updates">See every update, with dates →</a>
+          </p>
+          <ol className="appdl__news">
+            {changelog.slice(0, 3).map((c, i) => (
+              <li key={`${c.date}-${i}`}>
+                <div className="when">
+                  {new Date(c.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {i === 0 && <span className="new">Latest</span>}
+                </div>
+                <div>
+                  <h3>{c.title}</h3>
+                  <ul>
+                    {c.items.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ol>
         </section>
 
         <section className="wrap appdl__section">

@@ -142,7 +142,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "The mic doesn't start: Android Settings › Apps › Backstage › Permissions › Microphone › Allow. Speech uses the Google app, so keep it installed and up to date.",
       "No reminders on the phone: Settings › Apps › Backstage › Notifications on; also allow “Alarms & reminders”. Samsung/Xiaomi: Battery › Unrestricted.",
       "“Too many wrong passwords”: wait 15 minutes. Forgotten a password? Umit can set a new one.",
-      "The app won't install over the old one: uninstall the old app first (your data is online, not on the phone).",
+      "New features arrive by themselves: close and reopen the app. You only download the app again for a new phone.",
     ],
   },
 ];
@@ -179,8 +179,8 @@ export function Help({ onClose, onReplayWelcome }: { onClose: () => void; onRepl
           <button className="bs-link" onClick={onReplayWelcome}>
             Show the welcome again
           </button>
-          <a className="bs-link" href="/app" target="_blank" rel="noreferrer">
-            Get the Android app
+          <a className="bs-link" href="/app/updates" target="_blank" rel="noreferrer">
+            What&rsquo;s new
           </a>
         </div>
       </div>
