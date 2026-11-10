@@ -42,6 +42,8 @@ a private task manager behind one password, storing its data in Neon Postgres.
 | `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
 | `BACKSTAGE_PASSWORD` | the password for `/backstage` | keep it secret; changing it signs every device out |
 | `BACKSTAGE_SECRET` | optional | extra random text mixed into the session signature |
+| `ANTHROPIC_API_KEY` | optional | turns on AI reading of spoken tasks (better with rambling speech and Turkish). Without it, built-in rules read them |
+| `ANTHROPIC_MODEL` | optional | model for that, default `claude-haiku-5-5` |
 
 Until these are set, the public site works fully and `/backstage` shows a
 notice naming the missing setting instead of the password field.
@@ -79,4 +81,41 @@ npm run build     # production build
 npm start         # serve on $PORT (default 3000)
 npm run migrate   # apply the database schema
 npm run test:e2e  # node test/e2e.mjs <siteUrl> <backstagePassword>
+TZ=Europe/London node test/parse.test.mjs   # how spoken tasks are read
 ```
+
+## Database changes (November 2026)
+
+`npm run migrate` adds `tasks.repeat`, `tasks.next_id` and `projects.due_date`
+(already applied to the Neon project).
+
+## The Android app (`mobile/`)
+
+A small Capacitor app that opens Backstage at the address in
+`mobile/capacitor.config.json` (`server.url`) and adds what a web page can't:
+
+- the phone's own speech recogniser for **Add tasks**
+- reminders scheduled **on the phone**, so they go off with the app closed,
+  each with **Done** and **Snooze 1h** buttons, plus an 8am summary
+- a **Speak a task** shortcut (long-press the app icon)
+- an offline page when there's no signal
+
+Reminders added on a computer reach the phone the next time the app is
+opened (it refreshes whenever it comes to the front).
+
+**Getting the app:** every push that touches `mobile/` makes GitHub build it
+(`.github/workflows/android.yml`) and publish it as the `android-latest`
+release: open
+https://github.com/Umo86/umitbozdag.com-with-todo-list/releases/download/android-latest/Backstage.apk
+on the phone and install it (Android asks once to allow installs from the
+browser).
+
+**Updates install over the old app** only if every build is signed with the
+same key. Add two repository secrets (GitHub → Settings → Secrets and
+variables → Actions): `ANDROID_KEYSTORE_B64` (the keystore file, base64) and
+`ANDROID_KEYSTORE_PASSWORD`. Without them each build uses a throwaway key and
+the old app has to be uninstalled before installing a new one.
+
+**Changing the address** the app opens: edit `server.url` in
+`mobile/capacitor.config.json` and push; the next APK uses it. The address
+must open without any login wall (Vercel preview protection blocks the app).
