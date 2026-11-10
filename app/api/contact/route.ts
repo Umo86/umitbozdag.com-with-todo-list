@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { mailConfigured, sendMail } from "@/lib/mail";
+import { visitorRows } from "@/lib/visitor";
+import { contactMail } from "@/lib/contact-mail";
 
 export const dynamic = "force-dynamic";
 
-// The public contact form. Messages are stored in the database and read in
-// Backstage. `fallback: true` tells the browser to open the visitor's own
+// The public contact form. Messages are stored in the database (read in
+// Backstage) and emailed to Umit with the sender's IP, rough location and
+// device details. `fallback: true` tells the browser to open the visitor's own
 // email app when the message can't be stored here.
 const recent = new Map<string, number>();
 const EMAIL = /^[^\s@?&=,<>"']+@[^\s@?&=,<>"']+\.[^\s@?&=,<>"']+$/;
@@ -37,18 +41,30 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ error: "Messages can't be stored here.", fallback: true }, { status: 503 });
+  const client = (b.client && typeof b.client === "object" ? b.client : {}) as Record<string, unknown>;
+  const info = visitorRows(req, client);
+
+  let stored = false;
+  if (process.env.DATABASE_URL) {
+    try {
+      await db().query(
+        `insert into messages (name, email, company, message, meta) values ($1, $2, nullif($3, ''), $4, $5)`,
+        [entry.name, entry.email, entry.company, entry.message, JSON.stringify(Object.fromEntries([...info.server, ...info.device]))]
+      );
+      stored = true;
+    } catch (err) {
+      console.error("contact form store error:", err);
+    }
   }
-  try {
-    await db().query(
-      `insert into messages (name, email, company, message) values ($1, $2, nullif($3, ''), $4)`,
-      [entry.name, entry.email, entry.company, entry.message]
-    );
-    recent.set(ip, now);
-    return NextResponse.json({ ok: true }, { status: 201 });
-  } catch (err) {
-    console.error("contact form error:", err);
-    return NextResponse.json({ error: "Messages can't be stored right now.", fallback: true }, { status: 503 });
+  let mailed = false;
+  if (mailConfigured()) {
+    const r = await sendMail(contactMail(entry, info));
+    mailed = r.ok;
+    if (!r.ok) console.error("contact form mail error:", r.error);
   }
+  if (!stored && !mailed) {
+    return NextResponse.json({ error: "Messages can't be sent right now.", fallback: true }, { status: 503 });
+  }
+  recent.set(ip, now);
+  return NextResponse.json({ ok: true }, { status: 201 });
 }

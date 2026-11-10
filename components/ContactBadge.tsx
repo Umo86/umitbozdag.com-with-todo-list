@@ -41,7 +41,7 @@ export default function ContactBadge() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, client: deviceInfo() }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; fallback?: boolean };
       if (res.ok) {
@@ -128,10 +128,36 @@ export default function ContactBadge() {
                 <i key={i} style={{ width: w }} />
               ))}
             </span>
-            <span className="badge-access">Stored only so I can reply</span>
+            <span className="badge-access">Sent with your IP and device details</span>
           </div>
         </form>
       </motion.div>
     </div>
   );
+}
+
+// What the browser can tell us about the sender's device (sent with the message).
+const LOADED = typeof performance !== "undefined" ? Date.now() - performance.now() : Date.now();
+function deviceInfo(): Record<string, string | number | boolean> {
+  const n = navigator as Navigator & { deviceMemory?: number; connection?: { effectiveType?: string; downlink?: number }; userAgentData?: { platform?: string } };
+  const secs = Math.round((Date.now() - LOADED) / 1000);
+  return {
+    page: location.href,
+    referrer: document.referrer,
+    localTime: new Date().toString(),
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screen: `${screen.width}×${screen.height}`,
+    viewport: `${innerWidth}×${innerHeight}`,
+    pixelRatio: devicePixelRatio,
+    touch: navigator.maxTouchPoints > 0 ? `yes (${navigator.maxTouchPoints} points)` : "no",
+    platform: n.userAgentData?.platform || navigator.platform,
+    languages: (navigator.languages ?? [navigator.language]).join(", "),
+    cores: navigator.hardwareConcurrency ?? "",
+    memory: n.deviceMemory ?? "",
+    connection: n.connection ? `${n.connection.effectiveType ?? ""}${n.connection.downlink ? `, ~${n.connection.downlink} Mbps` : ""}` : "",
+    darkMode: matchMedia("(prefers-color-scheme: dark)").matches ? "yes" : "no",
+    cookies: navigator.cookieEnabled ? "yes" : "no",
+    dnt: navigator.doNotTrack === "1" ? "on" : "off",
+    timeOnPage: secs >= 60 ? `${Math.floor(secs / 60)} min ${secs % 60} s` : `${secs} s`,
+  };
 }
