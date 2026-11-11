@@ -353,3 +353,17 @@ export async function listenForSpeech(opts: {
   opts.onEnd("This browser can't listen. Type instead, or use Chrome or the Backstage Android app.");
   return () => {};
 }
+
+/** Buzz the phone (Android app and Android browsers; quietly does nothing elsewhere). */
+export const BUZZ = {
+  heart: [90, 70, 90, 260, 90, 70, 90], // two heartbeats
+  mood: [120, 80, 120],
+  tap: [25],
+};
+export function buzz(pattern: number[]) {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* not supported */
+  }
+}

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { readUs, US_COLS, US_KINDS, type UsKind } from "@/lib/us";
+import { notify, otherOf } from "@/lib/notify";
+
+const MOOD_WORDS: Record<string, string> = {
+  "🔥": "on fire", "😊": "happy", "😌": "chilled", "😴": "tired", "🤯": "busy", "😤": "stressed", "🤒": "not well", "🤗": "in need of a hug",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +37,14 @@ export async function POST(req: Request) {
       `insert into us_items (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) returning ${US_COLS}`,
       keys.map((k) => r.fields[k])
     );
+    if (kind === "mood") {
+      const e = String(r.fields.emoji ?? "");
+      await notify(otherOf(auth.me.id), {
+        title: `${auth.me.name} is feeling ${e} ${MOOD_WORDS[e] ?? ""}`.trim(),
+        body: e === "🤗" ? "Maybe send a heart ❤️" : "Their day just changed. Open Backstage to see.",
+        tag: "mood",
+      });
+    }
     return NextResponse.json(row.rows[0], { status: 201 });
   } catch (err) {
     console.error("backstage us create error:", err);

@@ -10,7 +10,7 @@ import Board from "./Board";
 import Calendar from "./Calendar";
 import UsHub, { type UsSection } from "./UsHub";
 import Shopping from "./Shopping";
-import { lastWeekChampion, nextYearly } from "./Fun";
+import { lastWeekChampion, MOODS, nextYearly } from "./Fun";
 import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
 import Capture from "./Capture";
 import Dashboard, { MicIcon } from "./Dashboard";
@@ -23,7 +23,7 @@ import Settings from "./Settings";
 import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
 import { enablePush, pushState } from "./push";
-import { isApp, listen, prepareNotifications, syncReminders, type Extra, type NotificationAction } from "./native";
+import { BUZZ, buzz, isApp, listen, prepareNotifications, syncReminders, type Extra, type NotificationAction } from "./native";
 import { forMe, nameOf, type ListName } from "./types";
 import { useBackstage } from "./useBackstage";
 
@@ -277,7 +277,10 @@ export default function BackstageApp() {
       try {
         const fresh = await bs.pollChat(false);
         if (stop || !fresh.length) return;
-        if (fresh.some((m) => m.kind === "heart")) setHearts((h) => h + 1);
+        if (fresh.some((m) => m.kind === "heart")) {
+          setHearts((h) => h + 1);
+          buzz(BUZZ.heart);
+        } else buzz(BUZZ.mood);
         const last = fresh[fresh.length - 1];
         if (live.current.view !== "us" || live.current.usSection !== "chat") {
           bs.say(
@@ -302,6 +305,44 @@ export default function BackstageApp() {
       clearInterval(timer);
     };
   }, [phase.kind, me, view, usSection, bs, setView]);
+
+  // ——— the other person's "how was your day": a card pops up when it changes ———
+  const [moodAlert, setMoodAlert] = useState<{ emoji: string; n: number } | null>(null);
+  useEffect(() => {
+    if (phase.kind !== "app" || !me) return;
+    const otherId = users.find((u) => u.id !== me.id)?.id;
+    if (!otherId) return;
+    let stop = false;
+    let seen: string | null | undefined; // undefined = not looked yet (don't alert on opening)
+    const check = async () => {
+      if (document.hidden || !navigator.onLine) return;
+      try {
+        const r = await fetch("/api/backstage/us/moods", { cache: "no-store" });
+        if (!r.ok) return;
+        const { moods } = (await r.json()) as { moods: Array<{ added_by: string; emoji: string; updated_at: string }> };
+        const theirs = moods.find((m) => m.added_by === otherId);
+        const key = theirs ? `${theirs.emoji}|${theirs.updated_at}` : null;
+        if (stop) return;
+        if (seen !== undefined && key && key !== seen) {
+          setMoodAlert((a) => ({ emoji: theirs!.emoji, n: (a?.n ?? 0) + 1 }));
+          buzz(BUZZ.mood);
+          void live.current.refresh();
+        }
+        seen = key;
+      } catch {
+        /* try again on the next check */
+      }
+    };
+    void check();
+    const timer = setInterval(check, 15_000);
+    const onVis = () => !document.hidden && void check();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [phase.kind, me, users]);
 
   // keep everything fresh while the page is open (joint changes by the other person)
   useEffect(() => {
@@ -414,11 +455,12 @@ export default function BackstageApp() {
             aria-label={`Send ${other?.name ?? ""} a heart`}
             title={`Thinking of ${other?.name ?? "you"}`}
             onClick={() => {
+              buzz(BUZZ.tap);
               void bs.sendChat("❤️", "heart").then((ok) => ok && bs.say(`❤️ sent to ${other?.name ?? ""}`));
               setHearts((h) => h + 1);
             }}
           >
-            <IconHeart />
+            <IconHeart filled />
           </button>
           <button className="bs-avatar-btn" onClick={() => setSheet({ kind: "settings" })} aria-label={`${me.name}: settings and sign out`}>
             <span className="bs-avatar" style={{ background: me.color }}>
@@ -761,6 +803,24 @@ export default function BackstageApp() {
         </div>
       )}
       {hearts > 0 && <Hearts key={hearts} />}
+      {moodAlert && other && (
+        <MoodAlert
+          key={moodAlert.n}
+          name={other.name}
+          emoji={moodAlert.emoji}
+          onClose={() => setMoodAlert(null)}
+          onHeart={() => {
+            buzz(BUZZ.tap);
+            void bs.sendChat("❤️", "heart").then((ok) => ok && bs.say(`❤️ sent to ${other.name}`));
+            setHearts((h) => h + 1);
+            setMoodAlert(null);
+          }}
+          onSee={() => {
+            setView("today");
+            setMoodAlert(null);
+          }}
+        />
+      )}
       {bs.notice && (
         <div className={`bs-toast${bs.notice.tone === "error" ? " error" : ""}`} role={bs.notice.tone === "error" ? "alert" : "status"}>
           <span>{bs.notice.text}</span>
@@ -815,25 +875,60 @@ function IconCal() {
     </svg>
   );
 }
-function IconHeart() {
+function IconHeart({ filled = false }: { filled?: boolean }) {
   return (
-    <svg {...S}>
+    <svg {...S} {...(filled ? { fill: "currentColor" } : {})}>
       <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z" />
     </svg>
   );
 }
+/** "Dilfiraz is feeling 🤗": drops in from the top when their mood changes. */
+function MoodAlert({ name, emoji, onClose, onHeart, onSee }: { name: string; emoji: string; onClose: () => void; onHeart: () => void; onSee: () => void }) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const t = setTimeout(() => close.current(), 12_000);
+    return () => clearTimeout(t);
+  }, []);
+  const label = MOODS.find(([m]) => m === emoji)?.[1] ?? "";
+  return (
+    <div className="bs-moodalert" role="alert">
+      <span className="e" aria-hidden="true">
+        {emoji}
+      </span>
+      <div className="txt">
+        <strong>
+          {name} is feeling {label.toLowerCase()}
+        </strong>
+        <span>{emoji === "🤗" ? "They could do with a hug." : "Their day just changed."}</span>
+      </div>
+      <div className="acts">
+        <button className="heart" onClick={onHeart} aria-label={`Send ${name} a heart`}>
+          ❤️
+        </button>
+        <button className="bs-link" onClick={onSee}>
+          See
+        </button>
+        <button className="bs-x" onClick={onClose} aria-label="Close">
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Hearts floating up the screen (a heart arrived). */
 function Hearts() {
   const [on, setOn] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setOn(false), 3200);
+    const t = setTimeout(() => setOn(false), 4200);
     return () => clearTimeout(t);
   }, []);
   if (!on) return null;
   return (
     <div className="bs-hearts" aria-hidden="true">
-      {Array.from({ length: 14 }, (_, i) => (
-        <span key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 7) * 0.18}s`, fontSize: `${18 + ((i * 13) % 22)}px` }}>
+      {Array.from({ length: 22 }, (_, i) => (
+        <span key={i} style={{ left: `${((i * 37) % 92) + 2}%`, animationDelay: `${(i % 8) * 0.17}s`, fontSize: `${38 + ((i * 13) % 42)}px` }}>
           ❤️
         </span>
       ))}
