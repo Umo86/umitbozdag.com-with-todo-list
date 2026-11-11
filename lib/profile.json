@@ -12,7 +12,7 @@
   "linkedin": "https://www.linkedin.com/in/umit-bozdag/",
   "statement": "I make large exhibitions and conferences run on time, on budget and safely.",
   "intro": [
-    "I’m Umit — a senior operations manager who has spent 14 years putting on exhibitions and conferences. Since 2012 I’ve worked on 24 shows in 8 countries: from the Türkiye pavilion at World Travel Market to Gastech in Milan, Breakbulk in Rotterdam and Houston, and now UK Construction Week and Futurebuild at ExCeL London.",
+    "I’m Umit — a senior operations manager who has spent 14 years putting on exhibitions and conferences. Since 2012 I’ve worked on 25 shows and delivered events in 8 countries: from the Türkiye pavilion at World Travel Market to Gastech in Milan, Breakbulk in Rotterdam and Houston, and now UK Construction Week and Futurebuild at ExCeL London.",
     "My job is the practical side of a show — budgets, suppliers, venues, floorplans, health & safety and everything on site — so the organiser’s team can focus on exhibitors and visitors. I also build small digital tools and AI workflows that make the work faster."
   ],
   "languages": [
@@ -52,7 +52,7 @@
       "label": "Years in live events (2012 — 2026)"
     },
     {
-      "value": 24,
+      "value": 25,
       "suffix": "",
       "label": "Shows worked on"
     },
@@ -259,6 +259,27 @@
         "Operational budget and supplier contracting",
         "Onsite health & safety",
         "Signage, staffing and onsite services"
+      ],
+      "highlights": [],
+      "press": []
+    },
+    {
+      "id": "gastech-2026-bangkok",
+      "name": "Gastech 2026",
+      "organiser": "dmg-events",
+      "role": "Operations Manager — operations planning",
+      "years": "2026",
+      "dates": "14 – 17 September 2026",
+      "venue": "BITEC",
+      "city": "Bangkok",
+      "country": "Thailand",
+      "url": "https://www.gastechevent.com/",
+      "image": "/img/scenes/hall-1.webp",
+      "logo": "/img/logos/gastech.webp",
+      "summary": "Gastech moved to Bangkok for 2026, held at BITEC. I helped plan the show’s operations in its early stages, before moving on to Media10 to manage UK Construction Week. It was a pleasure to work with the dmg events operations team.",
+      "responsibilities": [
+        "Helping plan operations for the Bangkok edition with the dmg events operations team",
+        "Handing over to the team when I moved on to Media10"
       ],
       "highlights": [],
       "press": []
@@ -971,7 +992,7 @@
       "place": "London",
       "period": "2025 — 2026",
       "current": false,
-      "summary": "One of three operations managers on Gastech, the world’s largest gas and energy event, which moves between Europe, Asia and the Americas (50,000 visitors and 1,000+ exhibitors from over 100 countries). I also supported operations on the World LNG Summit & Awards and the Bharat Electricity Summit.",
+      "summary": "One of three operations managers on Gastech, the world’s largest gas and energy event, which moves between Europe, Asia and the Americas (50,000 visitors and 1,000+ exhibitors from over 100 countries). I also supported operations on the World LNG Summit & Awards and the Bharat Electricity Summit, and helped plan Gastech 2026 in Bangkok before moving on to Media10 to manage UK Construction Week. It was a pleasure to work with the dmg events operations team.",
       "points": [
         "Led catering, signage, security, staffing and onsite services (internet, electricity, cleaning).",
         "Partnered with the Director of Operations on operational budgeting.",
@@ -979,6 +1000,7 @@
         "Managed design and construction of feature areas within specification and budget."
       ],
       "events": [
+        "Gastech 2026 — Bangkok (operations planning)",
         "Gastech 2025 — Fiera Milano (operational lead)",
         "World LNG Summit & Awards 2025 — Istanbul (operations support)",
         "Bharat Electricity Summit 2025 — New Delhi (operations support)"

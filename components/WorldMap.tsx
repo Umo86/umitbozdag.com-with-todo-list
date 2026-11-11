@@ -142,7 +142,8 @@ export default function WorldMap() {
 
       <ul className="world__cities" aria-label="Cities">
         {[...CITIES]
-          .sort((a, b) => a.x - b.x)
+          // London (home) first, then the rest A to Z
+          .sort((a, b) => (a.hq ? -1 : b.hq ? 1 : a.name.localeCompare(b.name)))
           .map((c) => (
             <li key={c.id}>
               <button
@@ -152,7 +153,7 @@ export default function WorldMap() {
                 {...on(c.id)}
               >
                 <Flag code={c.flag} />
-                {c.name}
+                <span className="nm">{c.name}</span>
                 {c.hq && <small>Base</small>}
               </button>
             </li>

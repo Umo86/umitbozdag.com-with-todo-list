@@ -115,8 +115,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .map.has-hot .map__routes path.is-hot{stroke-width:2.2;opacity:1}
 .map.has-hot .map__label:not(.is-hot):not(.map__label--hq){opacity:.25}
 .map.has-hot .map__label.is-hot{opacity:1;color:#fff;background:var(--accent);z-index:2}
-.world__cities{list-style:none;margin:22px 0 0;display:flex;flex-wrap:wrap;gap:8px}
-.world__city{display:inline-flex;align-items:center;gap:8px;padding:7px 12px 7px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);transition:color .2s,border-color .2s,background .2s}
+.world__cities{list-style:none;margin:22px 0 0;display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.world__cities::-webkit-scrollbar{display:none}
+.world__cities li{flex:none}
+.world__city{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;padding:7px 11px 7px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);transition:color .2s,border-color .2s,background .2s}
 .world__city small{font-size:10px;color:var(--soft);letter-spacing:.08em}
 .world__city:hover,.world__city.is-hot{color:var(--text);border-color:var(--text)}
 .world__city.is-picked{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
@@ -454,4 +456,16 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .sec.page-first,.contact.page-first{padding-top:40px}
   .evt-short{grid-template-columns:1fr}
   .creds dl{grid-template-columns:1fr}
+}
+/* city chips: always one row */
+@media (max-width:1180px){
+  .world__cities{gap:4px}
+  .world__city{gap:5px;padding:6px 8px 6px 6px;font-size:11px;letter-spacing:.03em}
+  .world__city small{display:none}
+}
+@media (max-width:940px){
+  .world__cities{justify-content:space-between;gap:0;overflow:visible}
+  .world__city{padding:6px;gap:0;border-radius:10px}
+  .world__city .nm{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .world__city .flag{width:26px;height:auto}
 }
