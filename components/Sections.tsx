@@ -145,6 +145,9 @@ export function ServicesSection({ as = "h2", short = false }: { as?: Level; shor
         ) : (
           <>
             <Reveal>
+              <IoshBlock />
+            </Reveal>
+            <Reveal>
               <div className="skills">
                 <h2 className="label">Also</h2>
                 <ul>
@@ -160,7 +163,7 @@ export function ServicesSection({ as = "h2", short = false }: { as?: Level; shor
                 <dl>
                   {p.credentials.map((c) => (
                     <div key={c.title}>
-                      <dt>{c.title}</dt>
+                      <dt>{c.title === "IOSH" ? <a href="#iosh">IOSH</a> : c.title}</dt>
                       <dd>{c.text}</dd>
                     </div>
                   ))}
@@ -171,6 +174,70 @@ export function ServicesSection({ as = "h2", short = false }: { as?: Level; shor
         )}
       </div>
     </section>
+  );
+}
+
+// ——— IOSH: what the qualification is and what it is for ———
+const IOSH_COVERS: Array<[string, string]> = [
+  ["The law", "Who is responsible for what under health and safety law: organiser, venue, contractors and exhibitors."],
+  ["Risk assessment", "Finding hazards, judging the risk and putting controls in place, in theory and in practice."],
+  ["Crowds and floorplans", "How crowds move, and how the floorplan, aisles, entrances and exits keep them safe."],
+  ["Inspections", "Surveys and floor walks to check that what was planned is what is actually happening."],
+  ["Accidents", "Reporting, recording and learning from accidents and near misses."],
+  ["Communication", "Getting safety information to the people who need it, from contractors to stand staff."],
+];
+const IOSH_ON_SITE = [
+  "I own on-site health and safety on UK Construction Week, Futurebuild and the Stone & Surfaces Show.",
+  "Stand plans, risk assessments and method statements are checked and signed off before build-up starts.",
+  "Floorplans are checked against venue and local regulations before they are sold from.",
+  "During build-up, open days and breakdown I monitor the floor and step in when work isn’t safe.",
+];
+function IoshBlock() {
+  return (
+    <div className="iosh" id="iosh">
+      <div className="iosh__head">
+        <span className="iosh__badge" aria-hidden="true">
+          IOSH
+        </span>
+        <div>
+          <span className="label">Health &amp; safety qualification</span>
+          <h2>IOSH: Safe Management at Live Events</h2>
+        </div>
+      </div>
+      <div className="iosh__grid">
+        <div>
+          <h3>What IOSH is</h3>
+          <p>
+            IOSH is the Institution of Occupational Safety and Health, the chartered body for health and safety
+            professionals, with 50,000 members in over 130 countries. Its certificates are widely recognised by
+            venues, organisers and insurers.
+          </p>
+          <h3>What the qualification is for</h3>
+          <p>
+            It shows I have been trained and assessed to manage health and safety at exhibitions and live events. In
+            practice it means that I can be the person responsible for safety on the show floor, not only someone who
+            follows the rules.
+          </p>
+          <h3>How I use it</h3>
+          <ul className="iosh__list">
+            {IOSH_ON_SITE.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3>What it covers</h3>
+          <dl className="iosh__covers">
+            {IOSH_COVERS.map(([t, d]) => (
+              <div key={t}>
+                <dt>{t}</dt>
+                <dd>{d}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </div>
   );
 }
 

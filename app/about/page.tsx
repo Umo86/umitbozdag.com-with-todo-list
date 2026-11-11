@@ -13,6 +13,12 @@ const person = {
   address: { "@type": "PostalAddress", addressLocality: SITE.city, addressCountry: "GB" },
   knowsLanguage: p.languages,
   description: p.statement,
+  hasCredential: {
+    "@type": "EducationalOccupationalCredential",
+    name: "IOSH Safe Management at Live Events",
+    credentialCategory: "certificate",
+    recognizedBy: { "@type": "Organization", name: "Institution of Occupational Safety and Health (IOSH)", url: "https://iosh.com" },
+  },
   sameAs: [SITE.linkedin],
 };
 

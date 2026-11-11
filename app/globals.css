@@ -534,3 +534,26 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .showbody__figure--photo figcaption span{color:var(--soft)}
 .showbody__figure--photo figcaption a{text-decoration:underline}
 .showbody__figure--photo{background:none;overflow:visible}.showbody__figure--photo img{border-radius:14px;aspect-ratio:3/2;object-fit:cover}
+/* IOSH section */
+.iosh{margin-top:64px;border:1px solid var(--line);border-radius:18px;padding:36px 40px;background:var(--band);scroll-margin-top:90px}
+.iosh__head{display:flex;align-items:center;gap:18px;margin-bottom:28px}
+.iosh__badge{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:var(--text);color:#fff;font:800 17px var(--display);letter-spacing:.04em}
+.iosh__head h2{font-size:clamp(22px,2.4vw,30px);font-weight:700;line-height:1.15;margin-top:4px}
+.iosh__grid{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.iosh h3{font-size:16px;font-weight:700;margin:22px 0 6px}
+.iosh h3:first-child{margin-top:0}
+.iosh p{color:var(--body);line-height:1.6}
+.iosh__list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.iosh__list li{position:relative;padding-left:22px;color:var(--body);line-height:1.5}
+.iosh__list li::before{content:"";position:absolute;left:0;top:.72em;width:12px;height:2px;background:var(--accent)}
+.iosh__covers{display:flex;flex-direction:column}
+.iosh__covers>div{padding:12px 0;border-top:1px solid var(--line)}
+.iosh__covers>div:first-child{border-top:0;padding-top:0}
+.iosh__covers dt{font-weight:600}
+.iosh__covers dd{margin:2px 0 0;color:var(--muted);font-size:15px;line-height:1.5}
+.creds dt a{text-decoration:underline}
+@media (max-width:760px){
+  .iosh{padding:24px 20px;margin-top:44px}
+  .iosh__grid{grid-template-columns:1fr;gap:24px}
+  .iosh__badge{width:56px;height:56px;font-size:14px}
+}

@@ -17,7 +17,7 @@ export const PAGES: PageInfo[] = [
     label: "What I do",
     title: "Exhibition and event operations services",
     description:
-      "Show operations end to end: budgets and suppliers, venues and floorplans, health and safety, on-site services and staffing, sponsorship features and digital tools.",
+      "Show operations end to end: budgets and suppliers, venues and floorplans, IOSH-certified health and safety, on-site services and staffing, sponsorship features and digital tools.",
   },
   {
     href: "/show-cycle",
