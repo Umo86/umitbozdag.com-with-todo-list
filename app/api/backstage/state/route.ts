@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       me.admin
         ? db()
             .query(
-              `select id, name, email, company, message, created_at, read_at
+              `select id, name, email, phone, company, message, created_at, read_at
                from messages order by created_at desc limit 200`
             )
             .catch(() => ({ rows: [] }))

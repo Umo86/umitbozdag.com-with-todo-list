@@ -85,6 +85,7 @@ create table if not exists messages (
 );
 
 alter table messages add column if not exists meta jsonb;
+alter table messages add column if not exists phone text;
 
 -- Wrong Backstage passwords, counted per address to slow guessing.
 create table if not exists login_attempts (

@@ -32,12 +32,13 @@ export async function POST(req: Request) {
   const entry = {
     name: text(b.name, 120),
     email: text(b.email, 200),
+    phone: text(b.phone, 30),
     company: text(b.company, 160),
     message: text(b.message, 4000),
   };
-  if (!entry.name || !EMAIL.test(entry.email) || entry.message.length < 5) {
+  if (!entry.name || !EMAIL.test(entry.email) || entry.message.length < 5 || entry.phone.replace(/\D/g, "").length < 7) {
     return NextResponse.json(
-      { error: "Please add your name, a valid email and a short message." },
+      { error: "Please add your name, a valid email, a phone number and a short message." },
       { status: 400 }
     );
   }
@@ -48,8 +49,8 @@ export async function POST(req: Request) {
   if (process.env.DATABASE_URL) {
     try {
       await db().query(
-        `insert into messages (name, email, company, message, meta) values ($1, $2, nullif($3, ''), $4, $5)`,
-        [entry.name, entry.email, entry.company, entry.message, JSON.stringify(Object.fromEntries([...info.server, ...info.device]))]
+        `insert into messages (name, email, company, message, meta, phone) values ($1, $2, nullif($3, ''), $4, $5, $6)`,
+        [entry.name, entry.email, entry.company, entry.message, JSON.stringify(Object.fromEntries([...info.server, ...info.device])), entry.phone]
       );
       stored = true;
     } catch (err) {

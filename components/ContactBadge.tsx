@@ -96,7 +96,11 @@ export default function ContactBadge() {
                 <span>Email</span>
                 <input name="email" type="email" required maxLength={200} autoComplete="email" />
               </label>
-              <label className="field field--full">
+              <label className="field">
+                <span>Phone</span>
+                <input name="phone" type="tel" required minLength={7} maxLength={30} autoComplete="tel" inputMode="tel" pattern="[0-9+()\-\s.]{7,30}" title="A phone number, e.g. +44 7700 900123" />
+              </label>
+              <label className="field">
                 <span>Company (optional)</span>
                 <input name="company" maxLength={160} autoComplete="organization" />
               </label>

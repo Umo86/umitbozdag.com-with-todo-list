@@ -5,22 +5,60 @@ export const CONTACT_TO = process.env.CONTACT_TO || "umitbozdag@live.com";
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export function contactMail(
-  e: { name: string; email: string; company: string; message: string },
+  e: { name: string; email: string; phone?: string; company: string; message: string },
   info: { server: Row[]; device: Row[] },
   test = false
 ) {
-  const who: Row[] = [["Name", e.name], ["Email", e.email], ["Company", e.company], ["Sent", new Date().toLocaleString("en-GB", { timeZone: "Europe/London" }) + " (London)"]].filter(([, v]) => v) as Row[];
-  const block = (title: string, rows: Row[]) =>
-    `<h3 style="margin:22px 0 8px;font:600 15px system-ui">${title}</h3><table style="border-collapse:collapse;font:14px system-ui;width:100%">${rows
-      .map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #e3e6ee;background:#f6f7fb;white-space:nowrap;vertical-align:top">${esc(k)}</td><td style="padding:6px 10px;border:1px solid #e3e6ee;word-break:break-word">${/^https?:\/\//.test(v) ? `<a href="${esc(v)}">${esc(v)}</a>` : esc(v)}</td></tr>`)
+  const sent = new Date().toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "full", timeStyle: "short" }) + " (London time)";
+  const who: Row[] = (
+    [
+      ["Name", e.name],
+      ["Email", e.email],
+      ["Phone", e.phone ?? ""],
+      ["Company", e.company || "(not given)"],
+      ["Sent", sent],
+    ] as Row[]
+  ).filter(([, v]) => v);
+  const link = (k: string, v: string) =>
+    /^https?:\/\//.test(v)
+      ? `<a href="${esc(v)}">${esc(v)}</a>`
+      : k === "Email"
+        ? `<a href="mailto:${esc(v)}">${esc(v)}</a>`
+        : k === "Phone"
+          ? `<a href="tel:${esc(v.replace(/[^\d+]/g, ""))}">${esc(v)}</a>`
+          : esc(v);
+  const H = (t: string) =>
+    `<h2 style="margin:0 0 12px;font:800 13px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1a47ff">${t}</h2>`;
+  const sub = (t: string) => `<h3 style="margin:18px 0 6px;font:600 14px system-ui,sans-serif;color:#0b0b0c">${t}</h3>`;
+  const table = (rows: Row[], strong = false) =>
+    `<table role="presentation" style="border-collapse:collapse;width:100%;font:14px system-ui,sans-serif">${rows
+      .map(
+        ([k, v]) =>
+          `<tr><td style="padding:7px 12px;border:1px solid #e3e6ee;background:#f6f7fb;width:34%;vertical-align:top;font-weight:600;color:#3b4252">${esc(k)}</td><td style="padding:7px 12px;border:1px solid #e3e6ee;word-break:break-word;${strong ? "font-size:15px;color:#0b0b0c" : "color:#3b4252"}">${link(k, v)}</td></tr>`
+      )
       .join("")}</table>`;
-  const textBlock = (title: string, rows: Row[]) => `${title}\n${rows.map(([k, v]) => `  ${k}: ${v}`).join("\n")}`;
+  const html = `<div style="max-width:680px;font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color:#0b0b0c">
+${test ? '<p style="background:#fff7e6;border:1px solid #f2c46c;padding:10px 12px;border-radius:8px;margin:0 0 18px">Test email from the contact form.</p>' : ""}
+${H("Sender&rsquo;s message")}
+<div style="padding:16px 18px;background:#f3f5ff;border-left:4px solid #1a47ff;white-space:pre-wrap;font-size:16px">${esc(e.message)}</div>
+${sub("Sender&rsquo;s details")}
+${table(who, true)}
+<hr style="border:0;border-top:2px solid #0b0b0c;margin:30px 0 22px">
+${H("Sender&rsquo;s system info")}
+${sub("Network and browser")}
+${table(info.server)}
+${sub("Device")}
+${table(info.device)}
+<p style="color:#6b7280;font-size:12px;margin-top:20px">Press Reply to answer ${esc(e.name)} directly. Location is approximate (worked out from the IP address).</p>
+</div>`;
+  const tx = (rows: Row[]) => rows.map(([k, v]) => `${k}: ${v}`).join("\n");
+  const text = `SENDER'S MESSAGE\n\n${e.message}\n\nSENDER'S DETAILS\n${tx(who)}\n\n----------------------------------------\nSENDER'S SYSTEM INFO\n\nNetwork and browser\n${tx(info.server)}\n\nDevice\n${tx(info.device)}\n`;
   return {
     to: CONTACT_TO,
     subject: `${test ? "[TEST] " : ""}Contact form: umitbozdag.com`,
     replyTo: e.email,
-    html: `<div style="max-width:680px;font:15px system-ui;color:#0b0b0c">${test ? '<p style="background:#fff7e6;border:1px solid #f2c46c;padding:10px 12px;border-radius:8px">This is a test of the contact form email. Reply goes to the sender\'s address.</p>' : ""}<h2 style="margin:0 0 6px;font:700 20px system-ui">New message from ${esc(e.name)}</h2><blockquote style="margin:14px 0;padding:14px 16px;background:#f3f5ff;border-left:4px solid #1a47ff;white-space:pre-wrap">${esc(e.message)}</blockquote>${block("Sender", who)}${block("Network and browser", info.server)}${block("Device", info.device)}<p style="color:#6b7280;font-size:12px;margin-top:20px">Reply to this email to answer ${esc(e.name)} directly. Location is approximate (from the IP address).</p></div>`,
-    text: `New message from ${e.name}\n\n${e.message}\n\n${textBlock("Sender", who)}\n\n${textBlock("Network and browser", info.server)}\n\n${textBlock("Device", info.device)}`,
+    html,
+    text,
   };
 }
 

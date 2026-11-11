@@ -21,6 +21,7 @@ export default function Messages({ bs, messages }: { bs: Backstage; messages: Me
           <div className="bs-msg-head">
             <strong>{m.name}</strong>
             {m.company && <span>{m.company}</span>}
+            {m.phone && <a href={`tel:${m.phone.replace(/[^\d+]/g, "")}`}>{m.phone}</a>}
             <time dateTime={m.created_at}>
               {new Date(m.created_at).toLocaleString("en-GB", {
                 day: "numeric",
