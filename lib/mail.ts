@@ -2,6 +2,7 @@
 //  - Resend: RESEND_API_KEY (and MAIL_FROM once umitbozdag.com is verified there)
 //  - any SMTP mailbox: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (MAIL_FROM optional)
 // No keys or passwords live in the code: this repository is public.
+import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
 
 export type Mail = { to: string; subject: string; text: string; html: string; replyTo?: string };
@@ -34,7 +35,10 @@ export async function sendMail(m: Mail): Promise<{ ok: true } | { ok: false; err
         secure: port === 465,
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       });
+      const fromDomain = process.env.SMTP_USER.split("@")[1] || "umitbozdag.com";
       await t.sendMail({
+        // a Message-ID on our own domain (not Vercel's machine name) looks less like spam
+        messageId: `<${randomUUID()}@${fromDomain}>`,
         from: process.env.MAIL_FROM || `umitbozdag.com <${process.env.SMTP_USER}>`,
         to: m.to,
         subject: m.subject,

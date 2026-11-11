@@ -23,3 +23,22 @@ export function contactMail(
     text: `New message from ${e.name}\n\n${e.message}\n\n${textBlock("Sender", who)}\n\n${textBlock("Network and browser", info.server)}\n\n${textBlock("Device", info.device)}`,
   };
 }
+
+/** The short thank-you that goes back to whoever filled in the form. */
+export function thankYouMail(e: { name: string; email: string }) {
+  const first =
+    e.name
+      .replace(/https?:\/\/\S+|www\.\S+/gi, "")
+      .replace(/[<>{}\[\]\\]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 60) || "there";
+  const text = `Hi ${first},\n\nThank you for reaching out. I will be in touch soon.\n\nRegards,\nUmit Bozdag\n`;
+  return {
+    to: e.email,
+    subject: "Thank you for getting in touch",
+    text,
+    html: `<div style="font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;color:#0b0b0c"><p>Hi ${esc(first)},</p><p>Thank you for reaching out. I will be in touch soon.</p><p>Regards,<br>Umit Bozdag</p></div>`,
+    replyTo: process.env.SMTP_USER || undefined,
+  };
+}

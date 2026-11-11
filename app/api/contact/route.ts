@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { mailConfigured, sendMail } from "@/lib/mail";
 import { visitorRows } from "@/lib/visitor";
-import { contactMail } from "@/lib/contact-mail";
+import { contactMail, thankYouMail } from "@/lib/contact-mail";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +61,9 @@ export async function POST(req: Request) {
     const r = await sendMail(contactMail(entry, info));
     mailed = r.ok;
     if (!r.ok) console.error("contact form mail error:", r.error);
+    // and a short thank-you to the sender
+    const t = await sendMail(thankYouMail(entry));
+    if (!t.ok) console.error("contact form thank-you error:", t.error);
   }
   if (!stored && !mailed) {
     return NextResponse.json({ error: "Messages can't be sent right now.", fallback: true }, { status: 503 });
