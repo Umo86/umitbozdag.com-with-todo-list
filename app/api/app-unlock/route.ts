@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
-import { appPassCookie, checkLogin, ensureUsers, issueAppPass, sameOrigin } from "@/lib/auth";
+import { appPassCookie, checkAppPassword, ensureUsers, issueAppPass, sameOrigin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// The password box on /app. Same password as Umit's Backstage, same limit on
-// wrong guesses (ten in fifteen minutes per address).
+// The password box on /app. The pages have their own password (see
+// checkAppPassword), with the same limit on wrong guesses as Backstage: ten in
+// fifteen minutes per address.
 const WINDOW = "15 minutes";
 const LIMIT = 10;
 const back = (req: Request, to: string, cookie?: string) => {
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
   } catch {
     return back(req, `${to}?nope=down`);
   }
-  const ok = await checkLogin("umit", String(form?.get("password") ?? ""));
+  const ok = await checkAppPassword(String(form?.get("password") ?? ""));
   if (!ok) {
     await db().query(`insert into login_attempts (ip) values ($1)`, [ip]).catch(() => {});
     await new Promise((r) => setTimeout(r, 600));

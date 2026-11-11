@@ -169,12 +169,24 @@ export async function requireAdmin(req: Request): Promise<AuthResult> {
   return a;
 }
 
-// ——— the app download pages (/app): locked with Umit's Backstage password ———
-// Signed in to Backstage on this device? Then they're open too.
+// ——— the app download pages (/app): locked with their own password ———
+// APP_PAGE_PASSWORD_HASH holds that password as a scrypt hash ("scrypt:<salt>:<hash>",
+// never the password itself). Without the setting the pages open with Umit's
+// Backstage password. Signed in to Backstage on this device? Then they're open too.
 export const APP_PASS_COOKIE = "app_pass";
+const appHash = () => (process.env.APP_PAGE_PASSWORD_HASH ?? "").trim().replace(/:/g, "$");
+// changes when the password does, so passes earned with an old one stop working
+const appVersion = () => (appHash() ? sha(`app|${appHash()}`).toString("base64url").slice(0, 12) : "app");
+
+/** Is this the password for the app pages? */
+export async function checkAppPassword(password: unknown): Promise<boolean> {
+  if (typeof password !== "string" || !password) return false;
+  if (appHash()) return verifyHash(password, appHash());
+  return !!(await checkLogin("umit", password));
+}
 
 export async function issueAppPass(): Promise<string> {
-  return new SignJWT({ pv: "app" })
+  return new SignJWT({ pv: appVersion() })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject("app-page")
     .setIssuedAt()
@@ -193,7 +205,7 @@ export async function appAccess(cookieHeader: string): Promise<boolean> {
   if (pass) {
     try {
       const { payload } = await jwtVerify(pass, signingKey(), { algorithms: ["HS256"] });
-      if (payload.sub === "app-page") return true;
+      if (payload.sub === "app-page" && payload.pv === appVersion()) return true;
     } catch {
       /* fall through */
     }

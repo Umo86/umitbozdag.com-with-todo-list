@@ -41,6 +41,7 @@ a private task manager behind one password, storing its data in Neon Postgres.
 | --- | --- | --- |
 | `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
 | `BACKSTAGE_PASSWORD` | Umit's Backstage password | keep it secret; changing it signs Umit out everywhere |
+| `APP_PAGE_PASSWORD_HASH` | optional | the `/app` pages' own password, stored as a scrypt hash (`scrypt:<salt>:<hash>`), never the password itself. Without it they open with Umit's Backstage password |
 | `BACKSTAGE_SECRET` | optional | extra random text mixed into the session signature |
 
 Until these are set, the public site works fully and `/backstage` shows a
