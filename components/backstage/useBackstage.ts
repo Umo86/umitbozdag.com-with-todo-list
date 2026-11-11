@@ -463,6 +463,20 @@ export function useBackstage() {
     },
     [api, fail, me]
   );
+  // Start one swipe game again: clears your own votes in it (not the other game's).
+  const clearVotes = useCallback(
+    async (game: "dinner" | "date") => {
+      const prefix = game === "dinner" ? "dish:" : "date:";
+      setUs((prev) => {
+        const ideas = new Set(prev.filter((x) => x.kind === "idea" && x.list === game).map((x) => x.id));
+        return prev.filter(
+          (x) => !(x.kind === "vote" && x.added_by === me?.id && (x.ref ? ideas.has(x.ref) : x.title.startsWith(prefix)))
+        );
+      });
+      await api(`/us?what=my-votes&game=${game}`, { method: "DELETE" }).catch(fail);
+    },
+    [api, fail, me]
+  );
   const nudge = useCallback(
     async (taskId: string) => {
       try {
@@ -657,6 +671,7 @@ export function useBackstage() {
     patchUs,
     deleteUs,
     clearUs,
+    clearVotes,
     nudge,
     setBirthday,
     markChatRead,

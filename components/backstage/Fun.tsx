@@ -292,16 +292,16 @@ export function Confetti() {
 
 export type { UsItem };
 
-// ——— dinner game: the dish you both said yes to, shown to both of you ———
-export function DinnerMatchAlert({
-  title,
-  emoji,
+// ——— swipe games: what you both said yes to, shown to both of you ———
+export type GameMatch = { game: "dinner" | "date"; key: string; title: string; emoji: string; at: string };
+
+export function MatchAlert({
+  match,
   otherName,
   onPlan,
   onClose,
 }: {
-  title: string;
-  emoji: string;
+  match: GameMatch;
   otherName: string;
   onPlan: () => void;
   onClose: () => void;
@@ -311,17 +311,20 @@ export function DinnerMatchAlert({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  const dinner = match.game === "dinner";
   return (
     <div className="bs-scrim bs-matchpop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bs-match pop" role="alertdialog" aria-modal="true" aria-label={`Dinner match: ${title}`}>
+      <div className="bs-match pop" role="alertdialog" aria-modal="true" aria-label={`${dinner ? "Dinner" : "Date"} match: ${match.title}`}>
         <Confetti />
-        <span className="e">{emoji}</span>
-        <h3>It&rsquo;s a match!</h3>
-        <p className="big">{title}</p>
-        <p className="quiet small">You and {otherName} both said yes. That&rsquo;s dinner sorted.</p>
+        <span className="e">{match.emoji}</span>
+        <h3>{dinner ? "It’s a match!" : "It’s a date!"}</h3>
+        <p className="big">{match.title}</p>
+        <p className="quiet small">
+          You and {otherName} both said yes. {dinner ? "That’s dinner sorted." : "That’s your next date."}
+        </p>
         <div className="bs-row-btns">
           <button className="btn" onClick={onPlan}>
-            Put it in the calendar
+            {dinner ? "Put it in the calendar" : "Book it for Saturday"}
           </button>
           <button className="btn ghost" onClick={onClose} autoFocus>
             Lovely

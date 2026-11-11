@@ -56,7 +56,8 @@ export const DISHES: Dish[] = [
   { key: "cheese-board", title: "Cheese and wine night", emoji: "🧀" },
 ];
 
-// Date-night roulette's built-in ideas (your own are mixed in).
+// The dates game's built-in ideas (your own are mixed in). Both people swipe
+// through them like the dinner deck; the first you both say yes to is the next date.
 export const DATE_IDEAS: Array<{ title: string; emoji: string }> = [
   { title: "Picnic in Greenwich Park", emoji: "🧺" },
   { title: "Sunset walk along the South Bank", emoji: "🌇" },
@@ -130,3 +131,19 @@ export function shuffleForDay<T>(items: T[], day: string): T[] {
   }
   return a;
 }
+
+// Built-in date ideas as cards, keyed "date:<slug>" (the dinner deck uses "dish:<key>").
+const slug = (t: string) =>
+  t
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/, "");
+export const DATES: Dish[] = DATE_IDEAS.map((d) => ({ key: slug(d.title), title: d.title, emoji: d.emoji }));
+export const dateByKey = new Map(DATES.map((d) => [d.key, d]));
+
+export type Game = "dinner" | "date";
+/** What a built-in card's vote is filed under: "dish:<key>" or "date:<key>". */
+export const GAME_PREFIX: Record<Game, string> = { dinner: "dish:", date: "date:" };

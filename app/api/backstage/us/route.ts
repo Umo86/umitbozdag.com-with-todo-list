@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { dinnerMatch, readUs, US_COLS, US_KINDS, type UsKind } from "@/lib/us";
+import { gameMatch, readUs, US_COLS, US_KINDS, type UsKind } from "@/lib/us";
+import { GAME_PREFIX, type Game } from "@/lib/dishes";
 import { notify, otherOf } from "@/lib/notify";
 
 const MOOD_WORDS: Record<string, string> = {
@@ -45,14 +46,16 @@ export async function POST(req: Request) {
         tag: "mood",
       });
     }
-    // dinner game: this yes completed today's match → tell the other person too
+    // swipe games: this yes completed today's match → tell the other person too
     if (kind === "vote" && r.fields.yes === true) {
-      const m = await dinnerMatch().catch(() => null);
-      if (m && m.key === String(r.fields.ref ?? r.fields.title)) {
+      const mine = String(r.fields.ref ?? r.fields.title);
+      for (const game of ["dinner", "date"] as Game[]) {
+        const m = await gameMatch(game).catch(() => null);
+        if (!m || m.key !== mine) continue;
         await notify(otherOf(auth.me.id), {
-          title: `It’s a match! ${m.emoji} ${m.title}`,
-          body: `You and ${auth.me.name} both said yes. That’s dinner sorted.`,
-          tag: "dinner-match",
+          title: game === "dinner" ? `It’s a match! ${m.emoji} ${m.title}` : `It’s a date! ${m.emoji} ${m.title}`,
+          body: `You and ${auth.me.name} both said yes. ${game === "dinner" ? "That’s dinner sorted." : "That’s your next date."}`,
+          tag: `${game}-match`,
         });
       }
     }
@@ -63,14 +66,24 @@ export async function POST(req: Request) {
   }
 }
 
-// Clear today's dinner votes (yours), to swipe again.
+// Clear your votes in one swipe game (?game=dinner|date), to swipe again.
 export async function DELETE(req: Request) {
   const auth = await requireUser(req);
   if (!auth.ok) return auth.res;
   const what = new URL(req.url).searchParams.get("what");
   try {
     if (what === "my-votes") {
-      await db().query(`delete from us_items where kind = 'vote' and added_by = $1`, [auth.me.id]);
+      const game = new URL(req.url).searchParams.get("game") as Game | null;
+      if (game === "dinner" || game === "date") {
+        await db().query(
+          `delete from us_items v where v.kind = 'vote' and v.added_by = $1
+             and (case when v.ref is null then v.title like $2
+                       else exists (select 1 from us_items i where i.id = v.ref and i.list = $3) end)`,
+          [auth.me.id, `${GAME_PREFIX[game]}%`, game]
+        );
+      } else {
+        await db().query(`delete from us_items where kind = 'vote' and added_by = $1`, [auth.me.id]);
+      }
       return NextResponse.json({ ok: true });
     }
     if (what === "ticked-shopping") {

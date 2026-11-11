@@ -8,9 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseTask, ymd } from "@/lib/parse";
 import Board from "./Board";
 import Calendar from "./Calendar";
-import UsHub, { type UsSection } from "./UsHub";
+import UsHub, { nextSaturday, type UsSection } from "./UsHub";
 import Shopping from "./Shopping";
-import { DinnerMatchAlert, lastWeekChampion, MOODS, nextYearly } from "./Fun";
+import { MatchAlert, lastWeekChampion, MOODS, nextYearly, type GameMatch } from "./Fun";
 import { VideoGift, VideoSender, VideoWaiting, type VideoIn, type VideoOut } from "./OneTimeVideo";
 import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
 import Dashboard from "./Dashboard";
@@ -320,9 +320,9 @@ export default function BackstageApp() {
   const [videoOut, setVideoOut] = useState<VideoOut | null>(null);
   const [videoPrompt, setVideoPrompt] = useState<string | null>(null); // id to offer straight away
   const [videoPlaying, setVideoPlaying] = useState(false);
-  // dinner game: the dish you both said yes to, shown to each of you once
-  const [dinner, setDinner] = useState<{ key: string; title: string; emoji: string; at: string } | null>(null);
-  const dinnerShown = useRef<string | null>(null);
+  // swipe games (dinner, dates): what you both said yes to, shown to each of you once
+  const [matches, setMatches] = useState<GameMatch[]>([]);
+  const matchShown = useRef(new Set<string>());
   const quickCheck = useRef<() => void>(() => {});
   const playingRef = useRef(false);
   playingRef.current = videoPlaying;
@@ -337,8 +337,9 @@ export default function BackstageApp() {
       try {
         const r = await fetch("/api/backstage/us/moods", { cache: "no-store" });
         if (!r.ok) return;
-        const { moods, video_in, video_out, dinner: dm } = (await r.json()) as {
-          dinner?: { key: string; title: string; emoji: string; at: string } | null;
+        const { moods, video_in, video_out, dinner: dm, date: dt } = (await r.json()) as {
+          dinner?: Omit<GameMatch, "game"> | null;
+          date?: Omit<GameMatch, "game"> | null;
           moods: Array<{ added_by: string; emoji: string; updated_at: string }>;
           video_in?: VideoIn | null;
           video_out?: VideoOut | null;
@@ -354,27 +355,27 @@ export default function BackstageApp() {
           });
         }
         setVideoOut(video_out ?? null);
-        if (dm) {
+        for (const m of [dm && { ...dm, game: "dinner" as const }, dt && { ...dt, game: "date" as const }]) {
+          if (!m) continue;
           // a new match (also one made while this was closed): show it once
-          const id = `${dm.key}|${dm.at}`;
-          const store = `backstage:dinner-match:${me.id}`;
+          const id = `${m.game}|${m.key}|${m.at}`;
+          const store = `backstage:${m.game}-match:${me.id}`;
           let had: string | null = null;
           try {
             had = localStorage.getItem(store);
           } catch {
-            /* private mode: the ref below still stops repeats */
+            /* private mode: the set below still stops repeats */
           }
-          if (id !== had && id !== dinnerShown.current) {
-            dinnerShown.current = id;
-            try {
-              localStorage.setItem(store, id);
-            } catch {
-              /* fine */
-            }
-            setDinner(dm);
-            buzz(BUZZ.heart);
-            void live.current.refresh();
+          if (had === id || had === `${m.key}|${m.at}` || matchShown.current.has(id)) continue;
+          matchShown.current.add(id);
+          try {
+            localStorage.setItem(store, id);
+          } catch {
+            /* fine */
           }
+          setMatches((q) => [...q, m]);
+          buzz(BUZZ.heart);
+          void live.current.refresh();
         }
         const theirs = moods.find((m) => m.added_by === otherId);
         const key = theirs ? `${theirs.emoji}|${theirs.updated_at}` : null;
@@ -912,16 +913,20 @@ export default function BackstageApp() {
           }}
         />
       )}
-      {dinner && other && (
-        <DinnerMatchAlert
-          key={`${dinner.key}|${dinner.at}`}
-          title={dinner.title}
-          emoji={dinner.emoji}
+      {matches[0] && other && (
+        <MatchAlert
+          key={`${matches[0].game}|${matches[0].key}|${matches[0].at}`}
+          match={matches[0]}
           otherName={other.name}
-          onClose={() => setDinner(null)}
+          onClose={() => setMatches((q) => q.slice(1))}
           onPlan={() => {
-            setDinner(null);
-            setSheet({ kind: "event", day: ymd(new Date()), preset: { title: `Dinner: ${dinner.title}`, time: "19:30", joint: true } });
+            const m = matches[0];
+            setMatches((q) => q.slice(1));
+            setSheet(
+              m.game === "dinner"
+                ? { kind: "event", day: ymd(new Date()), preset: { title: `Dinner: ${m.title}`, time: "19:30", joint: true } }
+                : { kind: "event", day: nextSaturday(), preset: { title: `Date night: ${m.title}`, time: "19:00", joint: true } }
+            );
           }}
         />
       )}

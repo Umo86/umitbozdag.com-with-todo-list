@@ -1,10 +1,10 @@
 "use client";
 
 // The "Us" tab: chat, plus the things just for the two of you: what's for
-// dinner (swipe until you match), date-night roulette, the memory jar and a
+// dinner and date night (both: swipe until you match), the memory jar and a
 // private gift-ideas list.
-import { useEffect, useMemo, useRef, useState } from "react";
-import { DATE_IDEAS, DISHES, shuffleForDay } from "@/lib/dishes";
+import { useMemo, useRef, useState } from "react";
+import { DATES, DISHES, GAME_PREFIX, shuffleForDay, type Game } from "@/lib/dishes";
 import { ymd } from "@/lib/parse";
 import Chat from "./Chat";
 import { Confetti, nextYearly } from "./Fun";
@@ -15,7 +15,7 @@ export type UsSection = "chat" | "dinner" | "dates" | "memories" | "gifts";
 const SECTIONS: Array<[UsSection, string]> = [
   ["chat", "💬 Chat"],
   ["dinner", "🍽️ Dinner"],
-  ["dates", "🎲 Dates"],
+  ["dates", "💘 Dates"],
   ["memories", "📸 Memories"],
   ["gifts", "🎁 Gifts"],
 ];
@@ -47,7 +47,7 @@ export default function UsHub({
       </div>
       {section === "chat" && <Chat bs={bs} me={me} users={users} />}
       {section === "dinner" && <Dinner bs={bs} me={me} users={users} onPlan={onPlan} />}
-      {section === "dates" && <Dates bs={bs} onPlan={onPlan} />}
+      {section === "dates" && <Dates bs={bs} me={me} users={users} onPlan={onPlan} />}
       {section === "memories" && <Memories bs={bs} me={me} />}
       {section === "gifts" && <Gifts bs={bs} me={me} users={users} />}
     </div>
@@ -85,32 +85,50 @@ function IdeaList({ bs, items }: { bs: Backstage; items: UsItem[] }) {
   );
 }
 
-// ——— what's for dinner: both swipe the same deck, first dish you both like wins ———
-// Swipe LEFT = yes (green tick), swipe RIGHT = no (red cross).
+// ——— the swipe games: dinner and dates ———
+// Both of you swipe through the same deck (shuffled the same way each day);
+// the first card you both say yes to wins. Swipe LEFT = yes (green tick),
+// swipe RIGHT = no (red cross).
 type Card = { key: string; title: string; emoji: string; ref?: string; mine?: boolean };
+type GameWords = { thing: string; things: string; prize: string; plan: string; ownEmoji: string };
 
-function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Person[]; onPlan: (t: string, d: string, time: string) => void }) {
+function SwipeGame({
+  bs,
+  me,
+  users,
+  game,
+  built,
+  words,
+  onPlan,
+}: {
+  bs: Backstage;
+  me: Me;
+  users: Person[];
+  game: Game;
+  built: Card[];
+  words: GameWords;
+  onPlan: (title: string) => void;
+}) {
   const other = users.find((u) => u.id !== me.id);
-  const ideas = bs.us.filter((x) => x.kind === "idea" && x.list === "dinner");
-  const votes = bs.us.filter((x) => x.kind === "vote");
+  const ideas = bs.us.filter((x) => x.kind === "idea" && x.list === game);
   const today = ymd(new Date());
 
-  // the deck: your own ideas first, then the built-in dishes, shuffled the
-  // same way for both of you today
+  // the deck: your own ideas first, then the built-in cards
   const deck = useMemo<Card[]>(() => {
-    const own = ideas.map((i) => ({ key: i.id, title: i.title, emoji: i.emoji ?? "🍽️", ref: i.id, mine: true }));
-    const built = DISHES.map((d) => ({ key: `dish:${d.key}`, title: d.title, emoji: d.emoji }));
+    const own = ideas.map((i) => ({ key: i.id, title: i.title, emoji: i.emoji ?? words.ownEmoji, ref: i.id, mine: true }));
     return [...shuffleForDay(own, today), ...shuffleForDay(built, today)];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ideas.map((i) => i.id).join(","), today]);
+  }, [ideas.map((i) => i.id).join(","), today, built]);
 
   const keyOf = (v: UsItem) => v.ref ?? v.title;
+  const inDeck = new Set(deck.map((c) => c.key));
+  const votes = bs.us.filter((x) => x.kind === "vote" && inDeck.has(keyOf(x)));
   const [local, setLocal] = useState<Map<string, boolean>>(new Map());
   const myVotes = new Map(votes.filter((v) => v.added_by === me.id).map((v) => [keyOf(v), v.yes === true]));
   for (const [k, y] of local) myVotes.set(k, y);
   const theirYes = new Set(votes.filter((v) => v.added_by !== me.id && v.yes).map(keyOf));
   const theirCount = votes.filter((v) => v.added_by !== me.id).length;
-  // The match is the first dish you both said yes to (by when the second yes
+  // The match is the first card you both said yes to (by when the second yes
   // landed), so both of you are shown the same one.
   const yesAt = (who: "me" | "them", key: string) => {
     const v = votes.find((x) => (who === "me" ? x.added_by === me.id : x.added_by !== me.id) && x.yes && keyOf(x) === key);
@@ -143,7 +161,7 @@ function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Perso
   };
   const restart = () => {
     setLocal(new Map());
-    void bs.clearUs("my-votes");
+    void bs.clearVotes(game);
   };
 
   // left = yes, right = no
@@ -151,83 +169,102 @@ function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Perso
   const strength = fly ? 1 : Math.min(1, Math.abs(drag) / 110);
   const x = fly ? fly * 480 : drag;
 
-  return (
-    <div className="bs-dinner">
-      {match ? (
-        <div className="bs-match">
-          <Confetti />
-          <span className="e">{match.emoji}</span>
-          <h3>It&rsquo;s a match!</h3>
-          <p className="big">{match.title}</p>
-          <p className="quiet small">You and {other?.name} both said yes.</p>
-          <div className="bs-row-btns">
-            <button className="btn" onClick={() => onPlan(`Dinner: ${match.title}`, today, "19:30")}>
-              Put it in the calendar
-            </button>
-            <button className="btn ghost" onClick={restart}>
-              Play again
-            </button>
-          </div>
-        </div>
-      ) : next ? (
-        <>
-          <p className="quiet small center">
-            Swipe <strong className="ok">left for yes ✓</strong>, <strong className="nope">right for no ✕</strong>. The first
-            dish you both say yes to is dinner.
-            {theirCount ? ` ${other?.name} has swiped ${theirCount}.` : ` ${other?.name} hasn't started yet.`}
-          </p>
-          <div className="bs-deck">
-            <div className="bs-swipe under" aria-hidden="true" />
-            <div
-              className={`bs-swipe${leaning ? ` ${leaning}` : ""}${fly ? " fly" : ""}`}
-              style={{ transform: `translateX(${x}px) rotate(${x / 16}deg)` }}
-              onPointerDown={(e) => {
-                start.current = e.clientX;
-                (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-              }}
-              onPointerMove={(e) => start.current !== null && setDrag(e.clientX - start.current)}
-              onPointerUp={() => {
-                start.current = null;
-                if (drag < -90) vote(true);
-                else if (drag > 90) vote(false);
-                else setDrag(0);
-              }}
-              onPointerCancel={() => {
-                start.current = null;
-                setDrag(0);
-              }}
-            >
-              <span className="stamp yes" style={{ opacity: leaning === "yes" ? strength : 0 }} aria-hidden="true">
-                ✓
-              </span>
-              <span className="stamp no" style={{ opacity: leaning === "no" ? strength : 0 }} aria-hidden="true">
-                ✕
-              </span>
-              <span className="e">{next.emoji}</span>
-              <strong>{next.title}</strong>
-              <small>{next.mine ? "one of your ideas" : `${done + 1} of ${deck.length}`}</small>
-            </div>
-          </div>
-          <div className="bs-swipe-btns">
-            <button className="yes" aria-label={`Yes to ${next.title}`} onClick={() => vote(true)}>
-              ✓
-            </button>
-            <button className="no" aria-label={`No to ${next.title}`} onClick={() => vote(false)}>
-              ✕
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="bs-empty center">
-          <p>
-            You&rsquo;ve been through all {deck.length} dishes.{" "}
-            {theirCount ? `No match with ${other?.name} yet: they may still be swiping.` : `Waiting for ${other?.name} to swipe.`}
-          </p>
+  if (match)
+    return (
+      <div className="bs-match">
+        <Confetti />
+        <span className="e">{match.emoji}</span>
+        <h3>{game === "dinner" ? "It’s a match!" : "It’s a date!"}</h3>
+        <p className="big">{match.title}</p>
+        <p className="quiet small">You and {other?.name} both said yes.</p>
+        <div className="bs-row-btns">
+          <button className="btn" onClick={() => onPlan(match.title)}>
+            {words.plan}
+          </button>
           <button className="btn ghost" onClick={restart}>
-            Start again
+            Play again
           </button>
         </div>
-      )}
+      </div>
+    );
+  if (!next)
+    return (
+      <div className="bs-empty center">
+        <p>
+          You&rsquo;ve been through all {deck.length} {words.things}.{" "}
+          {theirCount ? `No match with ${other?.name} yet: they may still be swiping.` : `Waiting for ${other?.name} to swipe.`}
+        </p>
+        <button className="btn ghost" onClick={restart}>
+          Start again
+        </button>
+      </div>
+    );
+  return (
+    <>
+      <p className="quiet small center">
+        Swipe <strong className="ok">left for yes ✓</strong>, <strong className="nope">right for no ✕</strong>. The first{" "}
+        {words.thing} you both say yes to is {words.prize}.
+        {theirCount ? ` ${other?.name} has swiped ${theirCount}.` : ` ${other?.name} hasn't started yet.`}
+      </p>
+      <div className="bs-deck">
+        <div className="bs-swipe under" aria-hidden="true" />
+        <div
+          className={`bs-swipe${leaning ? ` ${leaning}` : ""}${fly ? " fly" : ""}`}
+          style={{ transform: `translateX(${x}px) rotate(${x / 16}deg)` }}
+          onPointerDown={(e) => {
+            start.current = e.clientX;
+            (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+          }}
+          onPointerMove={(e) => start.current !== null && setDrag(e.clientX - start.current)}
+          onPointerUp={() => {
+            start.current = null;
+            if (drag < -90) vote(true);
+            else if (drag > 90) vote(false);
+            else setDrag(0);
+          }}
+          onPointerCancel={() => {
+            start.current = null;
+            setDrag(0);
+          }}
+        >
+          <span className="stamp yes" style={{ opacity: leaning === "yes" ? strength : 0 }} aria-hidden="true">
+            ✓
+          </span>
+          <span className="stamp no" style={{ opacity: leaning === "no" ? strength : 0 }} aria-hidden="true">
+            ✕
+          </span>
+          <span className="e">{next.emoji}</span>
+          <strong>{next.title}</strong>
+          <small>{next.mine ? "one of your ideas" : `${done + 1} of ${deck.length}`}</small>
+        </div>
+      </div>
+      <div className="bs-swipe-btns">
+        <button className="yes" aria-label={`Yes to ${next.title}`} onClick={() => vote(true)}>
+          ✓
+        </button>
+        <button className="no" aria-label={`No to ${next.title}`} onClick={() => vote(false)}>
+          ✕
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ——— what's for dinner ———
+const DINNER_DECK: Card[] = DISHES.map((d) => ({ key: `${GAME_PREFIX.dinner}${d.key}`, title: d.title, emoji: d.emoji }));
+function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Person[]; onPlan: (t: string, d: string, time: string) => void }) {
+  const ideas = bs.us.filter((x) => x.kind === "idea" && x.list === "dinner");
+  return (
+    <div className="bs-dinner">
+      <SwipeGame
+        bs={bs}
+        me={me}
+        users={users}
+        game="dinner"
+        built={DINNER_DECK}
+        words={{ thing: "dish", things: "dishes", prize: "dinner", plan: "Put it in the calendar", ownEmoji: "🍽️" }}
+        onPlan={(title) => onPlan(`Dinner: ${title}`, ymd(new Date()), "19:30")}
+      />
       <h3 className="bs-sub">Your own dinner ideas</h3>
       <p className="bs-hint">These go to the front of the deck, ahead of the {DISHES.length} built-in dishes.</p>
       <IdeaAdder bs={bs} list="dinner" placeholder="Add a dinner idea…" />
@@ -236,67 +273,39 @@ function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Perso
   );
 }
 
-// ——— date night roulette ———
-function Dates({ bs, onPlan }: { bs: Backstage; onPlan: (t: string, d: string, time: string) => void }) {
+// ——— date night: the same game, with date ideas ———
+const DATE_DECK: Card[] = DATES.map((d) => ({ key: `${GAME_PREFIX.date}${d.key}`, title: d.title, emoji: d.emoji }));
+export const nextSaturday = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
+  return ymd(d);
+};
+function Dates({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Person[]; onPlan: (t: string, d: string, time: string) => void }) {
   const own = bs.us.filter((x) => x.kind === "idea" && x.list === "date");
-  // your own ideas plus 50 built-in ones
-  const ideas = useMemo<Array<{ title: string; emoji: string }>>(
-    () => [...own.map((i) => ({ title: i.title, emoji: i.emoji ?? "💘" })), ...DATE_IDEAS],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [own.map((i) => i.id).join(",")]
-  );
-  const [spin, setSpin] = useState<string | null>(null);
-  const [result, setResult] = useState<{ title: string; emoji: string } | null>(null);
   const [browse, setBrowse] = useState(false);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => () => void (timer.current && clearInterval(timer.current)), []);
-  const go = () => {
-    setResult(null);
-    let n = 0;
-    const final = ideas[Math.floor(Math.random() * ideas.length)];
-    timer.current = setInterval(() => {
-      n++;
-      setSpin(ideas[Math.floor(Math.random() * ideas.length)].title);
-      if (n > 22) {
-        clearInterval(timer.current!);
-        setSpin(null);
-        setResult(final);
-      }
-    }, 85);
-  };
-  const sat = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7));
-    return ymd(d);
-  })();
+  const sat = nextSaturday();
   return (
     <div className="bs-dates">
-      <div className="bs-roulette">
-        {result && <Confetti />}
-        <span className="e">{result ? result.emoji : "🎲"}</span>
-        <p className="big">{spin ?? result?.title ?? "What shall we do?"}</p>
-        <div className="bs-row-btns center">
-          <button className="btn" onClick={go} disabled={!!spin}>
-            {result ? "Spin again" : "Spin"}
-          </button>
-          {result && (
-            <button className="btn ghost" onClick={() => onPlan(`Date night: ${result.title}`, sat, "19:00")}>
-              Book it for Saturday
-            </button>
-          )}
-        </div>
-        <p className="quiet small">Spins through {ideas.length} ideas: {DATE_IDEAS.length} of ours plus yours.</p>
-      </div>
+      <SwipeGame
+        bs={bs}
+        me={me}
+        users={users}
+        game="date"
+        built={DATE_DECK}
+        words={{ thing: "idea", things: "date ideas", prize: "your next date", plan: "Book it for Saturday", ownEmoji: "💘" }}
+        onPlan={(title) => onPlan(`Date night: ${title}`, sat, "19:00")}
+      />
       <h3 className="bs-sub">Your own date ideas</h3>
+      <p className="bs-hint">These go to the front of the deck, ahead of the {DATES.length} built-in ideas.</p>
       <IdeaAdder bs={bs} list="date" placeholder="Add a date idea (that new place in Soho…)" />
       <IdeaList bs={bs} items={own} />
       <button className="bs-fold" aria-expanded={browse} onClick={() => setBrowse((v) => !v)}>
-        {browse ? "Hide" : "See"} all {DATE_IDEAS.length} built-in ideas <span aria-hidden="true">{browse ? "▴" : "▾"}</span>
+        {browse ? "Hide" : "See"} all {DATES.length} built-in ideas <span aria-hidden="true">{browse ? "▴" : "▾"}</span>
       </button>
       {browse && (
         <ul className="bs-chips">
-          {DATE_IDEAS.map((d) => (
-            <li key={d.title}>
+          {DATES.map((d) => (
+            <li key={d.key}>
               <button className="bs-link" onClick={() => onPlan(`Date night: ${d.title}`, sat, "19:00")} title="Book it for Saturday">
                 {d.emoji} {d.title}
               </button>

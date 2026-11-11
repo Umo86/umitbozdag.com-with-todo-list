@@ -119,7 +119,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "Nudge: open a joint to-do and tap 👉 Nudge. It lands in the chat (with a count, if it's become a habit…).",
       "Love notes: on a joint to-do you added, write a hidden note. It shows as 💌 for the other person and opens when they tap it.",
       "Us › Dinner: you both swipe through the same deck of dishes. Swipe left for yes (green tick), right for no (red cross). The first dish you both say yes to is dinner. Your own ideas go to the front.",
-      "Us › Dates: spin the roulette on your date ideas and book the winner for Saturday.",
+      "Us › Dates: the same swipe game as Dinner, with 50 date ideas plus your own. The first you both say yes to is your next date; book it for Saturday.",
       "Us › Memories: keep little moments; one pops up on Today now and then.",
       "Us › Gifts: a private list of gift ideas for the other person (they never see it), with a reminder two weeks before their birthday. Add your own birthday there too.",
       "One-time video: Umit can send a video from his Today screen (Choose video). Dilfiraz gets a 🎁 card; it plays once, then it is deleted. Closing it part-way also uses it up.",

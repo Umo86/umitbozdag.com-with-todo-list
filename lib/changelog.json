@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-11",
+    "title": "Dates game: swipe to pick your next date",
+    "items": [
+      "Us › Dates now works like Dinner: you both swipe the same 50 date ideas, left for yes, right for no",
+      "The first idea you both say yes to pops up for both of you as “It’s a date!”",
+      "Book it for Saturday straight from the pop-up",
+      "Your own date ideas go to the front of the deck; dinner and dates are played separately"
+    ]
+  },
+  {
+    "date": "2026-11-11",
     "title": "Hearts on every screen",
     "items": [
       "A heart from the other person now floats up whichever screen you are on, even with a task or sheet open",

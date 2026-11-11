@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { dishByKey } from "./dishes";
+import { dateByKey, dishByKey, GAME_PREFIX, type Game } from "./dishes";
 import { DATE, UUID } from "./backstage";
 import type { Me, UserId } from "./auth";
 
@@ -92,10 +92,10 @@ export function readUs(kind: UsKind, body: Record<string, unknown>, me: Me, part
       f.day = londonToday();
       break;
     case "vote":
-      // either one of your own dinner ideas (ref) or a built-in dish ("dish:key" in title)
+      // either one of your own ideas (ref) or a built-in card ("dish:key" / "date:key" in title)
       if (typeof body.ref === "string" && UUID.test(body.ref)) f.ref = body.ref;
-      else if (typeof body.title === "string" && /^dish:[a-z0-9-]{1,40}$/.test(body.title)) f.title = body.title;
-      else return { ok: false, error: "Vote on a dish." };
+      else if (typeof body.title === "string" && /^(?:dish|date):[a-z0-9-]{1,40}$/.test(body.title)) f.title = body.title;
+      else return { ok: false, error: "Vote on a card." };
       f.yes = body.yes === true;
       f.day = londonToday();
       break;
@@ -148,15 +148,15 @@ export async function loadUs(me: Me) {
   };
 }
 
-// ——— the dinner game: the dish you both said yes to today ———
-export type DinnerMatch = { key: string; title: string; emoji: string; at: string };
+// ——— the swipe games (dinner, dates): what you both said yes to today ———
+export type GameMatch = { key: string; title: string; emoji: string; at: string };
 
 /**
- * Today's match: the first dish both people said yes to (first by the moment
- * the second yes landed), or null. `key` is the idea's id for one of your own
- * dinner ideas, or "dish:<key>" for a built-in dish.
+ * Today's match in one game: the first card both people said yes to (first by
+ * the moment the second yes landed), or null. `key` is the idea's id for one
+ * of your own ideas, or "dish:<key>" / "date:<key>" for a built-in card.
  */
-export async function dinnerMatch(): Promise<DinnerMatch | null> {
+export async function gameMatch(game: Game): Promise<GameMatch | null> {
   const r = await db().query(
     `select coalesce(a.ref::text, a.title) as key, a.ref, greatest(a.created_at, b.created_at) as at,
             i.title as idea_title, i.emoji as idea_emoji
@@ -166,14 +166,16 @@ export async function dinnerMatch(): Promise<DinnerMatch | null> {
         and coalesce(b.ref::text, b.title) = coalesce(a.ref::text, a.title)
        left join us_items i on i.id = a.ref and i.kind = 'idea'
       where a.kind = 'vote' and a.day = $1::date and a.yes
+        and (case when a.ref is null then a.title like $2 else i.list = $3 end)
       order by at asc
       limit 1`,
-    [londonToday()]
+    [londonToday(), `${GAME_PREFIX[game]}%`, game]
   );
   const m = r.rows[0];
   if (!m) return null;
   const at = new Date(m.at).toISOString();
-  if (m.ref) return m.idea_title ? { key: m.key, title: m.idea_title, emoji: m.idea_emoji ?? "🍽️", at } : null;
-  const dish = dishByKey.get(String(m.key).replace(/^dish:/, ""));
-  return dish ? { key: m.key, title: dish.title, emoji: dish.emoji, at } : null;
+  if (m.ref) return m.idea_title ? { key: m.key, title: m.idea_title, emoji: m.idea_emoji ?? (game === "dinner" ? "🍽️" : "💘"), at } : null;
+  const bare = String(m.key).slice(GAME_PREFIX[game].length);
+  const card = game === "dinner" ? dishByKey.get(bare) : dateByKey.get(bare);
+  return card ? { key: m.key, title: card.title, emoji: card.emoji, at } : null;
 }
