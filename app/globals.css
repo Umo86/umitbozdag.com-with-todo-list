@@ -71,12 +71,17 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .phases{list-style:none;display:flex}
 .phases li{flex:1;border-top:2px solid rgba(255,255,255,.18);transition:border-color .5s}
 .phases li.reached{border-top-color:#fff}
-.phases button{display:block;width:100%;text-align:left;padding:10px 6px 4px 0;font-size:13px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45);transition:color .3s}
+.phases button{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;padding:10px 6px 4px 0;color:rgba(255,255,255,.45);transition:color .3s}
+.phases .when{font-size:12px;letter-spacing:.02em;opacity:.8}
+.phases .name{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 .phases li.reached button{color:rgba(255,255,255,.78)}
 .phases button[aria-pressed="true"]{color:#fff}
 .phases button:hover{color:#fff}
 .phases button:focus-visible{outline-color:#fff}
-.phase-note{font-size:17px;line-height:1.45;color:rgba(255,255,255,.82);margin-top:10px;min-height:1.5em}
+.phase-now{margin-top:14px;min-height:3.6em}
+.phase-step{display:none}
+.phase-note{font-size:18px;line-height:1.45;color:#fff}
+.phase-work{font-size:14px;color:rgba(255,255,255,.55);margin-top:4px}
 
 /* ---------- where I've worked: the world map ---------- */
 .world{padding:96px 0 0}
@@ -158,20 +163,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:40px}
 .head .lead{padding-bottom:6px}
 .head .meta{color:var(--muted);font-size:14px;white-space:nowrap}
-.cycle{font-size:15px}
-.cycle-axis,.cycle-row{display:grid;grid-template-columns:290px 1fr;align-items:center}
-.cycle-axis{border-bottom:1px solid var(--text);height:34px}
-.cycle-track{position:relative;height:38px}
-.cycle-axis .cycle-track{height:34px}
-.cycle-tick{position:absolute;top:8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);white-space:nowrap;padding-left:7px;border-left:1px solid var(--text);line-height:1.2;height:26px}
-.cycle-row{border-bottom:1px solid var(--line)}
-.cycle-label{padding-right:18px;font-weight:500}
-.cycle-grid{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
-.cycle-bar{position:absolute;top:15px;height:8px;border-radius:999px;background:var(--text);transform-origin:left center}
-.cycle-bar.on-site{top:11px;height:16px}
-.cycle-bar.open{background:var(--accent)}
-.cycle-bar.out{background:repeating-linear-gradient(135deg,var(--text) 0 3px,transparent 3px 6px);border:1px solid var(--text)}
-.cycle-note{margin-top:16px;font-size:14px;color:var(--muted);max-width:60ch}
 
 /* ---------- events ---------- */
 .filters{display:flex;gap:28px;border-bottom:1px solid var(--line);margin-bottom:8px;overflow-x:auto;scrollbar-width:none}
@@ -328,11 +319,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 /* ---------- responsive ---------- */
 @media (max-width:900px){
-  .cycle-axis,.cycle-row{grid-template-columns:1fr}
-  .cycle-axis .cycle-label{display:none}
-  .cycle-row{padding-top:10px}
-  .cycle-row .cycle-track{height:26px}
-  .cycle-bar{top:9px}.cycle-bar.on-site{top:5px}
   .contact .wrap{grid-template-columns:1fr;gap:28px}
   .contact__text{padding-top:72px}
   .neck{justify-self:center}
@@ -346,8 +332,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .blueprint{padding:18px 16px 18px;border-radius:14px;margin-bottom:32px}
   .hall-svg{aspect-ratio:auto;height:240px;overflow:hidden}
   .hall-labels{display:none}
-  .phases button{font-size:10.5px;letter-spacing:.05em;padding-right:2px}
-  .phase-note{font-size:16px;min-height:3em}
+  .phases{gap:6px}
+  .phases li{border-top-width:4px;border-radius:2px}
+  .phases button{padding:12px 0 0;min-height:30px}
+  .phases .when,.phases .name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .phase-now{min-height:7.5em}
+  .phase-step{display:block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#fff;margin-bottom:6px}
+  .phase-step em{font-style:normal;font-weight:400;opacity:.65;text-transform:none;letter-spacing:0}
+  .phase-note{font-size:16px}
   .nums{grid-template-columns:1fr 1fr;gap:24px;margin-top:36px;padding-top:26px}.nums strong{font-size:36px}
   .world{padding-top:60px}.world__head{grid-template-columns:1fr;gap:14px;margin-bottom:28px}.world__lead{justify-self:start;padding-bottom:0;font-size:16px}
   .map__label{display:none}.map__label--hq,.map.has-hot .map__label.is-hot{display:inline-flex;font-size:10px}
@@ -358,7 +350,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .facts{margin-top:48px}.orgs{margin-top:48px}
   .services{grid-template-columns:1fr;gap:0}
   .head{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:28px}
-  .cycle-tick.minor{display:none}
   .evt{grid-template-columns:44px 1fr auto;gap:14px;padding:14px 0}.evt__arr{display:none}.evt__logo{width:44px;height:34px;padding:4px}.evt strong{font-size:15px}.evt__where{font-size:13px}
   .cv__job{grid-template-columns:1fr;gap:4px}
   .cbadge__fields{grid-template-columns:1fr}

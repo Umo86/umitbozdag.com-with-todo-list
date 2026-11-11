@@ -82,26 +82,37 @@ const VISITORS = Array.from({ length: 18 }, (_, i) => {
   };
 });
 
+// Each phase: when it happens, one line about it, and what I'm doing then.
 const PHASES = [
   {
     label: "Floorplan",
-    note: "Twelve months out, the hall is an empty rectangle and a drawing.",
+    when: "12 months out",
+    note: "The hall is an empty rectangle and a drawing.",
+    work: "Venue, tenancy and licensing · the floorplan",
   },
   {
     label: "Sales",
+    when: "12 to 3 months",
     note: "Space sells. Every stand sold is one that has to be built.",
+    work: "Contractors and suppliers · exhibitor manual and orders",
   },
   {
     label: "Build-up",
+    when: "Show week",
     note: "Shell scheme, rigging, stage and signage go in against the clock.",
+    work: "Stand plans, RAMS and sign-off · signage and wayfinding",
   },
   {
     label: "Show open",
+    when: "3 days",
     note: "Doors open. When the operation is right, nobody notices it.",
+    work: "On-site operations · health and safety · visitor flow",
   },
   {
     label: "Breakdown",
+    when: "48 hours",
     note: "Everything comes out and the hall goes back empty, on time.",
+    work: "Breakdown · hand-back · lessons for next year",
   },
 ] as const;
 
@@ -111,14 +122,29 @@ export default function HallBuild() {
   const reduce = useReducedMotion();
   const [phase, setPhase] = useState(reduce ? 3 : 0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const box = useRef<HTMLElement | null>(null);
 
+  // play through to "Show open" once, when the hall first comes into view
   useEffect(() => {
     if (reduce) {
       setPhase(3);
       return;
     }
-    timers.current = AUTO_AT.map((ms, i) => setTimeout(() => setPhase(i + 1), ms));
-    return () => timers.current.forEach(clearTimeout);
+    const el = box.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) return;
+        io.disconnect();
+        timers.current = AUTO_AT.map((ms, i) => setTimeout(() => setPhase(i + 1), ms));
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      timers.current.forEach(clearTimeout);
+    };
   }, [reduce]);
 
   const choose = (i: number) => {
@@ -134,7 +160,7 @@ export default function HallBuild() {
     reduce ? { duration: 0 } : { delay, duration, ease: "easeInOut" as const };
 
   return (
-    <figure className="hall">
+    <figure className="hall" ref={box}>
       <figcaption className="hall-caption">
         <ol className="phases">
           {PHASES.map((p, i) => (
@@ -142,14 +168,22 @@ export default function HallBuild() {
               <button
                 type="button"
                 aria-pressed={i === phase}
+                aria-label={`${p.label}, ${p.when}`}
                 onClick={() => choose(i)}
               >
-                {p.label}
+                <span className="when">{p.when}</span>
+                <span className="name">{p.label}</span>
               </button>
             </li>
           ))}
         </ol>
-        <p className="phase-note">{PHASES[phase].note}</p>
+        <div className="phase-now" aria-live="polite">
+          <span className="phase-step">
+            {PHASES[phase].label} <em>· {PHASES[phase].when}</em>
+          </span>
+          <p className="phase-note">{PHASES[phase].note}</p>
+          <p className="phase-work">{PHASES[phase].work}</p>
+        </div>
       </figcaption>
       <svg
         className="hall-svg"

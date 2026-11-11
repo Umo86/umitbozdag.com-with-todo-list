@@ -3,7 +3,6 @@ import EventsList from "@/components/EventsList";
 import HallBuild from "@/components/HallBuild";
 import HeroFilm from "@/components/HeroFilm";
 import Reveal from "@/components/Reveal";
-import ShowCycle from "@/components/ShowCycle";
 import WorldMap from "@/components/WorldMap";
 import { SiteFooter, SiteNav, WaIcon } from "@/components/SiteChrome";
 import { COUNTRIES, PROFILE as p, SITE } from "@/lib/content";
@@ -140,15 +139,14 @@ export default function Home() {
                   <h2 className="h2">Three days on the floor. A year in the diary.</h2>
                 </div>
                 <p className="lead">
-                  One hall from empty floorplan to doors open, and the
-                  workstreams that have to land, in order, to get it there.
+                  One hall, from an empty floorplan to doors open and back.
+                  Tap a stage to see it.
                 </p>
               </div>
             </Reveal>
             <div className="blueprint">
               <HallBuild />
             </div>
-            <ShowCycle />
           </div>
         </section>
 
