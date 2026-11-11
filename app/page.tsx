@@ -194,7 +194,6 @@ export default function Home() {
                 <a href={SITE.linkedin} target="_blank" rel="noopener">
                   LinkedIn
                 </a>
-                <span>{p.area}</span>
               </p>
             </div>
             <ContactBadge />

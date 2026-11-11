@@ -22,9 +22,6 @@ export function SiteNav({ home = false }: { home?: boolean }) {
             </svg>
             Get the app
           </a>
-          <a className="nav__cv" href="/cv">
-            CV
-          </a>
         </nav>
       </div>
     </header>
@@ -42,7 +39,6 @@ export function SiteFooter() {
           <a href={SITE.linkedin} target="_blank" rel="noopener">
             LinkedIn
           </a>
-          <a href="/cv">CV</a>
         </nav>
       </div>
     </footer>

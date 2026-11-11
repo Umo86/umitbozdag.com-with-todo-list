@@ -9,6 +9,8 @@ const nextConfig = {
   // Backstage rather than the public home page.
   async redirects() {
     return [
+      // the CV is no longer public: ask Umit for it
+      { source: "/cv", destination: "/#contact", permanent: false },
       {
         source: "/:path((?!api/).*)",
         has: [{ type: "host", value: "umitbozdag-com-with-todo-list.vercel.app" }],
