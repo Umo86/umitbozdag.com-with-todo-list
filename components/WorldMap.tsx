@@ -42,6 +42,7 @@ export default function WorldMap() {
   const [visible, setVisible] = useState(false);
   const [hot, setHot] = useState<string | null>(null); // pointed at
   const [picked, setPicked] = useState<string>(HQ.id); // shown in the panel
+  const [all, setAll] = useState(false); // the panel shows a city's first events until asked for all
 
   useEffect(() => {
     const el = ref.current;
@@ -77,7 +78,10 @@ export default function WorldMap() {
     onMouseLeave: () => setHot(null),
     onFocus: () => setHot(id),
     onBlur: () => setHot(null),
-    onClick: () => setPicked(id),
+    onClick: () => {
+      setPicked(id);
+      setAll(false);
+    },
   });
 
   return (
@@ -163,18 +167,19 @@ export default function WorldMap() {
       <div className="world__panel" aria-live="polite">
         <div className="world__where">
           <Flag code={city.flag} />
-          <strong>
-            {city.hq ? "London and the UK" : `${city.name}, ${city.country}`}
-          </strong>
+          <strong>{city.hq ? "London and the UK" : `${city.name}, ${city.country}`}</strong>
           <span>
             {city.shows.length} {city.shows.length === 1 ? "event" : "events"}
           </span>
+          <a className="world__all" href="/events">
+            All events <span aria-hidden="true">→</span>
+          </a>
         </div>
-        <ul className="world__events">
+        <ul className={`world__events${all ? " is-all" : ""}`}>
           {city.shows.map((s) => (
             <li key={s.id}>
-              <a href={`/shows/${s.id}`} title={s.name}>
-                <span className="evt__logo">
+              <a href={`/shows/${s.id}`}>
+                <span className="world__logo">
                   {s.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={s.logo} alt="" loading="lazy" />
@@ -182,11 +187,22 @@ export default function WorldMap() {
                     <span className="initials">{initials(s.name)}</span>
                   )}
                 </span>
-                <span className="world__evname">{s.name}</span>
+                <span className="world__evtext">
+                  <span className="world__evname">{s.name}</span>
+                  <span className="world__evmeta">
+                    {s.side === "organiser" ? "Organiser" : s.side === "sponsor" ? "Sponsor" : "Exhibitor"}
+                    {s.years ? ` · ${s.years}` : ""}
+                  </span>
+                </span>
               </a>
             </li>
           ))}
         </ul>
+        {city.shows.length > 4 && (
+          <button type="button" className={`world__more${city.shows.length > 8 ? " is-long" : ""}`} aria-expanded={all} onClick={() => setAll((v) => !v)}>
+            {all ? "Show fewer" : `Show all ${city.shows.length}`} <span aria-hidden="true">{all ? "▴" : "▾"}</span>
+          </button>
+        )}
       </div>
     </div>
   );
