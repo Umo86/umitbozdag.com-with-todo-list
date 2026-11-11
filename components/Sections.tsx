@@ -225,7 +225,9 @@ export function EventsSection({ as = "h2", short = false }: { as?: Level; short?
               {p.shows.slice(0, 6).map((s) => (
                 <li key={s.id}>
                   <a href={`/shows/${s.id}`}>
+                    <em className={`evt__side evt__side--${s.side}`}>{s.side === "organiser" ? "Organiser" : s.side === "sponsor" ? "Sponsor" : "Exhibitor"}</em>
                     <strong>{s.name}</strong>
+                    <span>{s.role}</span>
                     <span>
                       {[s.city, s.country].filter(Boolean).join(", ")} · {s.years}
                     </span>

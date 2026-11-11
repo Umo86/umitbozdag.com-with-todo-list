@@ -1,7 +1,7 @@
 "use client";
 
-// The hero: an illustrated night journey through every city on the map
-// (drawn by scripts/hero-film), with a chip naming the city in view. The poster shows
+// The hero: an illustrated journey through every city on the map, each in
+// its country's colours (drawn by scripts/hero-film), with a chip naming the city in view. The poster shows
 // until the film is playing; visitors who ask for reduced motion or data
 // saving get the poster only, and the film pauses when it is off screen.
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +32,7 @@ export default function HeroFilm() {
     // The camera settles on a city for the first part of each segment and
     // travels for the rest; name the next city once it is past half way.
     const seg = p.heroVideo.segment;
-    const onTime = () => setCity(Math.floor((v.currentTime + seg * 0.22) / seg) % order.length);
+    const onTime = () => setCity(Math.floor((v.currentTime + p.heroVideo.lead) / seg) % order.length);
     v.addEventListener("timeupdate", onTime);
     const onPlaying = () => setReady(true);
     const onError = () => setFilm(false);

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteFooter, SiteNav, WaIcon } from "@/components/SiteChrome";
 import { PROFILE as p, SITE } from "@/lib/content";
+import { SIDE } from "@/components/EventsList";
 
 type Params = { params: Promise<{ id: string }> };
 type ShowT = (typeof p.shows)[number];
@@ -113,6 +114,7 @@ export default async function ShowPage({ params }: Params) {
               </div>
               <div>
                 <span className="kicker showhero__kicker">
+                  <em className={`evt__side evt__side--${show.side}`}>{SIDE[show.side] ?? show.side}</em>
                   {employer ? `${employer.name}, ` : ""}
                   {show.role}
                 </span>
@@ -208,7 +210,7 @@ export default async function ShowPage({ params }: Params) {
               <dl className="factcard">
                 {employer && (
                   <div>
-                    <dt>Organiser</dt>
+                    <dt>Worked for</dt>
                     <dd>
                       <a href={employer.url} target="_blank" rel="noopener">
                         {employer.name} ↗
@@ -216,6 +218,16 @@ export default async function ShowPage({ params }: Params) {
                     </dd>
                   </div>
                 )}
+                <div>
+                  <dt>I was there as</dt>
+                  <dd>
+                    {show.side === "organiser"
+                      ? "Organiser (on the team running the show)"
+                      : show.side === "sponsor"
+                        ? "Sponsor (delivering the office’s sponsorship)"
+                        : "Exhibitor (delivering the stand)"}
+                  </dd>
+                </div>
                 <div>
                   <dt>My role</dt>
                   <dd>{show.role}</dd>

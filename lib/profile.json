@@ -192,7 +192,8 @@
         "Catering, cleaning, signage, security, staffing, internet and power"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "uk-construction-week-birmingham",
@@ -215,7 +216,8 @@
         "Catering, cleaning, signage, security, staffing, internet and power"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "futurebuild",
@@ -238,7 +240,8 @@
         "Feature areas, signage and onsite services"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "stone-and-surfaces-show",
@@ -261,7 +264,8 @@
         "Signage, staffing and onsite services"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "gastech-2026-bangkok",
@@ -282,7 +286,8 @@
         "Handing over to the team when I moved on to Media10"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "gastech-2025",
@@ -309,7 +314,8 @@
         "Operational budgeting with the Director of Operations"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "world-lng-summit-2025",
@@ -356,7 +362,8 @@
           "date": "",
           "url": "https://worldlngsummit.com/content-media-hub/2025-photo-gallery/"
         }
-      ]
+      ],
+      "side": "organiser"
     },
     {
       "id": "bharat-electricity-summit-2025",
@@ -377,7 +384,8 @@
         "Supplier and venue coordination"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "breakbulk-europe",
@@ -405,7 +413,8 @@
         "Sponsorship trackers and new sponsorship opportunities"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "breakbulk-americas",
@@ -430,7 +439,8 @@
         "The exhibitor party"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "pure-london",
@@ -452,7 +462,8 @@
         "Build-up and breakdown support at Olympia London"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "source-fashion",
@@ -474,7 +485,8 @@
         "Build-up, live days and breakdown support"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "organiser"
     },
     {
       "id": "world-travel-market-london",
@@ -516,7 +528,8 @@
           "date": "2013-11-05",
           "url": "https://www.avrupatimes.com/world-travel-market-2013-turkish-culture-and-tourism"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "wtm-africa",
@@ -557,7 +570,8 @@
           "date": "2017-04",
           "url": "https://turob.com/en_US/news/2017/show/1298/the-wtm-africa-tourism-fair-has-begun"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "holiday-world-show-dublin",
@@ -579,7 +593,8 @@
         "Irish travel-trade liaison"
       ],
       "highlights": [],
-      "press": []
+      "press": [],
+      "side": "exhibitor"
     },
     {
       "id": "destinations-show",
@@ -608,7 +623,8 @@
           "date": "2013-02-02",
           "url": "https://www.breakingtravelnews.com/news/article/turkey-set-to-thrill-at-destinations-london/"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "international-confex",
@@ -637,7 +653,8 @@
           "date": "2012-08-13",
           "url": "https://www.breakingtravelnews.com/news/article/international-confex-reports-stellar-line-up-for-its-30th-anniversary-show/"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "the-meetings-show",
@@ -678,7 +695,8 @@
           "date": "2013-07-09",
           "url": "https://www.avrupatimes.com/business/istanbul-to-premiere-inspiring-multimedia-intro-package-that-showcases-the-city-at-the-meetings-show-uk-h4852.html"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "london-boat-show",
@@ -706,7 +724,8 @@
           "date": "2013-01-14",
           "url": "https://avrupatimes.com/business/turkey-sailing-ahead-h3528.html"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "london-book-fair",
@@ -752,7 +771,8 @@
           "date": "2013-04-01",
           "url": "https://www.hurriyetdailynews.com/turkish-culture-minister-promotes-london-book-fair-44043"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "london-fashion-week",
@@ -802,7 +822,8 @@
           "date": "2017-09-20",
           "url": "https://www.dailysabah.com/fashion/2017/09/20/turkish-designers-new-collection-presented-in-london"
         }
-      ]
+      ],
+      "side": "sponsor"
     },
     {
       "id": "taste-of-london",
@@ -843,7 +864,8 @@
           "date": "2022-06-16",
           "url": "https://www.anews.com.tr/gallery/turkey/turkish-cuisine-introduced-at-london-food-festival/amp"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "liverpool-food-and-drink-festival",
@@ -889,7 +911,8 @@
           "date": "2015-09-05",
           "url": "https://turkeydestination.blogspot.com/2015/09/taste-of-turkey-at-liverpool-food-and.html"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "rhs-hampton-court-2015",
@@ -934,7 +957,8 @@
           "date": "2015-07",
           "url": "https://www.floraldaily.com/article/9001281/uk-apl-members-at-rhs-hampton-2015"
         }
-      ]
+      ],
+      "side": "exhibitor"
     },
     {
       "id": "turkiye-roadshows",
@@ -963,7 +987,8 @@
           "date": "2015-11",
           "url": "https://turkeydestination.blogspot.com/2015/11/hundreds-trained-at-turkey-roadshow.html"
         }
-      ]
+      ],
+      "side": "organiser"
     }
   ],
   "experience": [
@@ -1070,7 +1095,7 @@
       "mobile": "/video/cities-mobile.mp4",
       "desktop": "/video/cities.mp4"
     },
-    "segment": 4.4,
+    "segment": 5.8,
     "order": [
       "London",
       "Dublin",
@@ -1078,9 +1103,11 @@
       "Milan",
       "Istanbul",
       "New Delhi",
+      "Bangkok",
       "Cape Town",
       "Houston"
-    ]
+    ],
+    "lead": 1.7
   },
   "worldLead": "Exhibitions and conferences delivered or supported on four continents, from a base in London.",
   "cities": [

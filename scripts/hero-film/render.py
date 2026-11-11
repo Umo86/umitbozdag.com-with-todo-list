@@ -14,7 +14,7 @@ with sync_playwright() as p:
     for i, name in enumerate(f["ORDER"]):
         part = tmp / f"part{i}.tmp.mp4"
         ff = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-y", "-f", "image2pipe", "-framerate", str(FPS), "-c:v", "mjpeg", "-i", "-",
-            "-c:v", "libx264", "-crf", "23", "-preset", "slow", "-pix_fmt", "yuv420p", "-r", str(FPS), "-g", str(per), "-an", str(part)], stdin=subprocess.PIPE)
+            "-c:v", "libx264", "-crf", "24", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-r", str(FPS), "-g", str(per), "-an", str(part)], stdin=subprocess.PIPE)
         for k in range(per):
             pg.evaluate(f"FILM.draw({(i * per + k) / FPS})")
             ff.stdin.write(pg.screenshot(type="jpeg", quality=92))
@@ -27,5 +27,5 @@ with sync_playwright() as p:
 (tmp / "list.txt").write_text("".join(f"file '{x}'\n" for x in parts))
 def run(*a): subprocess.run(["ffmpeg", "-loglevel", "error", "-y", *a], check=True)
 t = vid / "cities.tmp.mp4"; run("-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt"), "-c", "copy", "-movflags", "+faststart", str(t)); os.rename(t, vid / "cities.mp4")
-t = vid / "cities-mobile.tmp.mp4"; run("-i", str(vid / "cities.mp4"), "-vf", "scale=854:480", "-c:v", "libx264", "-crf", "26", "-preset", "slow", "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", str(t)); os.rename(t, vid / "cities-mobile.mp4")
+t = vid / "cities-mobile.tmp.mp4"; run("-i", str(vid / "cities.mp4"), "-vf", "scale=854:480", "-c:v", "libx264", "-crf", "27", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", str(t)); os.rename(t, vid / "cities-mobile.mp4")
 print("done")

@@ -11,5 +11,8 @@ with sync_playwright() as p:
     for i, name in enumerate(f["ORDER"]):
         pg.evaluate(f"FILM.draw({i * f['SEG'] + f['DWELL'] / 2})")
         pg.screenshot(path=str(out / f"{i}-{name.replace(' ', '')}.jpg"), type="jpeg", quality=88)
-    pg.evaluate(f"FILM.draw({f['DWELL'] + f['TRAVEL'] / 2})"); pg.screenshot(path=str(out / "travel.jpg"), type="jpeg", quality=88)
+    for i in (0, 3, 5, 8):  # half way between cities
+        pg.evaluate(f"FILM.draw({i * f['SEG'] + f['DWELL'] + f['TRAVEL'] / 2})"); pg.screenshot(path=str(out / f"travel-{i}.jpg"), type="jpeg", quality=88)
+    for k, tt in enumerate((f['DWELL'] + f['TRAVEL'] * 0.25, f['DWELL'] + f['TRAVEL'] * 0.75, 6 * f['SEG'] + 2.2, 8 * f['SEG'] + 2.3, f['DURATION'] - 0.02)):
+        pg.evaluate(f"FILM.draw({tt})"); pg.screenshot(path=str(out / f"extra-{k}.jpg"), type="jpeg", quality=88)
     print(f, errs); b.close()
