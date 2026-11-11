@@ -115,8 +115,7 @@ export default function ContactBadge() {
               </span>
             </div>
             <div className="cbadge__done" role="status">
-              <strong>Message sent.</strong>
-              <span>Thanks. I&rsquo;ll reply to the address you gave.</span>
+              <strong>Thanks, I&rsquo;ll contact you shortly.</strong>
               <button type="button" className="textbtn" onClick={() => setState("idle")}>
                 Send another
               </button>
