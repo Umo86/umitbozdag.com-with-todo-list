@@ -1,20 +1,20 @@
-// The nav and footer shared by the home page and the event pages.
+// The nav and footer shared by every public page.
 import { PROFILE as p, SITE } from "@/lib/content";
+import { PAGES } from "@/lib/pages";
 
-export function SiteNav({ home = false }: { home?: boolean }) {
-  const to = (hash: string) => (home ? hash : `/${hash}`);
+export function SiteNav({ current = "" }: { current?: string }) {
   return (
     <header className="nav">
       <div className="wrap">
-        <a href={home ? "#top" : "/"} className="nav__brand">
+        <a href="/" className="nav__brand">
           {p.name}
         </a>
         <nav className="nav__links" aria-label="Primary">
-          <a href={to("#about")}>About</a>
-          <a href={to("#services")}>What I do</a>
-          <a href={to("#cycle")}>Show cycle</a>
-          <a href={to("#events")}>Events</a>
-          <a href={to("#contact")}>Contact</a>
+          {PAGES.map((pg) => (
+            <a key={pg.href} href={pg.href} aria-current={current === pg.href ? "page" : undefined}>
+              {pg.label}
+            </a>
+          ))}
           <a className="nav__app" href="/app">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
@@ -36,6 +36,11 @@ export function SiteFooter() {
           © {new Date().getFullYear()} {p.name}
         </span>
         <nav aria-label="Footer">
+          {PAGES.map((pg) => (
+            <a key={pg.href} href={pg.href}>
+              {pg.label}
+            </a>
+          ))}
           <a href={SITE.linkedin} target="_blank" rel="noopener">
             LinkedIn
           </a>

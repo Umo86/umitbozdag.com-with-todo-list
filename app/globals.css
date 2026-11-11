@@ -428,3 +428,30 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 @keyframes applock-shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 @keyframes applock-stare{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @media (prefers-reduced-motion:reduce){.applock.wrong h1,.applock.wrong .applock__eye{animation:none}}
+/* section pages */
+.sec.page-first{padding-top:72px}
+.contact.page-first{padding-top:72px}
+.more{margin-top:28px;font-weight:600}
+.more a{color:var(--accent);text-decoration:none}
+.more a:hover{text-decoration:underline}
+.nav__links a[aria-current="page"]{color:var(--text);font-weight:600}
+.nextpage{border-top:1px solid var(--line);padding:36px 0}
+.nextpage .wrap{display:flex;align-items:baseline;gap:16px}
+.nextpage a{font-size:clamp(22px,2.6vw,30px);font-weight:700;color:var(--text);text-decoration:none}
+.nextpage a:hover{color:var(--accent)}
+.evt-short{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.evt-short a{display:flex;flex-direction:column;gap:4px;padding:18px 20px;border:1px solid var(--line);border-radius:14px;color:var(--text);text-decoration:none;height:100%}
+.evt-short a:hover{border-color:var(--accent)}
+.evt-short span{color:var(--muted);font-size:14px}
+.skills,.creds{margin-top:56px}
+.skills ul{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.skills li{border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px}
+.creds dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 40px;margin-top:14px}
+.creds dt{font-weight:700}.creds dd{color:var(--muted);font-size:15px;margin:2px 0 0}
+.svc h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+.orgs h2.label,.skills h2.label,.creds h2.label{font-size:13px;font-weight:500;margin:0}
+@media (max-width:760px){
+  .sec.page-first,.contact.page-first{padding-top:40px}
+  .evt-short{grid-template-columns:1fr}
+  .creds dl{grid-template-columns:1fr}
+}

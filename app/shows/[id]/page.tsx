@@ -4,6 +4,53 @@ import { SiteFooter, SiteNav, WaIcon } from "@/components/SiteChrome";
 import { PROFILE as p, SITE } from "@/lib/content";
 
 type Params = { params: Promise<{ id: string }> };
+type ShowT = (typeof p.shows)[number];
+
+// "12 – 14 May 2026", "30 Sep – 2 Oct 2025", "5 March 2024" → ISO dates
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+function isoRange(s: string): { start?: string; end?: string } {
+  const m = /^(\d{1,2})(?:\s+([A-Za-z]+))?\s*[–-]\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(s.trim()) ?? null;
+  const one = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(s.trim());
+  const mon = (x?: string) => (x ? MONTHS.indexOf(x.slice(0, 3).toLowerCase()) + 1 : 0);
+  const iso = (y: string, mo: number, d: string) => (mo > 0 ? `${y}-${String(mo).padStart(2, "0")}-${d.padStart(2, "0")}` : undefined);
+  if (m) return { start: iso(m[5], mon(m[2] || m[4]), m[1]), end: iso(m[5], mon(m[4]), m[3]) };
+  if (one) return { start: iso(one[3], mon(one[2]), one[1]) };
+  return {};
+}
+
+// Search engines: breadcrumb, plus an Event when the dates are known.
+function showLd(s: ShowT) {
+  const crumbs = {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE.url}/` },
+      { "@type": "ListItem", position: 2, name: "Events", item: `${SITE.url}/events` },
+      { "@type": "ListItem", position: 3, name: s.name, item: `${SITE.url}/shows/${s.id}` },
+    ],
+  };
+  const { start, end } = isoRange(s.dates ?? "");
+  const employer = p.employers.find((e) => e.id === s.organiser);
+  const event = start
+    ? {
+        "@type": "Event",
+        name: s.name,
+        description: s.summary,
+        startDate: start,
+        endDate: end ?? start,
+        eventStatus: "https://schema.org/EventScheduled",
+        eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+        location: {
+          "@type": "Place",
+          name: s.venue || s.city,
+          address: { "@type": "PostalAddress", addressLocality: s.city, addressCountry: s.country },
+        },
+        ...(employer ? { organizer: { "@type": "Organization", name: employer.name, url: employer.url } } : {}),
+        ...(s.url ? { url: s.url } : {}),
+        ...(s.image ? { image: `${SITE.url}${s.image}` } : {}),
+      }
+    : null;
+  return { "@context": "https://schema.org", "@graph": event ? [crumbs, event] : [crumbs] };
+}
 
 export const dynamicParams = false;
 export function generateStaticParams() {
@@ -15,8 +62,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const show = p.shows.find((s) => s.id === id);
   if (!show) return {};
   return {
-    title: show.name,
+    title: `${show.name}${show.city ? `, ${show.city}` : ""}`,
     description: show.summary.slice(0, 180),
+    openGraph: { title: show.name, description: show.summary.slice(0, 180), url: `/shows/${show.id}`, ...(show.image ? { images: [show.image] } : {}) },
     alternates: { canonical: `/shows/${show.id}` },
   };
 }
@@ -46,11 +94,12 @@ export default async function ShowPage({ params }: Params) {
 
   return (
     <>
-      <SiteNav />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(showLd(show)) }} />
+      <SiteNav current="/events" />
       <main>
         <section className="showhero">
           <div className="wrap">
-            <a href="/#events" className="showhero__back">
+            <a href="/events" className="showhero__back">
               ← All events
             </a>
             <div className="showhero__grid">
@@ -83,7 +132,7 @@ export default async function ShowPage({ params }: Params) {
                       In the press
                     </a>
                   )}
-                  <a className="btn btn--o" href="/#contact">
+                  <a className="btn btn--o" href="/contact">
                     Get in touch
                   </a>
                 </div>
@@ -243,7 +292,7 @@ export default async function ShowPage({ params }: Params) {
               <>
                 <div className="related__head">
                   <span className="label">More with {employer ? employer.name : "this organiser"}</span>
-                  <a href="/#events">All events →</a>
+                  <a href="/events">All events →</a>
                 </div>
                 <ul className="evt-grid">
                   {related.map((r) => (
