@@ -36,7 +36,7 @@ export function WorldSection({ as = "h2" }: { as?: Level }) {
         <div className="world__head">
           <div>
             <span className="kicker">Where I&rsquo;ve worked</span>
-            <H as={as}>From London to {COUNTRIES === 8 ? "eight" : COUNTRIES} countries.</H>
+            <H as={as}>From London to {["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"][COUNTRIES] ?? COUNTRIES} countries.</H>
           </div>
           <p className="world__lead">{p.worldLead}</p>
         </div>

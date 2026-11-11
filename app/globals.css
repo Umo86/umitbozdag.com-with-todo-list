@@ -469,3 +469,15 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .world__city .nm{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .world__city .flag{width:26px;height:auto}
 }
+/* nine cities: a little tighter so they stay on one row */
+.world__cities{gap:4px}
+.world__city{gap:6px;padding:6px 8px 6px 6px;letter-spacing:.02em}
+@media (max-width:940px){
+  .world__cities{gap:0}
+  .world__city{padding:5px;gap:0;border-radius:9px}
+  .world__city .flag{width:22px}
+}
+@media (max-width:400px){
+  .world__city{padding:4px;border-radius:8px}
+  .world__city .flag{width:20px}
+}

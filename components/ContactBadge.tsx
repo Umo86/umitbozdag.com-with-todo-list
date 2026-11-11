@@ -131,7 +131,6 @@ export default function ContactBadge() {
                 <i key={i} style={{ width: w }} />
               ))}
             </span>
-            <span className="badge-access">Sent with your IP and device details</span>
           </div>
         </form>
       </motion.div>
