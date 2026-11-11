@@ -207,7 +207,7 @@
       "url": "https://www.ukconstructionweek.com/",
       "image": "/img/scenes/hall-1.webp",
       "logo": "/img/logos/ukcw.webp",
-      "summary": "The Birmingham edition of UK Construction Week at the NEC — the show Media10 launched in 2015 and the UK’s biggest construction trade event, with a long-term home at the NEC.",
+      "summary": "The Birmingham edition of UK Construction Week, the UK’s biggest construction trade event. Media10 launched the show in 2015 and the NEC has been its home ever since.",
       "responsibilities": [
         "Senior operational lead from venue contracting through build-up, live days and breakdown",
         "Operational budget, supplier strategy and contracting",
@@ -276,7 +276,7 @@
       "url": "https://www.gastechevent.com/",
       "image": "/img/scenes/hall-1.webp",
       "logo": "/img/logos/gastech.webp",
-      "summary": "The world’s largest exhibition and conference for gas, LNG, hydrogen and the energy transition — a show that moves between Europe, Asia and the Americas every year, attracting around 50,000 visitors and 1,000+ exhibitors from over 100 countries. One of a team of three operations managers.",
+      "summary": "The world’s largest exhibition and conference for gas, LNG, hydrogen and the energy transition. It moves between Europe, Asia and the Americas each year and draws around 50,000 visitors and 1,000+ exhibitors from over 100 countries. I was one of three operations managers on the show.",
       "responsibilities": [
         "Operational lead on sponsorship delivery",
         "Signage and wayfinding across the show",
@@ -294,7 +294,7 @@
       "id": "world-lng-summit-2025",
       "name": "World LNG Summit & Awards 2025",
       "organiser": "dmg-events",
-      "role": "Operations Manager — operational support",
+      "role": "Operations Manager — operations support and ministerial liaison",
       "years": "2025",
       "dates": "2 – 5 December 2025",
       "venue": "Shangri-La Bosphorus",
@@ -303,17 +303,39 @@
       "url": "https://www.worldlngsummit.com/",
       "image": "/img/scenes/log-3.webp",
       "logo": "/img/logos/world-lng.webp",
-      "summary": "The 25th World LNG Summit & Awards — hosted by BOTAŞ and held in Türkiye for the first time, convening around 1,000 senior attendees and 120 speakers from across the LNG value chain, with the World LNG Awards evening on 3 December. I was in a supporting role on operations here, working alongside the summit’s operations lead.",
+      "summary": "The 25th World LNG Summit & Awards, hosted by BOTAŞ and held in Türkiye for the first time, brought around 1,000 senior attendees and 120 speakers from across the LNG industry to Istanbul. As a native Turkish speaker, I was asked to support the operations team and to be the main point of contact for the team of Alparslan Bayraktar, Türkiye’s Minister of Energy and Natural Resources, making sure the Minister’s attendance ran smoothly and followed ministerial protocol.",
       "responsibilities": [
+        "Liaison with the office of the Minister of Energy and Natural Resources, Alparslan Bayraktar",
+        "Planning the Minister’s attendance and following ministerial protocol on the day",
+        "Turkish-language liaison between the operations team, the host BOTAŞ and local partners",
         "Supporting the operations lead across the summit",
-        "Signage",
-        "Temporary staffing",
-        "Venue liaison with the Shangri-La Bosphorus",
-        "Meeting rooms",
-        "Catering services"
+        "Signage and temporary staffing",
+        "Venue liaison with the Shangri-La Bosphorus, meeting rooms and catering"
       ],
-      "highlights": [],
-      "press": []
+      "highlights": [
+        "Ministerial liaison: Minister of Energy and Natural Resources, Alparslan Bayraktar",
+        "BOTAŞ signed 10-year LNG supply deals with Eni and SEFE during the summit"
+      ],
+      "press": [
+        {
+          "title": "Global LNG giants met in Istanbul",
+          "source": "Ministry of Energy and Natural Resources",
+          "date": "2025-12-03",
+          "url": "https://enerji.gov.tr/news-detail?id=31659"
+        },
+        {
+          "title": "Türkiye signs 10-year LNG supply deals with Eni, SEFE",
+          "source": "Daily Sabah",
+          "date": "2025-12-03",
+          "url": "https://www.dailysabah.com/business/energy/turkiye-signs-10-year-lng-supply-deals-with-eni-sefe"
+        },
+        {
+          "title": "Official photo gallery: World LNG Summit & Awards 2025",
+          "source": "World LNG Summit",
+          "date": "",
+          "url": "https://worldlngsummit.com/content-media-hub/2025-photo-gallery/"
+        }
+      ]
     },
     {
       "id": "bharat-electricity-summit-2025",
@@ -349,7 +371,7 @@
       "url": "https://europe.breakbulk.com/",
       "image": "/img/scenes/hall-2.webp",
       "logo": "/img/logos/breakbulk.webp",
-      "summary": "The world’s largest event for the project cargo and breakbulk industry, filling Rotterdam Ahoy every spring — 18,000+ attendees and around 1,000 exhibitors across the Breakbulk shows, managed end to end.",
+      "summary": "The world’s largest event for the project cargo and breakbulk industry, filling Rotterdam Ahoy every spring. Across the Breakbulk shows that means 18,000+ attendees and around 1,000 exhibitors. I was operational lead on sponsorship, signage, staffing, internet and the venue.",
       "responsibilities": [
         "Operational lead on sponsorship delivery",
         "Signage",
@@ -446,7 +468,7 @@
       "url": "https://www.wtm.com/london/en-gb.html",
       "image": "/img/scenes/log-1.webp",
       "logo": "/img/logos/wtm-london.webp",
-      "summary": "The travel industry’s biggest trade show. For a decade I tendered, built and ran the Türkiye pavilion — the Ministry of Culture & Tourism’s flagship presence in the UK market.",
+      "summary": "The travel industry’s biggest trade show. For a decade I tendered, built and ran the Türkiye pavilion, the Ministry of Culture & Tourism’s flagship presence in the UK market, for the Turkish Culture & Information Office.",
       "responsibilities": [
         "Tender documents for the stand build, prepared under Turkish procurement law",
         "Stand contractor and supplier negotiation on behalf of the office",
@@ -488,7 +510,7 @@
       "url": "https://www.wtm.com/africa/en-gb.html",
       "image": "/img/scenes/hall-2.webp",
       "logo": "/img/logos/wtm-africa.webp",
-      "summary": "Africa’s leading inbound and outbound travel trade show, where the office promoted Türkiye to the South African market.",
+      "summary": "Africa’s leading inbound and outbound travel trade show, where the Turkish Culture & Information Office promoted Türkiye to the South African market.",
       "responsibilities": [
         "Stand build tender and delivery",
         "Supplier negotiation",
@@ -529,7 +551,7 @@
       "url": "https://www.holidayworldshow.com/",
       "image": "/img/scenes/canary.webp",
       "logo": "/img/logos/holiday-world.webp",
-      "summary": "Ireland’s largest travel and holiday show at the RDS in Dublin, where the office promoted Türkiye to the Irish market.",
+      "summary": "Ireland’s largest travel and holiday show, at the RDS in Dublin, where the Turkish Culture & Information Office promoted Türkiye to the Irish market.",
       "responsibilities": [
         "Stand build tender and delivery",
         "Supplier negotiation",
@@ -551,7 +573,7 @@
       "url": "https://www.destinationsshow.com/",
       "image": "/img/scenes/wide.webp",
       "logo": "/img/logos/destinations.webp",
-      "summary": "The UK’s biggest consumer travel show — a B2C showcase of Türkiye for London holidaymakers.",
+      "summary": "The UK’s biggest consumer travel show, where the Turkish Culture & Information Office showcased Türkiye to London holidaymakers.",
       "responsibilities": [
         "Stand build tender and delivery",
         "Supplier negotiation",
@@ -580,7 +602,7 @@
       "url": "https://www.international-confex.com/",
       "image": "/img/scenes/hall-4.webp",
       "logo": "/img/logos/confex.webp",
-      "summary": "The UK’s leading exhibition for event organisers, used to promote Türkiye as a destination for conferences, meetings and incentive travel.",
+      "summary": "The UK’s leading exhibition for event organisers, where the Turkish Culture & Information Office promoted Türkiye as a destination for conferences, meetings and incentive travel.",
       "responsibilities": [
         "Stand delivery",
         "Supplier negotiation",
@@ -609,7 +631,7 @@
       "url": "https://www.themeetingsshow.com/",
       "image": "/img/scenes/hall-1.webp",
       "logo": "/img/logos/meetings-show.webp",
-      "summary": "The UK’s leading show for meetings and events professionals — presenting Türkiye’s meetings and incentives offer to UK buyers.",
+      "summary": "The UK’s leading show for meetings and events professionals, where the Turkish Culture & Information Office presented Türkiye’s meetings and incentives offer to UK buyers.",
       "responsibilities": [
         "Stand delivery",
         "Supplier negotiation",
@@ -650,7 +672,7 @@
       "url": "",
       "image": "/img/scenes/city.webp",
       "logo": null,
-      "summary": "London’s international boat show at ExCeL, where the office promoted Türkiye’s coastline and marinas to UK boating audiences.",
+      "summary": "London’s international boat show at ExCeL, where the Turkish Culture & Information Office promoted Türkiye’s coastline and marinas to UK boating audiences.",
       "responsibilities": [
         "Stand build tender and delivery",
         "Supplier negotiation"
@@ -678,7 +700,7 @@
       "url": "https://www.londonbookfair.co.uk/",
       "image": "/img/scenes/shard.webp",
       "logo": "/img/logos/london-book-fair.webp",
-      "summary": "The office’s cultural presence at the world’s leading publishing and rights fair.",
+      "summary": "The world’s leading publishing and rights fair, where the Turkish Culture & Information Office presented Turkish books, publishers and culture.",
       "responsibilities": [
         "Stand delivery",
         "Supplier negotiation"
@@ -724,7 +746,7 @@
       "url": "https://londonfashionweek.co.uk/",
       "image": "/img/scenes/eye.webp",
       "logo": "/img/logos/lfw.webp",
-      "summary": "Lead on the office’s sponsorship of Turkish designer Bora Aksu’s London Fashion Week show, and lead contact for Zeynep Kartal’s event at Somerset House.",
+      "summary": "I led the Turkish Culture & Information Office’s sponsorship of Turkish designer Bora Aksu’s London Fashion Week show, and was the lead contact for Zeynep Kartal’s event at Somerset House.",
       "responsibilities": [
         "Sponsorship lead — Bora Aksu",
         "Lead contact — Zeynep Kartal at Somerset House",
@@ -774,7 +796,7 @@
       "url": "https://london.tastefestivals.com/",
       "image": "/img/scenes/log-2.webp",
       "logo": null,
-      "summary": "London’s flagship food festival, where Turkish cuisine and destinations were showcased to the capital’s food lovers.",
+      "summary": "London’s flagship food festival in Regent’s Park, where the Turkish Culture & Information Office showcased Turkish cuisine and destinations to the capital’s food lovers.",
       "responsibilities": [
         "Stand build and delivery",
         "Supplier negotiation",
@@ -815,7 +837,7 @@
       "url": "",
       "image": "/img/scenes/hall-3.webp",
       "logo": null,
-      "summary": "Promoting Turkish cuisine and tourism at Liverpool’s biggest food and drink festival.",
+      "summary": "Liverpool’s biggest food and drink festival, where the Turkish Culture & Information Office promoted Turkish cuisine and tourism.",
       "responsibilities": [
         "Stand build and delivery",
         "Supplier negotiation"
@@ -861,7 +883,7 @@
       "url": "https://www.rhs.org.uk/shows-events/rhs-hampton-court-palace-garden-festival",
       "image": "/img/scenes/westminster.webp",
       "logo": "/img/logos/rhs-hampton.svg",
-      "summary": "July’s RHS Hampton Court Palace Flower Show was another great success. The Turkish Ministry of Culture & Tourism show garden — “Garden of Paradise”, designed by Nilufer Danis and built by Landform — won Gold and Best in Category in the World Gardens category.",
+      "summary": "The Turkish Ministry of Culture & Tourism’s show garden at the 2015 RHS Hampton Court Palace Flower Show, “Garden of Paradise”, designed by Nilufer Danis and built by Landform, won Gold and Best in Category in the World Gardens category. I led the project for the Turkish Culture & Information Office.",
       "responsibilities": [
         "The office’s lead on the show garden project",
         "Supplier and contractor coordination with Landform",
@@ -906,7 +928,7 @@
       "url": "",
       "image": "/img/scenes/bridge.webp",
       "logo": null,
-      "summary": "Travel-trade roadshows taking Türkiye’s tourism boards and suppliers to travel agents in cities across the UK, Ireland and South Africa.",
+      "summary": "Travel-trade roadshows run by the Turkish Culture & Information Office, taking Türkiye’s tourism boards and suppliers to travel agents in cities across the UK, Ireland and South Africa.",
       "responsibilities": [
         "Venue sourcing and supplier negotiation",
         "Event logistics and hosting",
@@ -949,7 +971,7 @@
       "place": "London",
       "period": "2025 — 2026",
       "current": false,
-      "summary": "One of three operations managers on Gastech — a show that moves every year between Europe, Asia and the Americas, attracting 50,000 visitors and 1,000+ exhibitors from over 100 countries.",
+      "summary": "One of three operations managers on Gastech, the world’s largest gas and energy event, which moves between Europe, Asia and the Americas (50,000 visitors and 1,000+ exhibitors from over 100 countries). I also supported operations on the World LNG Summit & Awards and the Bharat Electricity Summit.",
       "points": [
         "Led catering, signage, security, staffing and onsite services (internet, electricity, cleaning).",
         "Partnered with the Director of Operations on operational budgeting.",
@@ -968,7 +990,7 @@
       "place": "London",
       "period": "2023 — 2025",
       "current": false,
-      "summary": "Ran two industry-leading events in the global cargo industry — Breakbulk Europe and Breakbulk Americas — with 18,000+ visitors and 1,000 exhibitors, managed end to end — and supported operations on Pure London and Source Fashion at Olympia London.",
+      "summary": "Operational lead on Breakbulk Europe and operations support on Breakbulk Americas, the cargo industry’s leading events (18,000+ visitors and 1,000 exhibitors). I also supported operations on Pure London and Source Fashion at Olympia London.",
       "points": [
         "Led catering, cleaning, signage, security and staffing projects.",
         "Ensured floorplan compliance with venue and local regulations.",
