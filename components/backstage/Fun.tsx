@@ -291,3 +291,43 @@ export function Confetti() {
 }
 
 export type { UsItem };
+
+// ——— dinner game: the dish you both said yes to, shown to both of you ———
+export function DinnerMatchAlert({
+  title,
+  emoji,
+  otherName,
+  onPlan,
+  onClose,
+}: {
+  title: string;
+  emoji: string;
+  otherName: string;
+  onPlan: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="bs-scrim bs-matchpop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bs-match pop" role="alertdialog" aria-modal="true" aria-label={`Dinner match: ${title}`}>
+        <Confetti />
+        <span className="e">{emoji}</span>
+        <h3>It&rsquo;s a match!</h3>
+        <p className="big">{title}</p>
+        <p className="quiet small">You and {otherName} both said yes. That&rsquo;s dinner sorted.</p>
+        <div className="bs-row-btns">
+          <button className="btn" onClick={onPlan}>
+            Put it in the calendar
+          </button>
+          <button className="btn ghost" onClick={onClose} autoFocus>
+            Lovely
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

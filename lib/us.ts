@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { dishByKey } from "./dishes";
 import { DATE, UUID } from "./backstage";
 import type { Me, UserId } from "./auth";
 
@@ -145,4 +146,34 @@ export async function loadUs(me: Me) {
     scores: scores.rows as Array<{ who: string; this_week: number; last_week: number }>,
     birthdays: Object.fromEntries(birthdays.rows.map((r) => [r.id, r.birthday])) as Record<string, string | null>,
   };
+}
+
+// ——— the dinner game: the dish you both said yes to today ———
+export type DinnerMatch = { key: string; title: string; emoji: string; at: string };
+
+/**
+ * Today's match: the first dish both people said yes to (first by the moment
+ * the second yes landed), or null. `key` is the idea's id for one of your own
+ * dinner ideas, or "dish:<key>" for a built-in dish.
+ */
+export async function dinnerMatch(): Promise<DinnerMatch | null> {
+  const r = await db().query(
+    `select coalesce(a.ref::text, a.title) as key, a.ref, greatest(a.created_at, b.created_at) as at,
+            i.title as idea_title, i.emoji as idea_emoji
+       from us_items a
+       join us_items b
+         on b.kind = 'vote' and b.day = a.day and b.yes and b.added_by > a.added_by
+        and coalesce(b.ref::text, b.title) = coalesce(a.ref::text, a.title)
+       left join us_items i on i.id = a.ref and i.kind = 'idea'
+      where a.kind = 'vote' and a.day = $1::date and a.yes
+      order by at asc
+      limit 1`,
+    [londonToday()]
+  );
+  const m = r.rows[0];
+  if (!m) return null;
+  const at = new Date(m.at).toISOString();
+  if (m.ref) return m.idea_title ? { key: m.key, title: m.idea_title, emoji: m.idea_emoji ?? "🍽️", at } : null;
+  const dish = dishByKey.get(String(m.key).replace(/^dish:/, ""));
+  return dish ? { key: m.key, title: dish.title, emoji: dish.emoji, at } : null;
 }

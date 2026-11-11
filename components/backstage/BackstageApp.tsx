@@ -10,7 +10,7 @@ import Board from "./Board";
 import Calendar from "./Calendar";
 import UsHub, { type UsSection } from "./UsHub";
 import Shopping from "./Shopping";
-import { lastWeekChampion, MOODS, nextYearly } from "./Fun";
+import { DinnerMatchAlert, lastWeekChampion, MOODS, nextYearly } from "./Fun";
 import { VideoGift, VideoSender, VideoWaiting, type VideoIn, type VideoOut } from "./OneTimeVideo";
 import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
 import Dashboard from "./Dashboard";
@@ -312,6 +312,9 @@ export default function BackstageApp() {
   const [videoOut, setVideoOut] = useState<VideoOut | null>(null);
   const [videoPrompt, setVideoPrompt] = useState<string | null>(null); // id to offer straight away
   const [videoPlaying, setVideoPlaying] = useState(false);
+  // dinner game: the dish you both said yes to, shown to each of you once
+  const [dinner, setDinner] = useState<{ key: string; title: string; emoji: string; at: string } | null>(null);
+  const dinnerShown = useRef<string | null>(null);
   const quickCheck = useRef<() => void>(() => {});
   const playingRef = useRef(false);
   playingRef.current = videoPlaying;
@@ -326,7 +329,8 @@ export default function BackstageApp() {
       try {
         const r = await fetch("/api/backstage/us/moods", { cache: "no-store" });
         if (!r.ok) return;
-        const { moods, video_in, video_out } = (await r.json()) as {
+        const { moods, video_in, video_out, dinner: dm } = (await r.json()) as {
+          dinner?: { key: string; title: string; emoji: string; at: string } | null;
           moods: Array<{ added_by: string; emoji: string; updated_at: string }>;
           video_in?: VideoIn | null;
           video_out?: VideoOut | null;
@@ -342,6 +346,28 @@ export default function BackstageApp() {
           });
         }
         setVideoOut(video_out ?? null);
+        if (dm) {
+          // a new match (also one made while this was closed): show it once
+          const id = `${dm.key}|${dm.at}`;
+          const store = `backstage:dinner-match:${me.id}`;
+          let had: string | null = null;
+          try {
+            had = localStorage.getItem(store);
+          } catch {
+            /* private mode: the ref below still stops repeats */
+          }
+          if (id !== had && id !== dinnerShown.current) {
+            dinnerShown.current = id;
+            try {
+              localStorage.setItem(store, id);
+            } catch {
+              /* fine */
+            }
+            setDinner(dm);
+            buzz(BUZZ.heart);
+            void live.current.refresh();
+          }
+        }
         const theirs = moods.find((m) => m.added_by === otherId);
         const key = theirs ? `${theirs.emoji}|${theirs.updated_at}` : null;
         if (stop) return;
@@ -359,11 +385,14 @@ export default function BackstageApp() {
     void check();
     const timer = setInterval(check, 15_000);
     const onVis = () => !document.hidden && void check();
+    const onAsk = () => void check(); // e.g. right after a yes in the dinner game
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("backstage:check", onAsk);
     return () => {
       stop = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("backstage:check", onAsk);
     };
   }, [phase.kind, me, users]);
 
@@ -872,6 +901,19 @@ export default function BackstageApp() {
           onSee={() => {
             setView("today");
             setMoodAlert(null);
+          }}
+        />
+      )}
+      {dinner && other && (
+        <DinnerMatchAlert
+          key={`${dinner.key}|${dinner.at}`}
+          title={dinner.title}
+          emoji={dinner.emoji}
+          otherName={other.name}
+          onClose={() => setDinner(null)}
+          onPlan={() => {
+            setDinner(null);
+            setSheet({ kind: "event", day: ymd(new Date()), preset: { title: `Dinner: ${dinner.title}`, time: "19:30", joint: true } });
           }}
         />
       )}

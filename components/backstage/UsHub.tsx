@@ -110,7 +110,16 @@ function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Perso
   for (const [k, y] of local) myVotes.set(k, y);
   const theirYes = new Set(votes.filter((v) => v.added_by !== me.id && v.yes).map(keyOf));
   const theirCount = votes.filter((v) => v.added_by !== me.id).length;
-  const match = deck.find((c) => myVotes.get(c.key) === true && theirYes.has(c.key));
+  // The match is the first dish you both said yes to (by when the second yes
+  // landed), so both of you are shown the same one.
+  const yesAt = (who: "me" | "them", key: string) => {
+    const v = votes.find((x) => (who === "me" ? x.added_by === me.id : x.added_by !== me.id) && x.yes && keyOf(x) === key);
+    return v ? new Date(v.created_at).getTime() : Date.now();
+  };
+  const match = deck
+    .filter((c) => myVotes.get(c.key) === true && theirYes.has(c.key))
+    .map((c) => ({ c, at: Math.max(yesAt("me", c.key), yesAt("them", c.key)) }))
+    .sort((a, b) => a.at - b.at)[0]?.c;
   const next = deck.find((c) => !myVotes.has(c.key));
   const done = deck.filter((c) => myVotes.has(c.key)).length;
 
@@ -127,7 +136,10 @@ function Dinner({ bs, me, users, onPlan }: { bs: Backstage; me: Me; users: Perso
       setFly(0);
       setDrag(0);
     }, 220);
-    void bs.addUs(card.ref ? { kind: "vote", ref: card.ref, yes } : { kind: "vote", title: card.key, yes });
+    void Promise.resolve(bs.addUs(card.ref ? { kind: "vote", ref: card.ref, yes } : { kind: "vote", title: card.key, yes })).then(() => {
+      // a yes may have just made a match: look straight away, don't wait for the next check
+      if (yes) window.dispatchEvent(new Event("backstage:check"));
+    });
   };
   const restart = () => {
     setLocal(new Map());

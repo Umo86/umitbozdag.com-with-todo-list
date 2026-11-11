@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { readUs, US_COLS, US_KINDS, type UsKind } from "@/lib/us";
+import { dinnerMatch, readUs, US_COLS, US_KINDS, type UsKind } from "@/lib/us";
 import { notify, otherOf } from "@/lib/notify";
 
 const MOOD_WORDS: Record<string, string> = {
@@ -44,6 +44,17 @@ export async function POST(req: Request) {
         body: e === "🤗" ? "Maybe send a heart ❤️" : "Their day just changed. Open Backstage to see.",
         tag: "mood",
       });
+    }
+    // dinner game: this yes completed today's match → tell the other person too
+    if (kind === "vote" && r.fields.yes === true) {
+      const m = await dinnerMatch().catch(() => null);
+      if (m && m.key === String(r.fields.ref ?? r.fields.title)) {
+        await notify(otherOf(auth.me.id), {
+          title: `It’s a match! ${m.emoji} ${m.title}`,
+          body: `You and ${auth.me.name} both said yes. That’s dinner sorted.`,
+          tag: "dinner-match",
+        });
+      }
     }
     return NextResponse.json(row.rows[0], { status: 201 });
   } catch (err) {
