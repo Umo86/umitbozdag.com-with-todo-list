@@ -280,7 +280,7 @@ export default function BackstageApp() {
         if (fresh.some((m) => m.kind === "heart")) {
           setHearts((h) => h + 1);
           buzz(BUZZ.heart);
-        } else buzz(BUZZ.mood);
+        } else buzz(BUZZ.message);
         const last = fresh[fresh.length - 1];
         if (live.current.view !== "us" || live.current.usSection !== "chat") {
           bs.say(
