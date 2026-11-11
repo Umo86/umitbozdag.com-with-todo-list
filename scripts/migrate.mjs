@@ -65,6 +65,8 @@ alter table tasks add column if not exists added_by     text not null default 'u
 alter table tasks add column if not exists position     double precision not null default 0;
 alter table tasks add column if not exists calendar_ref text;
 alter table tasks add column if not exists updated_at   timestamptz not null default now();
+-- who last changed it, so the other person's app can say "Dilfiraz ticked off …"
+alter table tasks add column if not exists updated_by   text;
 
 create index if not exists tasks_list_status_idx on tasks (list, status, position);
 

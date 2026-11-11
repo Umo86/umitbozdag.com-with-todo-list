@@ -51,6 +51,22 @@ export default function TaskDrawer({
   const panel = useRef<HTMLDivElement>(null);
   const patch = (p: TaskPatch) => onPatch(task.id, p);
 
+  // The other person can change this task while it is open here. The boxes
+  // you are not typing in follow along, and leaving a box only saves it if
+  // you actually changed it (so their newer text is never overwritten by an
+  // older copy sitting in your box).
+  const titleBox = useRef<HTMLTextAreaElement>(null);
+  const notesBox = useRef<HTMLTextAreaElement>(null);
+  const atFocus = useRef<string | null>(null);
+  useEffect(() => {
+    const el = titleBox.current;
+    if (el && document.activeElement !== el) el.value = task.title;
+  }, [task.title]);
+  useEffect(() => {
+    const el = notesBox.current;
+    if (el && document.activeElement !== el) el.value = task.notes ?? "";
+  }, [task.notes]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -90,12 +106,15 @@ export default function TaskDrawer({
         <label htmlFor="d-title">Task</label>
         <textarea
           id="d-title"
+          ref={titleBox}
           rows={2}
           maxLength={500}
           defaultValue={task.title}
+          onFocus={(e) => (atFocus.current = e.currentTarget.value)}
           onBlur={(e) => {
             const v = e.currentTarget.value.trim();
-            if (v && v !== task.title) patch({ title: v });
+            const touched = e.currentTarget.value !== atFocus.current;
+            if (touched && v && v !== task.title) patch({ title: v });
             else e.currentTarget.value = task.title;
           }}
         />
@@ -103,13 +122,16 @@ export default function TaskDrawer({
         <label htmlFor="d-notes">Notes</label>
         <textarea
           id="d-notes"
+          ref={notesBox}
           rows={5}
           maxLength={4000}
           defaultValue={task.notes ?? ""}
           placeholder="Phone numbers, links, what was agreed…"
+          onFocus={(e) => (atFocus.current = e.currentTarget.value)}
           onBlur={(e) => {
             const v = e.currentTarget.value;
-            if (v !== (task.notes ?? "")) patch({ notes: v });
+            if (v !== atFocus.current && v !== (task.notes ?? "")) patch({ notes: v });
+            else e.currentTarget.value = task.notes ?? "";
           }}
         />
 

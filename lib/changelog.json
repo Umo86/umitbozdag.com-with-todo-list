@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-11-11",
+    "title": "Live: see each other’s changes as they happen",
+    "items": [
+      "When one of you adds, ticks off, moves, edits or deletes a task, it changes on the other’s screen within about 3 seconds. No refreshing",
+      "The same goes for the calendar, projects, shopping list, dinner and dates, and chat",
+      "A short note tells you what changed on the joint list: “✓ Dilfiraz ticked off…”, “Umit added…”",
+      "A task open for editing follows along too, and never overwrites the other person’s newer text",
+      "In a browser with notifications switched on, you also get a notification when a joint to-do is ticked off or handed to you"
+    ]
+  },
+  {
+    "date": "2026-11-11",
     "title": "Dates game: swipe to pick your next date",
     "items": [
       "Us › Dates now works like Dinner: you both swipe the same 50 date ideas, left for yes, right for no",
@@ -24,7 +35,7 @@
     "title": "Dinner match, shown to both of you",
     "items": [
       "When you both say yes to the same dish, each of you gets a pop-up with the dish, wherever you are in Backstage",
-      "The other person also gets a notification and a buzz, even with the app closed",
+      "In a browser with notifications switched on, the other person also gets a notification when Backstage is closed",
       "Made a match while the other was away? They see it the next time they open Backstage",
       "If you match on more than one dish, you both see the same one: the first you agreed on"
     ]

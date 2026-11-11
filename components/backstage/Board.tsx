@@ -41,6 +41,10 @@ import {
   type TaskPatch,
 } from "./types";
 
+// True while a card is in the air: live updates wait, so the board never
+// reshuffles under your finger.
+export const dragState = { on: false };
+
 type Cols = Record<Status, string[]>;
 const DONE_SHOWN = 25;
 
@@ -97,6 +101,7 @@ export default function Board({
 
   const onDragStart = (e: DragStartEvent) => {
     const id = String(e.active.id);
+    dragState.on = true;
     setDragging(id);
     startCol.current = colOf(id);
   };
@@ -120,6 +125,7 @@ export default function Board({
 
   const onDragEnd = (e: DragEndEvent) => {
     const id = String(e.active.id);
+    dragState.on = false;
     setDragging(null);
     const col = colOf(id);
     if (!col || !e.over) return setCols(buildCols(tasks));
@@ -168,6 +174,7 @@ export default function Board({
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
       onDragCancel={() => {
+        dragState.on = false;
         setDragging(null);
         setCols(buildCols(tasks));
       }}

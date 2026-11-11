@@ -38,6 +38,7 @@ export type Task = {
   assignee: Assignee | null;
   love_note: string | null;
   completed_by: UserId | null;
+  updated_by?: UserId | null; // who last changed it
   nudges: number;
 };
 

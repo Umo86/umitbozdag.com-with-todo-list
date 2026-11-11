@@ -6,7 +6,7 @@
 // the phone's reminders in step and handles the back button (see native.ts).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseTask, ymd } from "@/lib/parse";
-import Board from "./Board";
+import Board, { dragState } from "./Board";
 import Calendar from "./Calendar";
 import UsHub, { nextSaturday, type UsSection } from "./UsHub";
 import Shopping from "./Shopping";
@@ -266,8 +266,8 @@ export default function BackstageApp() {
   }, [phase.kind, me]);
 
   // ——— chat: new messages and hearts, on every screen ———
-  // One steady check every few seconds (it doesn't restart when you change
-  // screen). Whatever arrives is announced by the handler below: floating
+  // The heartbeat (further down) fetches the chat the moment it changes, on
+  // any screen. Whatever arrives is announced by the handler below: floating
   // hearts and a buzz for a heart, a buzz and a toast for a message.
   const [hearts, setHearts] = useState(0);
   const [notifOff, setNotifOff] = useState(false);
@@ -303,7 +303,7 @@ export default function BackstageApp() {
       });
     };
     tick();
-    const timer = setInterval(tick, 5000);
+    const timer = setInterval(tick, 20_000); // a fallback: the heartbeat below asks as soon as the chat changes
     const onVis = () => !document.hidden && tick();
     document.addEventListener("visibilitychange", onVis);
     return () => {
@@ -392,7 +392,7 @@ export default function BackstageApp() {
     };
     quickCheck.current = () => void check();
     void check();
-    const timer = setInterval(check, 15_000);
+    const timer = setInterval(check, 45_000); // a fallback: the heartbeat asks as soon as something changes
     const onVis = () => !document.hidden && void check();
     const onAsk = () => void check(); // e.g. right after a yes in the dinner game
     document.addEventListener("visibilitychange", onVis);
@@ -405,11 +405,89 @@ export default function BackstageApp() {
     };
   }, [phase.kind, me, users]);
 
-  // keep everything fresh while the page is open (joint changes by the other person)
+  // ——— live updates: what the other person changes shows here within seconds ———
+  // A heartbeat every 3 seconds asks the server for a fingerprint of everything
+  // (see /api/backstage/pulse). When it changes, just that part is fetched:
+  // tasks, projects, calendar and lists; the chat; or the fun checks. It waits
+  // while you are dragging a card or a save of yours is on its way.
+  const pulseLive = useRef({ isSaving: bs.isSaving, say: bs.say });
+  pulseLive.current = { isSaving: bs.isSaving, say: bs.say };
+  useEffect(() => {
+    if (phase.kind !== "app" || !me) return;
+    const otherName = users.find((u) => u.id !== me.id)?.name ?? "The other person";
+    type Pulse = { v: string; u: string; c: string; x: string };
+    let last: Pulse | null = null;
+    let stop = false;
+    let busy = false;
+    const short = (t: { title: string }) => `“${t.title.length > 42 ? `${t.title.slice(0, 40)}…` : t.title}”`;
+    // say what changed on the joint list (changes you made yourself are already on screen)
+    const news = (before: typeof tasks, after: typeof tasks) => {
+      const was = new Map(before.filter((t) => t.owner === "joint").map((t) => [t.id, t]));
+      const now = after.filter((t) => t.owner === "joint");
+      const lines: string[] = [];
+      for (const t of now) {
+        const old = was.get(t.id);
+        const by = t.updated_by ?? t.added_by;
+        if (by === me.id) continue; // you, on another device
+        const who = nameOf(by);
+        if (!old) lines.push(`${who} added ${short(t)}`);
+        else if (old.status !== t.status)
+          lines.push(t.status === "done" ? `✓ ${who} ticked off ${short(t)}` : `${who} moved ${short(t)} to ${t.status === "doing" ? "In progress" : "To do"}`);
+        else if (old.assignee !== t.assignee && t.assignee === me.id) lines.push(`${who} gave you ${short(t)}`);
+        else if (old.title !== t.title || old.due_date !== t.due_date || old.priority !== t.priority || (old.notes ?? "") !== (t.notes ?? ""))
+          lines.push(`${who} changed ${short(t)}`);
+      }
+      const still = new Set(after.map((t) => t.id));
+      for (const [id, old] of was) if (!still.has(id)) lines.push(`${otherName} removed ${short(old)}`);
+      if (!lines.length) return;
+      pulseLive.current.say(
+        lines.length === 1 ? lines[0] : `${lines.length} changes to the joint list: ${lines[0]}, and more`,
+        "info",
+        live.current.view === "joint" ? undefined : { label: "Open", run: () => setView("joint") }
+      );
+    };
+    const beat = async () => {
+      if (busy || document.hidden || !navigator.onLine) return;
+      busy = true;
+      try {
+        const r = await fetch("/api/backstage/pulse", { cache: "no-store" });
+        if (!r.ok || stop) return;
+        const p = (await r.json()) as Pulse;
+        const prev = last;
+        if (prev && (p.v !== prev.v || p.u !== prev.u)) {
+          // not while a card is in the air or a save is on its way: ask again on the next beat
+          if (dragState.on || pulseLive.current.isSaving()) return;
+          const before = live.current.tasks;
+          const after = await live.current.refresh();
+          if (stop) return;
+          if (!after) return;
+          if (p.v !== prev.v) news(before, after);
+        }
+        if (prev && p.c !== prev.c) chatLive.current.poll(false).catch(() => {});
+        if (prev && (p.u !== prev.u || p.x !== prev.x)) quickCheck.current();
+        last = p;
+      } catch {
+        /* the next beat tries again */
+      } finally {
+        busy = false;
+      }
+    };
+    void beat();
+    const timer = setInterval(beat, 3000);
+    const onVis = () => !document.hidden && void beat();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [phase.kind, me, users, setView]);
+
+  // a full refresh now and then as well, in case a heartbeat was missed
   useEffect(() => {
     if (phase.kind !== "app") return;
     const timer = setInterval(() => {
-      if (!document.hidden && navigator.onLine && !live.current.sheet) void live.current.refresh();
+      if (!document.hidden && navigator.onLine && !live.current.sheet && !dragState.on && !pulseLive.current.isSaving()) void live.current.refresh();
     }, 60_000);
     const onVis = () => !document.hidden && void live.current.refresh();
     document.addEventListener("visibilitychange", onVis);

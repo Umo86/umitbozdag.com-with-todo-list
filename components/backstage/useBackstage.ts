@@ -83,7 +83,23 @@ export function useBackstage() {
   }, []);
 
   // The session is an HttpOnly cookie, sent automatically to this site.
+  // saves on their way to the server: live updates wait for these, so a
+  // change you just made is never briefly undone by an older answer
+  const saving = useRef(0);
+  const isSaving = useCallback(() => saving.current > 0, []);
   const api = useCallback(
+    async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
+      const write = !!init?.method && init.method !== "GET";
+      if (write) saving.current++;
+      try {
+        return await send<T>(path, init);
+      } finally {
+        if (write) saving.current--;
+      }
+    },
+    []
+  );
+  const send = useCallback(
     async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
       let res: Response;
       try {
@@ -112,7 +128,8 @@ export function useBackstage() {
     []
   );
 
-  const refresh = useCallback(async () => {
+  /** Load everything again. Hands back the tasks it loaded (null if it couldn't). */
+  const refresh = useCallback(async (): Promise<Task[] | null> => {
     try {
       const data = await api<{
         me: Me;
@@ -137,6 +154,7 @@ export function useBackstage() {
       setUsers(data.users ?? []);
       setMe(data.me);
       setPhase({ kind: "app" });
+      return data.tasks ?? [];
     } catch (e) {
       const err = e as ApiError;
       if (err.status === 401)
@@ -151,6 +169,7 @@ export function useBackstage() {
         );
         say(err.message, "error");
       }
+      return null;
     }
   }, [api, say]);
 
@@ -672,6 +691,7 @@ export function useBackstage() {
     deleteUs,
     clearUs,
     clearVotes,
+    isSaving,
     nudge,
     setBirthday,
     markChatRead,

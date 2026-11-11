@@ -58,8 +58,8 @@ export async function POST(req: Request) {
     // New cards go to the top of To do unless a position is given.
     const r = await db().query(
       `insert into tasks
-         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, owner, assignee, position)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, $12,
+         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, owner, assignee, updated_by, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, $12, $8,
          coalesce($9::double precision,
            (select min(position) - 1 from tasks where list = $1 and owner = $11 and status = 'todo'),
            0))

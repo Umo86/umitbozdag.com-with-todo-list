@@ -69,7 +69,7 @@ export function cleanPosition(v: unknown): number | null {
 
 export const TASK_COLS = `id, project_id, list, title, notes, status, priority,
   to_char(due_date, 'YYYY-MM-DD') as due_date, remind_at, added_by, position,
-  calendar_ref, repeat, owner, assignee, love_note, completed_by, nudges, created_at, updated_at, completed_at`;
+  calendar_ref, repeat, owner, assignee, love_note, completed_by, nudges, created_at, updated_at, updated_by, completed_at`;
 
 export const TASK_ORDER = `order by position asc, created_at desc`;
 

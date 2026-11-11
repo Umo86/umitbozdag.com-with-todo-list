@@ -17,6 +17,7 @@ import {
   UUID,
 } from "@/lib/backstage";
 import { nextOccurrence, type Repeat } from "@/lib/parse";
+import { notify, otherOf } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -130,12 +131,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (!sets.length) {
       return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
     }
+    add("updated_by = ?", me!.id);
     sets.push("updated_at = now()");
 
     // Finishing a repeating task creates the next one (once).
     const before =
-      body.status === "done"
-        ? await db().query(`select status from tasks where id = $1 and owner in ($2, 'joint')`, [id, me!.id])
+      body.status === "done" || body.assignee !== undefined
+        ? await db().query(`select status, assignee from tasks where id = $1 and owner in ($2, 'joint')`, [id, me!.id])
         : null;
 
     const r = await db().query(
@@ -149,6 +151,17 @@ export async function PATCH(req: Request, ctx: Ctx) {
     let spawned = null;
     if (before?.rows[0]?.status !== "done" && row.status === "done" && row.repeat && !next_id) {
       spawned = await spawnNext(row);
+    }
+    // Joint to-dos: tell the other person's phone when one is ticked off or
+    // handed to them (their open app hears about every change by itself).
+    if (row.owner === JOINT && before?.rows[0]) {
+      const was = before.rows[0];
+      const other = otherOf(me!.id);
+      if (was.status !== "done" && row.status === "done") {
+        await notify(other, { title: `✓ ${me!.name} ticked off a joint to-do`, body: row.title, url: "/backstage?view=joint", tag: `task-${id}` });
+      } else if (body.assignee !== undefined && row.assignee === other && was.assignee !== other && row.status !== "done") {
+        await notify(other, { title: `${me!.name} gave you a to-do`, body: row.title, url: "/backstage?view=joint", tag: `task-${id}` });
+      }
     }
     return NextResponse.json(spawned ? { ...row, spawned } : row);
   } catch (err) {
