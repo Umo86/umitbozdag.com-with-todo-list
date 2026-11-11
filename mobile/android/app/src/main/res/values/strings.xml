@@ -4,7 +4,7 @@
     <string name="title_activity_main">Backstage</string>
     <string name="package_name">com.umitbozdag.backstage</string>
     <string name="custom_url_scheme">com.umitbozdag.backstage</string>
-    <string name="shortcut_speak">Speak a task</string>
-    <string name="shortcut_speak_long">Speak a task into Backstage</string>
+    <string name="shortcut_add">Add a task</string>
+    <string name="shortcut_add_long">Add a task to Backstage</string>
     <string name="shortcut_today">Today</string>
 </resources>

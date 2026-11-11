@@ -1,11 +1,12 @@
 "use client";
 
-// One task, opened: every field editable with ordinary controls. Changes
-// save as each field is left, so there is no Save button to forget.
+// One task, opened for editing. Changes save as each field is left; Save
+// closes the sheet (saving whatever is still being typed) and Delete removes
+// the task, with Undo offered for a few seconds.
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
-import { downloadIcs } from "./ics";
 import { isApp } from "./native";
+import { BinIcon } from "./TaskList";
 import {
   STATUSES,
   fromLocalInput,
@@ -44,7 +45,6 @@ export default function TaskDrawer({
   onClose: () => void;
   say: (msg: string) => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const other = users.find((u) => u.id !== me.id);
   const iWrote = task.added_by === me.id;
@@ -71,15 +71,21 @@ export default function TaskDrawer({
       >
         <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
-          <span className="bs-byline">
-            <span className="bs-dot" style={{ background: colorOf(task.added_by) }} />
-            Added by {task.added_by === me.id ? "you" : nameOf(task.added_by)},{" "}
-            {new Date(task.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-          </span>
+          <h2>Edit task</h2>
           <button className="bs-x" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
+        <p className="bs-byline">
+          <span className="bs-dot" style={{ background: colorOf(task.added_by) }} />
+          Added by {task.added_by === me.id ? "you" : nameOf(task.added_by)},{" "}
+          {new Date(task.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+        </p>
+
+        <label className="bs-donebox">
+          <input type="checkbox" checked={task.status === "done"} onChange={(e) => patch({ status: e.target.checked ? "done" : "todo" })} />
+          <span>{task.status === "done" ? "Done" : "Mark as done"}</span>
+        </label>
 
         <label htmlFor="d-title">Task</label>
         <textarea
@@ -139,7 +145,7 @@ export default function TaskDrawer({
 
         <div className="bs-fields">
           <div>
-            <label htmlFor="d-status">Column</label>
+            <label htmlFor="d-status">Status</label>
             <select
               id="d-status"
               value={task.status}
@@ -264,35 +270,27 @@ export default function TaskDrawer({
           </button>
         )}
 
-        <div className="bs-drawer-foot">
+        <div className="bs-drawer-foot bs-edit-foot">
           <button
-            className="btn ghost"
+            className="btn danger-o"
             onClick={() => {
-              if (!downloadIcs(task)) say("Set a due date or a reminder first.");
+              onDelete(task.id);
+              onClose();
             }}
           >
-            Add to calendar
+            <BinIcon /> Delete
           </button>
-          {confirming ? (
-            <span className="bs-confirm">
-              <button
-                className="btn danger"
-                onClick={() => {
-                  onDelete(task.id);
-                  onClose();
-                }}
-              >
-                Delete task
-              </button>
-              <button className="btn ghost" onClick={() => setConfirming(false)}>
-                Keep it
-              </button>
-            </span>
-          ) : (
-            <button className="bs-link danger" onClick={() => setConfirming(true)}>
-              Delete…
-            </button>
-          )}
+          <button
+            className="btn"
+            onClick={() => {
+              // leave the field being typed in, so it saves, then close
+              (document.activeElement as HTMLElement | null)?.blur?.();
+              say("Saved.");
+              onClose();
+            }}
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>

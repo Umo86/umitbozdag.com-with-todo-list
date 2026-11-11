@@ -1,6 +1,6 @@
 // Run: TZ=Europe/London node test/parse.test.mjs
 import assert from "node:assert/strict";
-import { parseTasks, nextOccurrence } from "../lib/parse.ts";
+import { parseTask, parseTasks, nextOccurrence } from "../lib/parse.ts";
 
 // Tuesday 10 November 2026, 20:30
 const now = new Date(2026, 10, 10, 20, 30);
@@ -94,3 +94,18 @@ check2("dinner with the family Saturday at 7 joint and Dilfiraz to book the vet 
   { kind: "task", title: "Chase the stand plans", project_id: "p-ukcw", joint: false },
 ]);
 console.log(`${n} checks after split test`);
+
+// Typed into an "Add…" box: always one task, never split
+{
+  const one = (t) => parseTask(t, { now, projects });
+  const long = "Call the venue and ask about the rigging points, then email Sarah the floorplan and book the forklift for Tuesday";
+  assert.equal(one(long).title, long);
+  assert.equal(one(long).due_date, "2026-11-17");
+  assert.equal(one("Email John; call Mary; book taxi").title, "Email John; call Mary; book taxi");
+  assert.equal(one("Buy milk, eggs and bread and pick up the dry cleaning").title, "Buy milk, eggs and bread and pick up the dry cleaning");
+  const short = one("pay council tax tomorrow urgent");
+  assert.deepEqual([short.title, short.due_date, short.priority], ["Pay council tax", "2026-11-11", "high"]);
+  assert.equal(one("book the forklift for Tuesday; also pay the deposit").due_date, "2026-11-17");
+  assert.equal(one("   "), null);
+  console.log("one-task checks passed");
+}

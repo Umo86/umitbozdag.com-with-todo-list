@@ -4,7 +4,7 @@
 // theirs on the left in theirs. Tap a message to copy it or turn it into a
 // joint to-do. "Seen" shows under your last message once they've read it.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { parseTasks } from "@/lib/parse";
+import { parseTask } from "@/lib/parse";
 import { colorOf, nameOf, softOf, type ChatMessage, type Me, type Person } from "./types";
 import type { Backstage } from "./useBackstage";
 
@@ -157,14 +157,11 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
                     )}
                     {m.kind === "text" && <button
                       onClick={() => {
-                        const drafts = parseTasks(m.body, { others: users.filter((u) => u.id !== me.id) });
-                        if (!drafts.length) return;
+                        const d = parseTask(m.body, { others: users.filter((u) => u.id !== me.id) });
+                        if (!d) return;
                         void bs
-                          .addDrafts(
-                            drafts.map((d) => ({ ...d, kind: "task" as const, joint: true, assignee: d.assignee ?? "both" })),
-                            "personal"
-                          )
-                          .then((n) => n && bs.say(n === 1 ? "Added to the joint list." : `${n} added to the joint list.`));
+                          .addDrafts([{ ...d, kind: "task" as const, joint: true, assignee: d.assignee ?? "both" }], "personal")
+                          .then((n) => n && bs.say("Added to the joint list."));
                         setOpen(null);
                       }}
                     >

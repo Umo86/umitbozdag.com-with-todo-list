@@ -25,6 +25,7 @@ export function VideoSender({ toName, out, onChanged, say }: { toName: string; o
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<{ pct: number; name: string } | null>(null);
   const [again, setAgain] = useState(false);
+  const [withNote, setWithNote] = useState(false);
   const stop = useRef(false);
 
   const send = async (file: File) => {
@@ -53,6 +54,7 @@ export function VideoSender({ toName, out, onChanged, say }: { toName: string; o
       }
       await call(`/video/${id}/done`, { method: "POST" });
       setNote("");
+      setWithNote(false);
       setAgain(false);
       say(`Sent. ${toName} can watch it once.`);
       onChanged();
@@ -94,8 +96,17 @@ export function VideoSender({ toName, out, onChanged, say }: { toName: string; o
         ) : (
           <>
             <strong>Send {toName} a video</strong>
-            <span className="quiet small">It plays once on {toName}&rsquo;s screen, then it&rsquo;s deleted. Up to {MAX_MB} MB.</span>
-            <input className="note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder="A few words to go with it (optional)" aria-label="Note" />
+            <span className="quiet small">
+              It plays once, then it&rsquo;s deleted. Up to {MAX_MB} MB.{" "}
+              {!withNote && (
+                <button type="button" className="bs-link" onClick={() => setWithNote(true)}>
+                  Add a note
+                </button>
+              )}
+            </span>
+            {withNote && (
+              <input className="note" value={note} maxLength={200} autoFocus onChange={(e) => setNote(e.target.value)} placeholder="A few words to go with it" aria-label="Note" />
+            )}
           </>
         )}
       </div>

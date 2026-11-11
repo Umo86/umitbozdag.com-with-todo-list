@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
-        android:shortcutId="speak"
+        android:shortcutId="add"
         android:enabled="true"
-        android:icon="@drawable/ic_shortcut_mic"
-        android:shortcutShortLabel="@string/shortcut_speak"
-        android:shortcutLongLabel="@string/shortcut_speak_long">
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_add"
+        android:shortcutLongLabel="@string/shortcut_add_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:data="backstage://capture"
+            android:data="backstage://add"
             android:targetPackage="com.umitbozdag.backstage"
             android:targetClass="com.umitbozdag.backstage.MainActivity" />
     </shortcut>

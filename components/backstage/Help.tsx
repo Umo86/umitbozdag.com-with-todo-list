@@ -4,7 +4,6 @@
 // on a device, and a help sheet (You › How Backstage works) with tips and
 // fixes for the usual problems.
 import { useEffect, useState } from "react";
-import { MicIcon } from "./Dashboard";
 import { isApp } from "./native";
 import changelog from "@/lib/changelog.json";
 import type { Me, Person } from "./types";
@@ -29,14 +28,14 @@ export function Welcome({ me, users, onClose }: { me: Me; users: Person[]; onClo
       body: `This is your and ${other?.name ?? "your partner"}'s planner. Your own to-dos stay private; anything marked Joint you both see. Things you add show in ${me.id === "umit" ? "blue" : "pink"}, ${other?.name ?? "theirs"}'s in ${me.id === "umit" ? "pink" : "blue"}.`,
     },
     {
-      icon: <MicIcon size={30} />,
-      title: "Just say it",
-      body: "Tap the blue mic and talk: “call the venue tomorrow at 10, dinner Saturday at 7 joint, Dilfiraz to book the vet”. Check what it understood, then add it all. The + button is for typing one thing in properly.",
+      icon: "➕",
+      title: "Add things with +",
+      body: "Tap + to add a to-do or an event. Give it a name, pick Mine or Joint, and add a date or a reminder if it needs one. To change or remove something later, use the pencil and bin on its row.",
     },
     {
       icon: "📅",
       title: "One calendar for both",
-      body: "Events, deadlines and due to-dos in one place. Your private events show to the other person only as “Busy”. Add the calendar to Google Calendar from You (your initial, top right).",
+      body: "Events, deadlines and due to-dos in one place. Your private events show to the other person only as “Busy”.",
     },
     {
       icon: "⏰",
@@ -84,14 +83,13 @@ export function Welcome({ me, users, onClose }: { me: Me; users: Person[]; onClo
 
 const TOPICS: Array<{ q: string; a: string[] }> = [
   {
-    q: "Adding things by voice",
+    q: "Adding, changing and deleting",
     a: [
-      "Tap the blue mic and speak normally. You can say several things in one go.",
-      "Times and days: “tomorrow at 10”, “Friday”, “next Monday”, “on 5th December”, “in 2 hours”.",
-      "Reminders: “remind me Thursday at 6pm”. Repeats: “every Monday”, “every month”.",
-      "Joint and who it's for: “joint”, “together”, “for both of us”, “Dilfiraz to book the vet”.",
-      "Events vs to-dos: meetings, dinners, appointments and flights with a time become calendar events; everything else becomes a to-do. You can switch each one before adding.",
-      "Projects: say the project's name (“for UKCW”). Priority: “urgent” or “no rush”.",
+      "Tap + to add a to-do or an event. Only the name is needed; everything else is under “More options”.",
+      "The quick line at the top of a list understands dates: “call the venue tomorrow at 10”, “pay council tax Friday”, “every Monday”.",
+      "Each to-do has a pencil (edit) and a bin (delete). Tapping the to-do's name opens it too.",
+      "Tick the box when it's done. Ticked it by mistake? Untick it under Done.",
+      "Deleted something by mistake? Tap Undo in the message that appears.",
     ],
   },
   {
@@ -109,7 +107,6 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "Tap a day to see its plan; double-click (or + Event) to add an event.",
       "Your private events appear to the other person only as a grey “Busy” block.",
       "Repeating events: changes and deletes apply to every repeat.",
-      "To see Backstage in Google or Samsung Calendar: You › Copy link / Add to Google Calendar. Keep that link private.",
     ],
   },
   {
@@ -142,7 +139,6 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
     a: [
       "“Can't reach Backstage” or “No connection”: check Wi-Fi or mobile data, then try again. Nothing is lost; unsaved changes just need to be redone.",
       "Signed out unexpectedly: sessions last 30 days, and changing a password signs that person out everywhere. Sign in again.",
-      "The mic doesn't start: Android Settings › Apps › Backstage › Permissions › Microphone › Allow. Speech uses the Google app, so keep it installed and up to date.",
       "No reminders on the phone: Settings › Apps › Backstage › Notifications on; also allow “Alarms & reminders”. Samsung/Xiaomi: Battery › Unrestricted.",
       "“Too many wrong passwords”: wait 15 minutes. Forgotten a password? Umit can set a new one.",
       "New features arrive by themselves: close and reopen the app. You only download the app again for a new phone.",

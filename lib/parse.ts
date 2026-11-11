@@ -112,7 +112,7 @@ function upcoming(today: Date, wd: number): Date {
 // ---------- splitting ----------
 
 // Words that usually start a new to-do when someone strings several together
-// without punctuation (speech recognisers rarely add any).
+// without punctuation.
 const VERBS = [
   "add", "approve", "arrange", "ask", "book", "bring", "buy", "call", "cancel", "change", "chase",
   "check", "clean", "clear", "collect", "confirm", "contact", "create", "do", "draft", "drop",
@@ -512,6 +512,25 @@ export function parseTasks(text: string, opts: ParseOptions = {}): Draft[] {
     drafts.push(toDraft(title.slice(0, 200), f, now));
   }
   return drafts;
+}
+
+/**
+ * Read typed text as exactly one task. A date, a reminder or "urgent" is still
+ * picked out of it, but the text is never split up: one box, one task, however
+ * long it is.
+ */
+export function parseTask(text: string, opts: ParseOptions = {}): Draft | null {
+  const now = opts.now ?? new Date();
+  const whole = text.replace(/\s+/g, " ").trim();
+  if (!whole) return null;
+  // (a date right before a semicolon is still a date)
+  const read = extract(whole.replace(/\s*;/g, " ;"), now, opts.projects ?? [], opts.others);
+  const f = read.f;
+  const title = read.title.replace(/\s+;/g, ";");
+  // A short line reads better without its "tomorrow" or "urgent"; a long one
+  // is kept exactly as written, so no sentence ends up with a hole in it.
+  const keep = whole.length > 80 || !title;
+  return toDraft((keep ? whole : title).slice(0, 500), f, now);
 }
 
 /** "2026-11-12T18:00" (device time) → ISO string, or null. */

@@ -2,12 +2,11 @@
   "name": "backstage-android",
   "private": true,
   "version": "1.0.0",
-  "description": "Android app for umitbozdag.com Backstage: opens Backstage, adds native speech and on-phone reminders.",
+  "description": "Android app for umitbozdag.com Backstage: opens Backstage, adds on-phone reminders.",
   "scripts": {
     "sync": "cap sync android"
   },
   "dependencies": {
-    "@capacitor-community/speech-recognition": "7.0.1",
     "@capacitor/android": "7.6.10",
     "@capacitor/app": "7.1.2",
     "@capacitor/core": "7.6.10",

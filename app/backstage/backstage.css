@@ -190,7 +190,7 @@
 .bs-projcards .counts,.bs-projcards .next{font-size:12.5px;color:var(--muted)}
 .bs-projcards .next{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* add tasks (voice) */
+/* add tasks */
 .bs-head .who .bs-add{border:none;background:var(--ink);color:#fff;border-radius:999px;padding:6px 14px;font-weight:600}
 .bs-head .who .bs-add:hover{background:var(--accent);color:#fff}
 .bs-fabs{position:fixed;right:22px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:25;display:flex;flex-direction:column;align-items:center;gap:12px}
@@ -702,3 +702,45 @@
 @media (max-width:640px){.bs-video-card{flex-wrap:wrap}.bs-video-card .acts{width:100%}.bs-video-card .acts .btn{flex:1}}
 @media (prefers-reduced-motion:reduce){.bs-video-card.gift,.bs-gift .icon.big{animation:none}}
 .bs-welcome.bs-gift p{min-height:0;margin-top:8px}
+/* edit and delete on every task */
+.bs-acts{display:inline-flex;gap:2px;flex:none}
+.bs-acts button{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:var(--muted);transition:background .12s,color .12s}
+.bs-acts .edit:hover{background:var(--accent-soft,#eef2ff);color:var(--accent)}
+.bs-acts .del:hover{background:#fdecec;color:var(--bad)}
+.bs-row{grid-template-columns:auto minmax(0,1fr) auto}
+.bs-row .bs-acts{grid-column:3;grid-row:1 / span 2;align-self:start;margin:-5px -6px 0 0}
+.bs-row .meta{grid-column:2}
+.bs-cardlet .bs-acts{margin:-6px -7px 0 0;opacity:.55;transition:opacity .12s}
+.bs-cardlet:hover .bs-acts,.bs-cardlet:focus-within .bs-acts{opacity:1}
+.bs-cardlet.lifted .bs-acts{visibility:hidden}
+/* the edit sheet */
+.bs-drawer-head h2{font:700 20px var(--display,inherit);letter-spacing:-.01em}
+.bs-drawer p.bs-byline{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);margin:-6px 0 12px}
+.bs .bs-drawer label.bs-donebox{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;margin:0 0 6px;cursor:pointer;font:500 15px/1.3 var(--sans,inherit);text-transform:none;letter-spacing:0;color:var(--ink)}
+.bs .bs-drawer label.bs-donebox span{font:inherit;text-transform:none;letter-spacing:0;color:inherit}
+.bs-donebox input{width:20px;height:20px;accent-color:var(--good,#12b76a);padding:0;flex:none;margin:0}
+.bs-edit-foot{position:sticky;bottom:-30px;background:var(--panel,#fff);padding:12px 0 30px;margin:14px 0 -30px;border-top:1px solid var(--line);z-index:2}
+@media (max-width:900px){.bs-edit-foot{bottom:calc(-22px - env(safe-area-inset-bottom,0px));margin-bottom:calc(-22px - env(safe-area-inset-bottom,0px));padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}}
+.bs .btn.danger-o{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--bad);border:1.5px solid #f3c2c2}
+.bs .btn.danger-o:hover{background:#fdecec;border-color:var(--bad)}
+.bs-edit-foot .btn{min-width:120px;justify-content:center}
+/* Today: tidy stats, one add button */
+.bs-stats{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:1000px){.bs-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.bs-stat.extra{display:none}}
+@media (max-width:900px){
+  .bs-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;margin:14px 0 0;padding:0;gap:8px}
+  .bs-stat{min-width:0;padding:10px 10px}
+  .bs-stat span{white-space:normal;line-height:1.2;font-size:11.5px}
+}
+.bs-fab.plus{width:60px;height:60px;background:var(--accent);color:#fff;border:0;box-shadow:0 14px 30px -10px rgba(26,71,255,.65)}
+.bs-fab.plus:hover{color:#fff}
+@media (max-width:900px){.bs-fab.plus{width:58px;height:58px}}
+@media (min-width:901px){.bs-fabs{display:none}}
+.bs-dash-side .bs-video-card{margin-top:0;flex-wrap:wrap}
+.bs-dash-side .bs-video-card .acts{width:100%}
+.bs-dash-side .bs-video-card .acts .btn{flex:1;justify-content:center}
+.bs-video-card .bs-link{font-size:inherit}
+/* New task: more options */
+.bs-more{display:flex;align-items:center;gap:8px;width:100%;padding:12px 0 6px;font-weight:600;font-size:14.5px;color:var(--ink);text-align:left}
+.bs-more .quiet{font-weight:400;font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bs-more:hover{color:var(--accent)}

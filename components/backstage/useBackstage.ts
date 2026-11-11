@@ -57,6 +57,10 @@ export function useBackstage() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const tasksNow = useRef<Task[]>([]);
+  tasksNow.current = tasks;
+  // deleted a moment ago: really removed once the Undo message has gone
+  const deleting = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const [messages, setMessages] = useState<Message[]>([]);
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [me, setMe] = useState<Me | null>(null);
@@ -69,7 +73,6 @@ export function useBackstage() {
   const [birthdays, setBirthdays] = useState<Record<string, string | null>>({});
   const [chatUnread, setChatUnread] = useState(0);
   const [seenUpTo, setSeenUpTo] = useState<string | null>(null);
-  const [ai, setAi] = useState(false);
   const [pushKey, setPushKey] = useState("");
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -128,7 +131,7 @@ export function useBackstage() {
       setBirthdays(data.birthdays ?? {});
       setChatUnread(data.chat_unread ?? 0);
       setProjects(data.projects ?? []);
-      setTasks(data.tasks ?? []);
+      setTasks((data.tasks ?? []).filter((t) => !deleting.current.has(t.id)));
       setEvents(data.events ?? []);
       setMessages(data.messages ?? []);
       setUsers(data.users ?? []);
@@ -159,11 +162,9 @@ export function useBackstage() {
         const cfg = (await (await fetch("/api/backstage/config")).json()) as {
           password?: string;
           database?: string;
-          ai?: string;
           push_key?: string;
         };
         if (cancelled) return;
-        setAi(cfg.ai === "on");
         setPushKey(cfg.push_key ?? "");
         if (cfg.password !== "ok") return setPhase({ kind: "noconfig", missing: "BACKSTAGE_PASSWORD" });
         if (cfg.database === "missing") return setPhase({ kind: "noconfig", missing: "DATABASE_URL" });
@@ -235,7 +236,7 @@ export function useBackstage() {
     [api, fail]
   );
 
-  // Several drafts at once (from speech). Returns how many were saved.
+  // Save drafts read from typed text. Returns how many were saved.
   const addDrafts = useCallback(
     async (drafts: Draft[], fallbackList: ListName): Promise<number> => {
       let saved = 0;
@@ -500,13 +501,45 @@ export function useBackstage() {
     [api, fail, say]
   );
 
+  // Deleting takes the task off the screen at once and shows "Undo" for a
+  // few seconds; only then is it removed for good.
   const deleteTask = useCallback(
     (id: string) => {
+      const index = tasksNow.current.findIndex((t) => t.id === id);
+      const gone = tasksNow.current[index];
+      if (!gone) return;
       setTasks((prev) => prev.filter((t) => t.id !== id));
-      api(`/tasks/${id}`, { method: "DELETE" }).catch(fail);
+      const really = () => {
+        deleting.current.delete(id);
+        api(`/tasks/${id}`, { method: "DELETE" }).catch(fail);
+      };
+      deleting.current.set(id, setTimeout(really, 6500));
+      say("Task deleted.", "info", {
+        label: "Undo",
+        run: () => {
+          const timer = deleting.current.get(id);
+          if (timer === undefined) return;
+          clearTimeout(timer);
+          deleting.current.delete(id);
+          setTasks((prev) => (prev.some((t) => t.id === id) ? prev : [...prev.slice(0, index), gone, ...prev.slice(index)]));
+          setNotice(null);
+        },
+      });
     },
-    [api, fail]
+    [api, fail, say]
   );
+  // leaving the page inside those few seconds still deletes
+  useEffect(() => {
+    const flush = () => {
+      for (const [id, timer] of deleting.current) {
+        clearTimeout(timer);
+        void fetch(`/api/backstage/tasks/${id}`, { method: "DELETE", credentials: "same-origin", keepalive: true });
+      }
+      deleting.current.clear();
+    };
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, []);
 
   const addProject = useCallback(
     async (name: string, color: string, due_date: string | null = null, owner: Owner | null = null) => {
@@ -587,7 +620,6 @@ export function useBackstage() {
     setBirthday,
     markChatRead,
     say,
-    ai,
     pushKey,
     api,
     refresh,

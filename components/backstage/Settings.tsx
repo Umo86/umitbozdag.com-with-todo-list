@@ -1,7 +1,7 @@
 "use client";
 
-// You: who's signed in, your private calendar link for Google / Samsung
-// Calendar, reminder settings on the phone, and signing out.
+// You: who's signed in, help, reminder and notification settings, and
+// signing out.
 import { useEffect, useState } from "react";
 import { exactAlarms, isApp, openExactAlarmSetting, prepareNotifications } from "./native";
 import { disablePush, enablePush, pushState, type PushState } from "./push";
@@ -9,15 +9,12 @@ import type { Me } from "./types";
 import type { Backstage } from "./useBackstage";
 
 export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; me: Me; onClose: () => void; onHelp: () => void }) {
-  const [url, setUrl] = useState("");
-  const [confirmNew, setConfirmNew] = useState(false);
   const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
   const [notif, setNotif] = useState<string>("");
   const [push, setPush] = useState<PushState>("unsupported");
   const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
-    bs.api<{ calendar_url: string }>("/me").then((r) => setUrl(r.calendar_url), () => setUrl(""));
     void exactAlarms().then(setExact);
     void pushState().then(setPush);
     if (!isApp() && "Notification" in window) setNotif(Notification.permission);
@@ -25,9 +22,6 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [bs, onClose]);
-
-  const webcal = url.replace(/^https?:/, "webcal:");
-  const google = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
 
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -55,60 +49,7 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
           How Backstage works, tips and fixes
         </button>
 
-        <h3 className="bs-sub">Your calendar in Google or Samsung Calendar</h3>
-        <p className="bs-hint">
-          Add this private link once and your events, joint events and deadlines appear in your phone&rsquo;s calendar
-          too (read-only, refreshed every few hours). Keep it to yourself: anyone with the link can see them.
-        </p>
-        {url ? (
-          <>
-            <input className="bs-copy" readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="Calendar link" />
-            <div className="bs-row-btns">
-              <button
-                className="btn"
-                onClick={() =>
-                  navigator.clipboard?.writeText(url).then(
-                    () => bs.say("Link copied."),
-                    () => bs.say("Press and hold the link to copy it.")
-                  )
-                }
-              >
-                Copy link
-              </button>
-              <a className="btn ghost" href={google} target="_blank" rel="noreferrer">
-                Add to Google Calendar
-              </a>
-            </div>
-            {confirmNew ? (
-              <p className="bs-hint">
-                The old link will stop working.{" "}
-                <button
-                  className="bs-link danger"
-                  onClick={() =>
-                    bs.api<{ calendar_url: string }>("/me", { method: "POST", body: {} }).then((r) => {
-                      setUrl(r.calendar_url);
-                      setConfirmNew(false);
-                      bs.say("New link made.");
-                    })
-                  }
-                >
-                  Make a new link
-                </button>{" "}
-                <button className="bs-link" onClick={() => setConfirmNew(false)}>
-                  Keep this one
-                </button>
-              </p>
-            ) : (
-              <button className="bs-link" onClick={() => setConfirmNew(true)}>
-                Shared it by mistake? Make a new link
-              </button>
-            )}
-          </>
-        ) : (
-          <p className="quiet">Loading your link…</p>
-        )}
-
-        <h3 className="bs-sub">Reminders</h3>
+        <h3 className="bs-sub">Reminders and notifications</h3>
         {isApp() ? (
           <>
             <p className="bs-hint">Reminders are set on this phone, so they go off even when the app is closed.</p>

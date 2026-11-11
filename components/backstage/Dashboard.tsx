@@ -40,13 +40,14 @@ export default function Dashboard({
   onOpenEvent,
   onCalendar,
   onPatch,
+  onDelete,
   onPickProject,
   onManageProjects,
-  onCapture,
   bs,
   users,
   onUs,
   top,
+  side,
 }: {
   me: Me;
   tasks: Task[];
@@ -56,13 +57,14 @@ export default function Dashboard({
   onOpenEvent: (id: string) => void;
   onCalendar: () => void;
   onPatch: (id: string, patch: TaskPatch) => void;
+  onDelete: (id: string) => void;
   onPickProject: (id: string) => void;
   onManageProjects: () => void;
-  onCapture: () => void;
   bs: Backstage;
   users: Person[];
   onUs: (section: "gifts" | "memories") => void;
-  top?: React.ReactNode; // extra cards under the mood bar (the one-time video)
+  top?: React.ReactNode; // a card that needs attention now (a video waiting to be watched)
+  side?: React.ReactNode; // extra cards for the side column (send a video)
 }) {
   const today = ymd(new Date());
   const in7 = ymd(new Date(Date.now() + 7 * DAY));
@@ -109,9 +111,9 @@ export default function Dashboard({
         <Stat n={overdue.length} label="Overdue" tone={overdue.length ? "bad" : undefined} />
         <Stat n={dueToday.length} label="Due today" tone={dueToday.length ? "accent" : undefined} />
         <Stat n={week.length} label="Next 7 days" />
-        <Stat n={todayEvents.length} label="Events today" />
-        <Stat n={soon} label="Reminders in 24h" />
         <Stat n={doneToday} label="Done today" tone={doneToday ? "good" : undefined} />
+        <Stat n={todayEvents.length} label="Events today" extra />
+        <Stat n={soon} label="Reminders in 24h" extra />
       </div>
 
       <MoodBar bs={bs} me={me} users={users} />
@@ -120,18 +122,6 @@ export default function Dashboard({
 
       <div className="bs-dash-grid">
         <section className="bs-dash-main" aria-label="Due">
-          <button className="bs-capture-cta" onClick={onCapture}>
-            <span className="mic" aria-hidden="true">
-              <MicIcon />
-            </span>
-            <span>
-              <strong>Speak or type your to-dos</strong>
-              <span className="quiet">
-                &ldquo;Call the venue tomorrow at 10 and chase the signage quote, remind me Friday&rdquo;
-              </span>
-            </span>
-          </button>
-
           <section className="bs-schedule" aria-labelledby="h-sched">
             <div className="bs-side-head">
               <h2 id="h-sched">Today&rsquo;s plan</h2>
@@ -177,13 +167,14 @@ export default function Dashboard({
               Nothing due this week. Anything with a date or a reminder shows up here.
             </p>
           )}
-          <Group title="Overdue" tone="bad" items={overdue} {...{ projects, onOpen, onPatch, today, me: me.id }} />
-          <Group title="Today" items={dueToday} {...{ projects, onOpen, onPatch, today, me: me.id }} />
-          <Group title="Next 7 days" items={week} {...{ projects, onOpen, onPatch, today, me: me.id }} />
-          <Group title="Urgent, no date" items={urgentUndated} {...{ projects, onOpen, onPatch, today, me: me.id }} />
+          <Group title="Overdue" tone="bad" items={overdue} {...{ projects, onOpen, onPatch, onDelete, today, me: me.id }} />
+          <Group title="Today" items={dueToday} {...{ projects, onOpen, onPatch, onDelete, today, me: me.id }} />
+          <Group title="Next 7 days" items={week} {...{ projects, onOpen, onPatch, onDelete, today, me: me.id }} />
+          <Group title="Urgent, no date" items={urgentUndated} {...{ projects, onOpen, onPatch, onDelete, today, me: me.id }} />
         </section>
 
         <aside className="bs-dash-side">
+          {side}
           <Countdowns bs={bs} />
           <Scoreboard scores={bs.scores} users={users} me={me} />
           <MemoryOfTheDay bs={bs} onOpen={() => onUs("memories")} />
@@ -199,7 +190,7 @@ export default function Dashboard({
                 ))}
               </ul>
             ) : (
-              <p className="quiet small">No reminders set. Say &ldquo;remind me…&rdquo; when you add a task.</p>
+              <p className="quiet small">No reminders set. Add one when you create or edit a task.</p>
             )}
           </section>
 
@@ -254,9 +245,9 @@ export default function Dashboard({
   );
 }
 
-function Stat({ n, label, tone }: { n: number; label: string; tone?: "bad" | "accent" | "good" }) {
+function Stat({ n, label, tone, extra }: { n: number; label: string; tone?: "bad" | "accent" | "good"; extra?: boolean }) {
   return (
-    <div className={`bs-stat${tone ? ` ${tone}` : ""}`}>
+    <div className={`bs-stat${tone ? ` ${tone}` : ""}${extra ? " extra" : ""}`}>
       <strong>{n}</strong>
       <span>{label}</span>
     </div>
@@ -270,6 +261,7 @@ function Group({
   projects,
   onOpen,
   onPatch,
+  onDelete,
   today,
   me,
 }: {
@@ -279,6 +271,7 @@ function Group({
   projects: Project[];
   onOpen: (id: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
+  onDelete: (id: string) => void;
   today: string;
   me: Me["id"];
 }) {
@@ -290,18 +283,9 @@ function Group({
       </h2>
       <ul>
         {items.map((t) => (
-          <TaskRow key={t.id} task={t} projects={projects} me={me} onOpen={onOpen} onPatch={onPatch} hideDay={today} />
+          <TaskRow key={t.id} task={t} projects={projects} me={me} onOpen={onOpen} onPatch={onPatch} onDelete={onDelete} hideDay={today} />
         ))}
       </ul>
     </section>
-  );
-}
-
-export function MicIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="9" y="3" width="6" height="11" rx="3" />
-      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
-    </svg>
   );
 }

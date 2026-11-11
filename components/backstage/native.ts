@@ -7,7 +7,7 @@
 // - reminders are scheduled on the phone, so they go off with the app closed
 // - each reminder has Done and Snooze 1h buttons
 // - an 8am summary for each of the next 7 days
-// - "Speak a task" shortcut and backstage:// links
+// - "Add a task" shortcut and backstage:// links
 import { Capacitor } from "@capacitor/core";
 import { occurrences } from "./calendar";
 import { forMe, type CalEvent, type Task, type UserId } from "./types";
@@ -208,7 +208,7 @@ export async function syncReminders(allTasks: Task[], events: CalEvent[], me: Us
  */
 export async function listen(handlers: {
   onNotification: (a: NotificationAction) => void;
-  onLink: (path: "capture" | "today" | "other") => void;
+  onLink: (path: "add" | "today" | "other") => void;
   onResume: () => void;
   /** Android back button: return true if something was closed. */
   onBack: () => boolean;
@@ -216,7 +216,7 @@ export async function listen(handlers: {
   if (!isApp()) return () => {};
   const [LN, App] = await plugins();
   const linkPath = (url: string) =>
-    /capture|speak/i.test(url) ? "capture" : /today/i.test(url) ? "today" : "other";
+    /capture|speak|add/i.test(url) ? "add" : /today/i.test(url) ? "today" : "other";
 
   const subs = await Promise.all([
     LN.addListener("localNotificationActionPerformed", (e) => {
@@ -235,123 +235,6 @@ export async function listen(handlers: {
   const launch = await App.getLaunchUrl().catch(() => undefined);
   if (launch?.url) handlers.onLink(linkPath(launch.url));
   return () => subs.forEach((s) => void s.remove());
-}
-
-// ——— speech ———
-
-type WebRecognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-export type SpeechSupport = "app" | "browser" | "none";
-
-export function speechSupport(): SpeechSupport {
-  if (typeof window === "undefined") return "none";
-  if (isApp()) return "app";
-  const w = window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
-  return w.SpeechRecognition || w.webkitSpeechRecognition ? "browser" : "none";
-}
-
-/**
- * Start listening. `onText` gets the words heard so far (replacing the
- * previous call's text); `onEnd` fires once when listening stops, with an
- * error message if something went wrong. Returns a stop function.
- */
-export async function listenForSpeech(opts: {
-  lang: string;
-  onText: (text: string) => void;
-  onEnd: (error?: string) => void;
-}): Promise<() => void> {
-  const support = speechSupport();
-  if (support === "app") {
-    const { SpeechRecognition } = await import("@capacitor-community/speech-recognition");
-    const ok = await SpeechRecognition.available().catch(() => ({ available: false }));
-    if (!ok.available) {
-      opts.onEnd("This phone has no speech recogniser. Install or update the Google app from the Play Store, then try again. You can type in the meantime.");
-      return () => {};
-    }
-    let perm = await SpeechRecognition.checkPermissions();
-    if (perm.speechRecognition !== "granted") perm = await SpeechRecognition.requestPermissions();
-    if (perm.speechRecognition !== "granted") {
-      opts.onEnd("Backstage needs the microphone. Open Android Settings › Apps › Backstage › Permissions › Microphone › Allow, then try again.");
-      return () => {};
-    }
-    let ended = false;
-    const finish = (err?: string) => {
-      if (ended) return;
-      ended = true;
-      void SpeechRecognition.removeAllListeners();
-      opts.onEnd(err);
-    };
-    await SpeechRecognition.removeAllListeners();
-    await SpeechRecognition.addListener("partialResults", (d) => {
-      if (d.matches?.[0]) opts.onText(d.matches[0]);
-    });
-    await SpeechRecognition.addListener("listeningState", (d) => {
-      if (d.status === "stopped") finish();
-    });
-    SpeechRecognition.start({ language: opts.lang, partialResults: true, popup: false, maxResults: 1 }).catch(
-      (e: Error) =>
-        finish(
-          /no match|didn't|not understand/i.test(e.message)
-            ? undefined
-            : /network|connect/i.test(e.message)
-              ? "Speech needs an internet connection. Check it and try again, or type instead."
-              : /busy/i.test(e.message)
-                ? "The microphone is busy (another app may be using it). Close it and try again."
-                : `Listening stopped: ${e.message}`
-        )
-    );
-    return () => {
-      void SpeechRecognition.stop().catch(() => {});
-      setTimeout(() => finish(), 800);
-    };
-  }
-
-  if (support === "browser") {
-    const w = window as unknown as { SpeechRecognition?: new () => WebRecognition; webkitSpeechRecognition?: new () => WebRecognition };
-    const Rec = (w.SpeechRecognition ?? w.webkitSpeechRecognition)!;
-    const rec = new Rec();
-    rec.lang = opts.lang;
-    rec.continuous = true;
-    rec.interimResults = true;
-    let finals = "";
-    let failed: string | undefined;
-    rec.onresult = (e) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) finals += (finals ? " " : "") + r[0].transcript.trim();
-        else interim += r[0].transcript;
-      }
-      opts.onText((finals + " " + interim).trim());
-    };
-    rec.onerror = (e) => {
-      failed =
-        e.error === "not-allowed" || e.error === "service-not-allowed"
-          ? "The browser blocked the microphone. Click the mic icon in the address bar, allow it, and try again."
-          : e.error === "audio-capture"
-            ? "No microphone found. Plug one in or use your phone."
-            : e.error === "network"
-              ? "Speech needs an internet connection. Check it and try again, or type instead."
-              : e.error === "no-speech" || e.error === "aborted"
-                ? undefined
-                : `Listening stopped (${e.error}). Try again, or type instead.`;
-    };
-    rec.onend = () => opts.onEnd(failed);
-    rec.start();
-    return () => rec.stop();
-  }
-
-  opts.onEnd("This browser can't listen. Type instead, or use Chrome or the Backstage Android app.");
-  return () => {};
 }
 
 /** Buzz the phone (Android app and Android browsers; quietly does nothing elsewhere). */

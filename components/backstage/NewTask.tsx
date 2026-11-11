@@ -31,6 +31,7 @@ export default function NewTask({
   const [assignee, setAssignee] = useState<Assignee>("both");
   const other = users.find((u) => u.id !== me.id);
   const [busy, setBusy] = useState(false);
+  const [more, setMore] = useState(!!defaultProject); // open when a project is already chosen
   const [err, setErr] = useState("");
   const title = useRef<HTMLTextAreaElement>(null);
 
@@ -108,9 +109,6 @@ export default function NewTask({
           }}
         />
 
-        <label htmlFor="nt-notes">Notes</label>
-        <textarea id="nt-notes" name="notes" rows={3} maxLength={4000} placeholder="Phone numbers, links, what was agreed…" />
-
         <label>Whose</label>
         <div className="bs-seg" role="group" aria-label="Whose list">
           <button type="button" aria-pressed={!joint} onClick={() => setJoint(false)}>
@@ -141,43 +139,54 @@ export default function NewTask({
             </div>
           )}
           <div>
-            <label htmlFor="nt-project">Project</label>
-            <select id="nt-project" name="project" defaultValue={defaultProject ?? ""}>
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
             <label htmlFor="nt-due">Due date</label>
             <input id="nt-due" name="due" type="date" />
           </div>
-          <div>
-            <label htmlFor="nt-remind">Reminder</label>
-            <input id="nt-remind" name="remind" type="datetime-local" />
+        </div>
+
+        <button type="button" className="bs-more" aria-expanded={more} onClick={() => setMore((v) => !v)}>
+          {more ? "Fewer options" : "More options"} <span className="quiet">{more ? "" : "reminder, project, notes, repeat"}</span>
+          <span aria-hidden="true">{more ? "▴" : "▾"}</span>
+        </button>
+        <div hidden={!more}>
+          <div className="bs-fields">
+            <div>
+              <label htmlFor="nt-remind">Reminder</label>
+              <input id="nt-remind" name="remind" type="datetime-local" />
+            </div>
+            <div>
+              <label htmlFor="nt-project">Project</label>
+              <select id="nt-project" name="project" defaultValue={defaultProject ?? ""}>
+                <option value="">No project</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="nt-priority">Priority</label>
+              <select id="nt-priority" name="priority" defaultValue="normal">
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="nt-repeat">Repeat</label>
+              <select id="nt-repeat" name="repeat" defaultValue="">
+                <option value="">Doesn&rsquo;t repeat</option>
+                {REPEATS.map((r) => (
+                  <option key={r} value={r}>
+                    {REPEAT_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label htmlFor="nt-priority">Priority</label>
-            <select id="nt-priority" name="priority" defaultValue="normal">
-              <option value="high">High</option>
-              <option value="normal">Normal</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="nt-repeat">Repeat</label>
-            <select id="nt-repeat" name="repeat" defaultValue="">
-              <option value="">Doesn&rsquo;t repeat</option>
-              {REPEATS.map((r) => (
-                <option key={r} value={r}>
-                  {REPEAT_LABEL[r]}
-                </option>
-              ))}
-            </select>
-          </div>
+          <label htmlFor="nt-notes">Notes</label>
+          <textarea id="nt-notes" name="notes" rows={3} maxLength={4000} placeholder="Phone numbers, links, what was agreed…" />
         </div>
 
         <p className="error-line" role="alert">{err}</p>

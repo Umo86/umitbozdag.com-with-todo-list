@@ -42,8 +42,6 @@ a private task manager behind one password, storing its data in Neon Postgres.
 | `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
 | `BACKSTAGE_PASSWORD` | Umit's Backstage password | keep it secret; changing it signs Umit out everywhere |
 | `BACKSTAGE_SECRET` | optional | extra random text mixed into the session signature |
-| `ANTHROPIC_API_KEY` | optional | turns on AI reading of spoken tasks (better with rambling speech and Turkish). Without it, built-in rules read them |
-| `ANTHROPIC_MODEL` | optional | model for that, default `claude-haiku-5-5` |
 
 Until these are set, the public site works fully and `/backstage` shows a
 notice naming the missing setting instead of the password field.
@@ -76,15 +74,14 @@ fifteen minutes. The password is never stored in this repository.
   shows to the other person as a grey "Busy" block with no details.
 - **Calendar:** month view and the day's agenda; events (timed or all day,
   with place, reminder and repeat), plus to-dos with a due date and project
-  deadlines. Each person gets a private calendar link (You → Copy link) to add
-  to Google or Samsung Calendar.
+  deadlines.
 
 - Two lists, **Work** and **Personal**, each a board of To do / In progress / Done.
 - Drag cards between columns or reorder them (mouse, touch or keyboard); open a
-  card to edit notes, project, priority, due date and reminder.
+  card (or its pencil) to edit notes, project, priority, due date and reminder;
+  the bin deletes it, with Undo for a few seconds.
 - Reminders show on the page (and as a browser alert if you allow it) while
-  Backstage is open. **Add to calendar** downloads an `.ics` file so your phone
-  can alert you when it is not.
+  Backstage is open, and on the phone through the Android app.
 - Deleting a project keeps its tasks.
 - **Messages**: anything sent through the contact form on the home page is saved
   to the `messages` table and listed here, with a reply link. If the database is
@@ -98,7 +95,7 @@ npm run build     # production build
 npm start         # serve on $PORT (default 3000)
 npm run migrate   # apply the database schema
 npm run test:e2e  # node test/e2e.mjs <siteUrl> <backstagePassword>
-TZ=Europe/London node test/parse.test.mjs   # how spoken tasks are read
+TZ=Europe/London node test/parse.test.mjs   # how typed tasks are read
 ```
 
 ## Database changes (November 2026)
@@ -111,10 +108,9 @@ TZ=Europe/London node test/parse.test.mjs   # how spoken tasks are read
 A small Capacitor app that opens Backstage at the address in
 `mobile/capacitor.config.json` (`server.url`) and adds what a web page can't:
 
-- the phone's own speech recogniser for **Add tasks**
 - reminders scheduled **on the phone**, so they go off with the app closed,
   each with **Done** and **Snooze 1h** buttons, plus an 8am summary
-- a **Speak a task** shortcut (long-press the app icon)
+- an **Add a task** shortcut (long-press the app icon)
 - an offline page when there's no signal
 
 Reminders added on a computer reach the phone the next time the app is

@@ -27,6 +27,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { TaskActions } from "./TaskList";
 import {
   STATUSES,
   colorOf,
@@ -61,6 +62,7 @@ export default function Board({
   onAdd,
   onPatch,
   onOpen,
+  onDelete,
 }: {
   tasks: Task[]; // already filtered to the list (and project) on show
   projects: Project[];
@@ -68,6 +70,7 @@ export default function Board({
   onAdd: (title: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
   onOpen: (id: string) => void;
+  onDelete?: (id: string) => void;
 }) {
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const projectOf = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
@@ -186,6 +189,7 @@ export default function Board({
                     canEdit={canEdit}
                     onOpen={onOpen}
                     onPatch={onPatch}
+                    onDelete={onDelete}
                   />
                 ))}
               </SortableContext>
@@ -260,12 +264,14 @@ function SortableCard({
   canEdit,
   onOpen,
   onPatch,
+  onDelete,
 }: {
   task: Task;
   project?: Project;
   canEdit: boolean;
   onOpen: (id: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
+  onDelete?: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id, disabled: !canEdit });
@@ -281,6 +287,7 @@ function SortableCard({
         task={task}
         project={project}
         onOpen={canEdit ? onOpen : undefined}
+        onDelete={canEdit ? onDelete : undefined}
         onToggle={
           canEdit
             ? () => onPatch(task.id, { status: task.status === "done" ? "todo" : "done" })
@@ -296,12 +303,14 @@ function Card({
   project,
   lifted,
   onOpen,
+  onDelete,
   onToggle,
 }: {
   task: Task;
   project?: Project;
   lifted?: boolean;
   onOpen?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onToggle?: () => void;
 }) {
   const done = t.status === "done";
@@ -363,6 +372,7 @@ function Card({
           </div>
         )}
       </div>
+      {onOpen && <TaskActions title={t.title} onEdit={() => onOpen(t.id)} onDelete={onDelete ? () => onDelete(t.id) : undefined} />}
     </article>
   );
 }

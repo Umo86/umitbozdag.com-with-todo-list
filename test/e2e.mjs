@@ -147,8 +147,6 @@ step("api: unknown repeat refused on edit", badRep2.status === 400);
 for (const id of [rep.data.id, sp?.id, badRep.data.id]) if (id) await api(`/tasks/${id}`, "DELETE");
 
 // reading speech: without an AI key the server says so and the page uses its own rules
-const parse = await api("/parse", "POST", { text: "call the venue tomorrow", now_local: "2026-11-10T20:00", projects: [] });
-step("api: /parse answers (501 = AI off, 200 = AI on)", parse.status === 501 || (parse.status === 200 && Array.isArray(parse.data.drafts)), `status ${parse.status}`);
 
 const delT = await api(`/tasks/${t1.data.id}`, "DELETE");
 step("api: delete task", delT.status === 200);

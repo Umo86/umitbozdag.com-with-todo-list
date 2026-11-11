@@ -1,6 +1,18 @@
 [
   {
     "date": "2026-11-11",
+    "title": "Cleaner Backstage",
+    "items": [
+      "Every task now has a pencil to edit it and a bin to delete it. Deleted by mistake? Tap Undo",
+      "Whatever you type in an Add box is one task, however long it is. It is no longer split up",
+      "Editing a task is simpler: Mark as done at the top, Delete and Save always in reach at the bottom",
+      "New task asks for the basics first; reminder, project, notes and repeat sit under More options",
+      "One blue + button on the phone, and tasks come first on Today",
+      "Removed: speaking tasks, the calendar link option and the Add to calendar button"
+    ]
+  },
+  {
+    "date": "2026-11-11",
     "title": "A video, just once",
     "items": [
       "Umit can send Dilfiraz a video from his Today screen. It plays once, full screen, then it’s deleted for good",

@@ -6,7 +6,7 @@ export const UUID =
 export const DATE = /^\d{4}-\d{2}-\d{2}$/;
 export const STATUSES = new Set(["todo", "doing", "done"]);
 export const PRIORITIES = new Set(["low", "normal", "high"]);
-// The board's two lists. Tasks Claude adds by voice land in these too.
+// The board's two lists.
 export const LISTS = new Set(["personal", "work"]);
 
 export const COLOR = /^#[0-9a-f]{6}$/i;

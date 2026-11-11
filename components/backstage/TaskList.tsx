@@ -16,12 +16,46 @@ import {
   type UserId,
 } from "./types";
 
+export function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+export function BinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />
+    </svg>
+  );
+}
+
+/** The pencil and the bin on every task. */
+export function TaskActions({ title, onEdit, onDelete }: { title: string; onEdit: () => void; onDelete?: () => void }) {
+  const quiet = (e: React.SyntheticEvent) => e.stopPropagation(); // don't start a drag on the board
+  return (
+    <span className="bs-acts" onPointerDown={quiet} onKeyDown={quiet}>
+      <button type="button" className="edit" onClick={onEdit} aria-label={`Edit “${title}”`} title="Edit">
+        <EditIcon />
+      </button>
+      {onDelete && (
+        <button type="button" className="del" onClick={onDelete} aria-label={`Delete “${title}”`} title="Delete">
+          <BinIcon />
+        </button>
+      )}
+    </span>
+  );
+}
+
 export function TaskRow({
   task: t,
   projects,
   me,
   onOpen,
   onPatch,
+  onDelete,
   hideDay,
   showList = true,
 }: {
@@ -30,6 +64,7 @@ export function TaskRow({
   me: UserId;
   onOpen: (id: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
+  onDelete?: (id: string) => void;
   hideDay?: string; // don't repeat today's date on the Today screen
   showList?: boolean;
 }) {
@@ -46,6 +81,7 @@ export function TaskRow({
       <button className="title" onClick={() => onOpen(t.id)}>
         {t.title}
       </button>
+      <TaskActions title={t.title} onEdit={() => onOpen(t.id)} onDelete={onDelete ? () => onDelete(t.id) : undefined} />
       <span className="meta">
         {t.status === "doing" && <span className="doing">In progress</span>}
         {p && (
@@ -79,6 +115,7 @@ export default function TaskList({
   me,
   onOpen,
   onPatch,
+  onDelete,
   onAdd,
   placeholder,
 }: {
@@ -87,6 +124,7 @@ export default function TaskList({
   me: UserId;
   onOpen: (id: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
+  onDelete?: (id: string) => void;
   onAdd: (text: string) => void;
   placeholder: string;
 }) {
@@ -101,7 +139,7 @@ export default function TaskList({
   const rows = (list: Task[]) => (
     <ul>
       {list.map((t) => (
-        <TaskRow key={t.id} task={t} projects={projects} me={me} onOpen={onOpen} onPatch={onPatch} showList={false} />
+        <TaskRow key={t.id} task={t} projects={projects} me={me} onOpen={onOpen} onPatch={onPatch} onDelete={onDelete} showList={false} />
       ))}
     </ul>
   );
@@ -134,7 +172,7 @@ export default function TaskList({
         <h2>
           To do <span className="n">{todo.length}</span>
         </h2>
-        {todo.length ? rows(todo) : <p className="bs-empty small">Nothing to do here. Add one above, or tap the mic.</p>}
+        {todo.length ? rows(todo) : <p className="bs-empty small">Nothing to do here. Add one above, or tap +.</p>}
       </section>
       {done.length > 0 && (
         <section className="bs-group done">

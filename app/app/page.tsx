@@ -23,7 +23,7 @@ const STEPS: Array<[string, React.ReactNode]> = [
   ["Open the file", <>When it finishes, tap the notification or open <strong>Files › Downloads › Backstage.apk</strong>.</>],
   ["Allow the install", <>Android asks once to allow installs from your browser: tap <strong>Settings</strong>, switch on <strong>Allow from this source</strong>, then go back.</>],
   ["Install", <>Tap <strong>Install</strong>. If Play Protect warns that the app is unknown, tap <strong>More details › Install anyway</strong> (it isn&rsquo;t on the Play Store, that&rsquo;s all).</>],
-  ["Sign in", <>Open Backstage, tap your name and enter your password. Allow the <strong>microphone</strong> and <strong>notifications</strong> when asked, so you can speak tasks and get reminders.</>],
+  ["Sign in", <>Open Backstage, tap your name and enter your password. Allow <strong>notifications</strong> when asked, so reminders reach you.</>],
 ];
 
 const FIXES: Array<[string, React.ReactNode]> = [
@@ -31,7 +31,6 @@ const FIXES: Array<[string, React.ReactNode]> = [
   ["Nothing happens when I tap the file", <>Open <strong>Settings › Apps › Special app access › Install unknown apps</strong>, pick your browser (Chrome) and allow it.</>],
   ["It says “No connection”", <>Backstage needs the internet to load. Check Wi-Fi or mobile data and tap <strong>Try again</strong>. Reminders already set still go off offline.</>],
   ["No reminders arrive", <>Settings › Apps › Backstage › <strong>Notifications</strong>: on. On Android 12+, also allow <strong>Alarms &amp; reminders</strong> so they arrive on time. Some phones (Samsung, Xiaomi) also need <strong>Battery › Unrestricted</strong> for Backstage.</>],
-  ["The mic doesn&rsquo;t work", <>Settings › Apps › Backstage › Permissions › <strong>Microphone: Allow</strong>. Speech uses the Google app, so make sure it&rsquo;s installed and up to date.</>],
   ["I have an iPhone", <>The app is Android only. On iPhone, open <a href="/backstage">umitbozdag.com/backstage</a> in Safari, tap Share › <strong>Add to Home Screen</strong>: it works the same, but reminders only appear while it&rsquo;s open.</>],
 ];
 
@@ -49,7 +48,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
               <span className="kicker">Backstage for Android</span>
               <h1>Our planner, in your pocket.</h1>
               <p className="lead">
-                The private planner Umit and Dilfiraz share: speak your to-dos, keep a joint list and calendar, chat,
+                The private planner Umit and Dilfiraz share: your own to-dos, a joint list and calendar, chat,
                 and get reminders even when the app is closed. You need a Backstage name and password to sign in.
               </p>
               <div className="appdl__cta">

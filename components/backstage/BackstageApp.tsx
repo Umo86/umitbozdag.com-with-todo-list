@@ -5,7 +5,7 @@
 // the sections sit in a bottom tab bar; inside the Android app it also keeps
 // the phone's reminders in step and handles the back button (see native.ts).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseTasks, ymd } from "@/lib/parse";
+import { parseTask, ymd } from "@/lib/parse";
 import Board from "./Board";
 import Calendar from "./Calendar";
 import UsHub, { type UsSection } from "./UsHub";
@@ -13,8 +13,7 @@ import Shopping from "./Shopping";
 import { lastWeekChampion, MOODS, nextYearly } from "./Fun";
 import { VideoGift, VideoSender, VideoWaiting, type VideoIn, type VideoOut } from "./OneTimeVideo";
 import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
-import Capture from "./Capture";
-import Dashboard, { MicIcon } from "./Dashboard";
+import Dashboard from "./Dashboard";
 import EventSheet from "./EventSheet";
 import Gate from "./Gate";
 import Messages from "./Messages";
@@ -33,7 +32,6 @@ type Sheet =
   | { kind: "task"; id: string }
   | { kind: "event"; id?: string; day?: string; preset?: { title: string; time: string; joint?: boolean } }
   | { kind: "new-task" }
-  | { kind: "capture"; listen: boolean }
   | { kind: "projects" }
   | { kind: "settings" }
   | { kind: "help" }
@@ -98,10 +96,10 @@ export default function BackstageApp() {
     if (["today", "mine", "joint", "calendar", "us", "messages"].includes(v)) setViewState(v);
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     const q = new URLSearchParams(window.location.search);
-    if (q.has("capture")) setSheet({ kind: "capture", listen: false });
+    if (q.has("capture") || q.has("add")) setSheet({ kind: "new-task" });
     const qv = q.get("view");
     if (qv && ["today", "mine", "joint", "calendar", "us"].includes(qv)) setViewState(qv as View);
-    if (q.has("view") || q.has("capture")) window.history.replaceState(null, "", "/backstage");
+    if (q.has("view") || q.has("capture") || q.has("add")) window.history.replaceState(null, "", "/backstage");
   }, []);
 
   // ——— in-page reminders (browser): check every half minute ———
@@ -160,7 +158,7 @@ export default function BackstageApp() {
       onNotification,
       onLink: (path) => {
         setViewState("today");
-        if (path === "capture") setSheet({ kind: "capture", listen: true });
+        if (path === "add") setSheet({ kind: "new-task" });
       },
       onResume: () => void live.current.refresh(),
       onBack: () => {
@@ -419,17 +417,20 @@ export default function BackstageApp() {
   const openTask = sheet?.kind === "task" ? tasks.find((t) => t.id === sheet.id) : undefined;
   const openEvent = sheet?.kind === "event" && sheet.id ? events.find((e) => e.id === sheet.id) : undefined;
 
+  // Whatever is typed into an "Add…" box is one task, however long it is.
   const addTyped = (text: string, owner: "mine" | "joint") => {
-    const drafts = parseTasks(text, { projects, others: users.filter((u) => u.id !== me.id) });
-    if (!drafts.length) return;
+    const d = parseTask(text, { projects, others: users.filter((u) => u.id !== me.id) });
+    if (!d) return;
     void bs.addDrafts(
-      drafts.map((d) => ({
-        ...d,
-        kind: "task" as const,
-        joint: owner === "joint" || d.joint,
-        assignee: owner === "joint" || d.joint ? d.assignee ?? "both" : null,
-        project_id: d.project_id ?? (owner === "mine" ? project : null),
-      })),
+      [
+        {
+          ...d,
+          kind: "task" as const,
+          joint: owner === "joint" || d.joint,
+          assignee: owner === "joint" || d.joint ? d.assignee ?? "both" : null,
+          project_id: d.project_id ?? (owner === "mine" ? project : null),
+        },
+      ],
       list
     );
   };
@@ -572,27 +573,25 @@ export default function BackstageApp() {
             onOpenEvent={(id) => setSheet({ kind: "event", id })}
             onCalendar={() => setView("calendar")}
             onPatch={bs.patchTask}
+            onDelete={bs.deleteTask}
             onPickProject={(id) => {
               setProject(id);
               setView("mine");
             }}
             onManageProjects={() => setSheet({ kind: "projects" })}
-            onCapture={() => setSheet({ kind: "capture", listen: true })}
             top={
-              <>
-                {videoIn && other && (
-                  <VideoWaiting
-                    fromName={other.name}
-                    video={videoIn}
-                    onWatch={() => {
-                      setVideoPrompt(null);
-                      setVideoPlaying(true);
-                    }}
-                  />
-                )}
-                {me.admin && other && <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} />}
-              </>
+              videoIn && other ? (
+                <VideoWaiting
+                  fromName={other.name}
+                  video={videoIn}
+                  onWatch={() => {
+                    setVideoPrompt(null);
+                    setVideoPlaying(true);
+                  }}
+                />
+              ) : null
             }
+            side={me.admin && other ? <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} /> : null}
             bs={bs}
             users={users}
             onUs={(sec) => {
@@ -648,6 +647,7 @@ export default function BackstageApp() {
                 me={me.id}
                 onOpen={(id) => setSheet({ kind: "task", id })}
                 onPatch={bs.patchTask}
+                onDelete={bs.deleteTask}
                 onAdd={(t) => addTyped(t, "mine")}
                 placeholder={`Add to ${list === "work" ? "Work" : "Personal"}…`}
               />
@@ -659,6 +659,7 @@ export default function BackstageApp() {
                 canEdit
                 onAdd={(t) => addTyped(t, "mine")}
                 onPatch={bs.patchTask}
+                onDelete={bs.deleteTask}
                 onOpen={(id) => setSheet({ kind: "task", id })}
               />
             )}
@@ -706,6 +707,7 @@ export default function BackstageApp() {
                 me={me.id}
                 onOpen={(id) => setSheet({ kind: "task", id })}
                 onPatch={bs.patchTask}
+                onDelete={bs.deleteTask}
                 onAdd={(t) => addTyped(t, "joint")}
                 placeholder="Add to the joint list…"
               />
@@ -717,6 +719,7 @@ export default function BackstageApp() {
                 canEdit
                 onAdd={(t) => addTyped(t, "joint")}
                 onPatch={bs.patchTask}
+                onDelete={bs.deleteTask}
                 onOpen={(id) => setSheet({ kind: "task", id })}
               />
             )}
@@ -767,14 +770,11 @@ export default function BackstageApp() {
           <button
             className="bs-fab plus"
             onClick={() => setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" })}
-            aria-label={view === "calendar" ? "Add an event" : "Add a task by hand"}
+            aria-label={view === "calendar" ? "Add an event" : "Add a task"}
           >
             <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-          </button>
-          <button className="bs-fab" onClick={() => setSheet({ kind: "capture", listen: true })} aria-label="Speak tasks or events">
-            <MicIcon size={26} />
           </button>
         </div>
       )}
@@ -816,18 +816,6 @@ export default function BackstageApp() {
           defaultOwner={view === "joint" ? "joint" : me.id}
           onClose={() => setSheet(null)}
           onSwitchToEvent={() => setSheet({ kind: "event", day: ymd(new Date()) })}
-        />
-      )}
-      {sheet?.kind === "capture" && (
-        <Capture
-          bs={bs}
-          me={me}
-          users={users}
-          projects={myProjects}
-          defaultList={list}
-          defaultJoint={view === "joint"}
-          autoListen={sheet.listen}
-          onClose={() => setSheet(null)}
         />
       )}
       {sheet?.kind === "projects" && <Projects bs={bs} projects={myProjects} onClose={() => setSheet(null)} />}
