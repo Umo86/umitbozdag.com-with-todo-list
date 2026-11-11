@@ -1,6 +1,15 @@
 [
   {
     "date": "2026-11-11",
+    "title": "A video, just once",
+    "items": [
+      "Umit can send Dilfiraz a video from his Today screen. It plays once, full screen, then it’s deleted for good",
+      "Dilfiraz gets a gift card and a buzz when a video is waiting; Umit sees when it has been watched",
+      "Videos up to 150 MB, with a few words to go with them"
+    ]
+  },
+  {
+    "date": "2026-11-11",
     "title": "Feel each other’s day",
     "items": [
       "When the other person changes how their day is going, a card pops up in the app with a one-tap heart",

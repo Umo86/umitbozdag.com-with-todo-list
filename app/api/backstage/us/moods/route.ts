@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { londonToday } from "@/lib/us";
+import { videoStatus } from "@/lib/video";
 
 export const dynamic = "force-dynamic";
 
 // Today's moods for both people: a small, quick check the app makes every
-// few seconds so a new "how was your day" shows up straight away.
+// few seconds so a new "how was your day" shows up straight away. It also
+// says whether a one-time video is waiting, and what happened to the last one sent.
 export async function GET(req: Request) {
   const auth = await requireUser(req);
   if (!auth.ok) return auth.res;
@@ -15,7 +17,7 @@ export async function GET(req: Request) {
       `select added_by, emoji, updated_at from us_items where kind = 'mood' and owner = 'joint' and day = $1::date`,
       [londonToday()]
     );
-    return NextResponse.json({ moods: r.rows }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ moods: r.rows, ...(await videoStatus(auth.me.id)) }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ moods: [] });
   }

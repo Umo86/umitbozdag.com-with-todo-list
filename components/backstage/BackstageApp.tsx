@@ -11,6 +11,7 @@ import Calendar from "./Calendar";
 import UsHub, { type UsSection } from "./UsHub";
 import Shopping from "./Shopping";
 import { lastWeekChampion, MOODS, nextYearly } from "./Fun";
+import { VideoGift, VideoSender, VideoWaiting, type VideoIn, type VideoOut } from "./OneTimeVideo";
 import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
 import Capture from "./Capture";
 import Dashboard, { MicIcon } from "./Dashboard";
@@ -308,6 +309,14 @@ export default function BackstageApp() {
 
   // ——— the other person's "how was your day": a card pops up when it changes ———
   const [moodAlert, setMoodAlert] = useState<{ emoji: string; n: number } | null>(null);
+  // a one-time video: one waiting for me, and what happened to the last one I sent
+  const [videoIn, setVideoIn] = useState<VideoIn | null>(null);
+  const [videoOut, setVideoOut] = useState<VideoOut | null>(null);
+  const [videoPrompt, setVideoPrompt] = useState<string | null>(null); // id to offer straight away
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const quickCheck = useRef<() => void>(() => {});
+  const playingRef = useRef(false);
+  playingRef.current = videoPlaying;
   useEffect(() => {
     if (phase.kind !== "app" || !me) return;
     const otherId = users.find((u) => u.id !== me.id)?.id;
@@ -319,7 +328,22 @@ export default function BackstageApp() {
       try {
         const r = await fetch("/api/backstage/us/moods", { cache: "no-store" });
         if (!r.ok) return;
-        const { moods } = (await r.json()) as { moods: Array<{ added_by: string; emoji: string; updated_at: string }> };
+        const { moods, video_in, video_out } = (await r.json()) as {
+          moods: Array<{ added_by: string; emoji: string; updated_at: string }>;
+          video_in?: VideoIn | null;
+          video_out?: VideoOut | null;
+        };
+        if (stop) return;
+        if (!playingRef.current) {
+          setVideoIn((cur) => {
+            if (video_in && video_in.id !== cur?.id) {
+              setVideoPrompt(video_in.id);
+              buzz(BUZZ.heart);
+            }
+            return video_in ?? null;
+          });
+        }
+        setVideoOut(video_out ?? null);
         const theirs = moods.find((m) => m.added_by === otherId);
         const key = theirs ? `${theirs.emoji}|${theirs.updated_at}` : null;
         if (stop) return;
@@ -333,6 +357,7 @@ export default function BackstageApp() {
         /* try again on the next check */
       }
     };
+    quickCheck.current = () => void check();
     void check();
     const timer = setInterval(check, 15_000);
     const onVis = () => !document.hidden && void check();
@@ -553,6 +578,21 @@ export default function BackstageApp() {
             }}
             onManageProjects={() => setSheet({ kind: "projects" })}
             onCapture={() => setSheet({ kind: "capture", listen: true })}
+            top={
+              <>
+                {videoIn && other && (
+                  <VideoWaiting
+                    fromName={other.name}
+                    video={videoIn}
+                    onWatch={() => {
+                      setVideoPrompt(null);
+                      setVideoPlaying(true);
+                    }}
+                  />
+                )}
+                {me.admin && other && <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} />}
+              </>
+            }
             bs={bs}
             users={users}
             onUs={(sec) => {
@@ -801,6 +841,32 @@ export default function BackstageApp() {
         <div className="bs-offline" role="alert">
           <strong>You&rsquo;re offline.</strong> You can look around, but changes won&rsquo;t save until you&rsquo;re back online.
         </div>
+      )}
+      {videoIn && other && (
+        <VideoGift
+          key={videoIn.id}
+          fromName={other.name}
+          video={videoIn}
+          autoPrompt={videoPrompt === videoIn.id && !sheet}
+          playing={videoPlaying}
+          onPlay={() => {
+            setVideoPrompt(null);
+            setVideoPlaying(true);
+          }}
+          onLater={() => {
+            setVideoPrompt(null);
+            setVideoPlaying(false);
+          }}
+          onDone={() => {
+            setVideoPlaying(false);
+            setVideoPrompt(null);
+            setVideoIn(null);
+          }}
+          onHeart={() => {
+            void bs.sendChat("❤️", "heart");
+            setHearts((h) => h + 1);
+          }}
+        />
       )}
       {hearts > 0 && <Hearts key={hearts} />}
       {moodAlert && other && (

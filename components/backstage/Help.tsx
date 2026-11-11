@@ -125,6 +125,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "Us › Dates: spin the roulette on your date ideas and book the winner for Saturday.",
       "Us › Memories: keep little moments; one pops up on Today now and then.",
       "Us › Gifts: a private list of gift ideas for the other person (they never see it), with a reminder two weeks before their birthday. Add your own birthday there too.",
+      "One-time video: Umit can send a video from his Today screen (Choose video). Dilfiraz gets a 🎁 card; it plays once, then it is deleted. Closing it part-way also uses it up.",
       "Joint › Shopping: a live shopping list. Type “milk, bread and eggs” to add three at once.",
     ],
   },

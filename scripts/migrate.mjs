@@ -194,6 +194,27 @@ create table if not exists app_announcements (
   title      text primary key,
   created_at timestamptz not null default now()
 );
+-- A one-time video from one person to the other: stored in pieces, deleted
+-- once it has been watched.
+create table if not exists videos (
+  id         uuid primary key default gen_random_uuid(),
+  from_user  text not null,
+  to_user    text not null,
+  mime       text not null,
+  size       bigint not null,
+  chunks     int not null,
+  note       text,
+  ready      boolean not null default false,
+  created_at timestamptz not null default now(),
+  opened_at  timestamptz,
+  watched_at timestamptz
+);
+create table if not exists video_chunks (
+  video_id uuid not null references videos(id) on delete cascade,
+  idx      int not null,
+  data     bytea not null,
+  primary key (video_id, idx)
+);
 create table if not exists devices (
   id         uuid primary key default gen_random_uuid(),
   user_id    text not null,

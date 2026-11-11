@@ -46,6 +46,7 @@ export default function Dashboard({
   bs,
   users,
   onUs,
+  top,
 }: {
   me: Me;
   tasks: Task[];
@@ -61,6 +62,7 @@ export default function Dashboard({
   bs: Backstage;
   users: Person[];
   onUs: (section: "gifts" | "memories") => void;
+  top?: React.ReactNode; // extra cards under the mood bar (the one-time video)
 }) {
   const today = ymd(new Date());
   const in7 = ymd(new Date(Date.now() + 7 * DAY));
@@ -113,6 +115,7 @@ export default function Dashboard({
       </div>
 
       <MoodBar bs={bs} me={me} users={users} />
+      {top}
       <BirthdayNote bs={bs} me={me} users={users} onGifts={() => onUs("gifts")} />
 
       <div className="bs-dash-grid">
