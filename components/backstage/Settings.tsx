@@ -3,7 +3,7 @@
 // You: who's signed in, help, reminder and notification settings, and
 // signing out.
 import { useEffect, useState } from "react";
-import { exactAlarms, isApp, openExactAlarmSetting, prepareNotifications } from "./native";
+import { exactAlarms, forgetPush, hasPush, isApp, openExactAlarmSetting, prepareNotifications } from "./native";
 import { disablePush, enablePush, pushState, type PushState } from "./push";
 import type { Me } from "./types";
 import type { Backstage } from "./useBackstage";
@@ -52,8 +52,24 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
         <h3 className="bs-sub">Reminders and notifications</h3>
         {isApp() ? (
           <>
-            <p className="bs-hint">Reminders are set on this phone, so they go off even when the app is closed.</p>
+            <p className="bs-hint">
+              Reminders are set on this phone, so they go off even when the app is closed.{" "}
+              {hasPush()
+                ? "Hearts, messages and changes to joint to-dos arrive as notifications too, even with the app closed."
+                : "Hearts and messages show when you open the app; a newer version of the app delivers them as notifications when it is closed."}
+            </p>
             <div className="bs-row-btns">
+              {hasPush() && (
+                <button
+                  className="btn ghost"
+                  onClick={() => {
+                    bs.say("A test notification is coming in about 6 seconds. Close the app now to see it arrive.");
+                    bs.api("/push/test", { method: "POST", body: {} }).catch((e: Error) => bs.say(e.message, "error"));
+                  }}
+                >
+                  Send me a test notification
+                </button>
+              )}
               <button
                 className="btn ghost"
                 onClick={() =>
@@ -125,7 +141,13 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
           <a className="bs-link" href="/app/updates" target="_blank" rel="noreferrer">
             What&rsquo;s new · version {(process.env.NEXT_PUBLIC_BUILD_ID || "dev").slice(0, 7)}
           </a>
-          <button className="btn ghost" onClick={bs.signOut}>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              // this phone stops getting your notifications, then sign out
+              void forgetPush((token) => bs.api("/push/fcm", { method: "DELETE", body: { token } })).finally(bs.signOut);
+            }}
+          >
             Sign out
           </button>
         </div>

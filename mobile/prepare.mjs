@@ -28,3 +28,30 @@ const icon = `<svg viewBox="0 0 108 108" aria-hidden="true"><rect width="108" he
 writeFileSync(new URL("index.html", www), page(`${icon}<h1>Backstage</h1><p>Opening…</p><script>location.replace(${JSON.stringify(site + "/backstage")})</script>`));
 writeFileSync(new URL("offline.html", www), page(`${icon}<h1>No connection</h1><p>Backstage needs the internet to load your tasks. Reminders already set on this phone will still go off.</p><a href="${site}/backstage">Try again</a>`));
 console.log("prepared app pages for", site);
+
+// Push notifications (Firebase Cloud Messaging). The Firebase config is kept
+// out of the public repo: the build gets it from the GOOGLE_SERVICES_JSON
+// secret. When it is there, the app is marked "BackstageFCM" in its user agent
+// so the page knows it is safe to register for push; without it the app
+// builds and runs exactly as before, just without push.
+const fcm = (process.env.GOOGLE_SERVICES_JSON ?? "").trim();
+if (fcm) {
+  let ok = false;
+  try {
+    const cfg = JSON.parse(fcm);
+    const config = JSON.parse(readFileSync(new URL("./capacitor.config.json", import.meta.url)));
+    ok = (cfg.client ?? []).some((c) => c?.client_info?.android_client_info?.package_name === config.appId);
+    if (ok) {
+      writeFileSync(new URL("./android/app/google-services.json", import.meta.url), JSON.stringify(cfg));
+      if (!/BackstageFCM\//.test(config.android.appendUserAgent)) config.android.appendUserAgent += " BackstageFCM/1";
+      writeFileSync(new URL("./capacitor.config.json", import.meta.url), JSON.stringify(config, null, 2) + "\n");
+      console.log("push notifications: on (Firebase project", cfg.project_info?.project_id + ")");
+    } else {
+      console.warn(`push notifications: OFF. GOOGLE_SERVICES_JSON has no Android app with the package name ${config.appId}.`);
+    }
+  } catch (e) {
+    console.warn("push notifications: OFF. GOOGLE_SERVICES_JSON is not valid JSON:", e.message);
+  }
+} else {
+  console.log("push notifications: off (no GOOGLE_SERVICES_JSON secret set)");
+}

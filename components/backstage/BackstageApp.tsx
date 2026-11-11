@@ -23,7 +23,7 @@ import Settings from "./Settings";
 import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
 import { enablePush, pushState } from "./push";
-import { BUZZ, buzz, isApp, listen, prepareNotifications, syncReminders, type Extra, type NotificationAction } from "./native";
+import { BUZZ, buzz, isApp, listen, prepareNotifications, registerPush, syncReminders, type Extra, type NotificationAction } from "./native";
 import { forMe, nameOf, type ListName } from "./types";
 import { useBackstage } from "./useBackstage";
 
@@ -153,7 +153,18 @@ export default function BackstageApp() {
   useEffect(() => {
     if (phase.kind !== "app" || !isApp()) return;
     let off = () => {};
-    void prepareNotifications().then((p) => setNotifOff(p !== "granted"));
+    void prepareNotifications().then((p) => {
+      setNotifOff(p !== "granted");
+      if (p !== "granted") return;
+      // push: hearts, messages and joint to-dos reach this phone when the app is closed
+      void registerPush(
+        (token) => bs.api("/push/fcm", { method: "POST", body: { token } }),
+        (url) => {
+          const view = /[?&]view=(joint|calendar|mine|today|us)\b/.exec(url)?.[1] as View | undefined;
+          if (view) setViewState(view);
+        }
+      );
+    });
     void listen({
       onNotification,
       onLink: (path) => {

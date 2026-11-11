@@ -42,6 +42,7 @@ a private task manager behind one password, storing its data in Neon Postgres.
 | `DATABASE_URL` | from Neon | pooled connection string (`-pooler` host) — keep it secret |
 | `BACKSTAGE_PASSWORD` | Umit's Backstage password | keep it secret; changing it signs Umit out everywhere |
 | `APP_PAGE_PASSWORD_HASH` | optional | the `/app` pages' own password, stored as a scrypt hash (`scrypt:<salt>:<hash>`), never the password itself. Without it they open with Umit's Backstage password |
+| `FCM_SERVICE_ACCOUNT` | optional | push notifications to the Android app (Firebase Cloud Messaging): the service-account JSON from Firebase › Project settings › Service accounts › Generate new private key, pasted whole. Keep it secret. Without it the app only gets reminders |
 | `BACKSTAGE_SECRET` | optional | extra random text mixed into the session signature |
 
 Until these are set, the public site works fully and `/backstage` shows a
@@ -112,6 +113,10 @@ A small Capacitor app that opens Backstage at the address in
 - reminders scheduled **on the phone**, so they go off with the app closed,
   each with **Done** and **Snooze 1h** buttons, plus an 8am summary
 - an **Add a task** shortcut (long-press the app icon)
+- **push notifications** (hearts, messages, joint to-dos) with the app closed, when
+  Firebase is set up: the GitHub secret `GOOGLE_SERVICES_JSON` (the file Firebase gives
+  you for the Android app `com.umitbozdag.backstage`) for the build, and
+  `FCM_SERVICE_ACCOUNT` on Vercel for the server. Neither is ever committed
 - an offline page when there's no signal
 
 Reminders added on a computer reach the phone the next time the app is

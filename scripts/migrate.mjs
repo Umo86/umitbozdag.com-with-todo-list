@@ -217,6 +217,15 @@ create table if not exists video_chunks (
   data     bytea not null,
   primary key (video_id, idx)
 );
+-- Phones with the Android app, for push notifications (Firebase Cloud
+-- Messaging). One row per installed app; the token is Firebase's address for it.
+create table if not exists fcm_tokens (
+  token      text primary key,
+  user_id    text not null,
+  created_at timestamptz not null default now(),
+  last_seen  timestamptz not null default now()
+);
+create index if not exists fcm_tokens_user_idx on fcm_tokens (user_id);
 create table if not exists devices (
   id         uuid primary key default gen_random_uuid(),
   user_id    text not null,

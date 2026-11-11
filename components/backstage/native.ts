@@ -8,6 +8,8 @@
 // - each reminder has Done and Snooze 1h buttons
 // - an 8am summary for each of the next 7 days
 // - "Add a task" shortcut and backstage:// links
+// - push notifications (Firebase Cloud Messaging): hearts, messages and joint
+//   to-dos reach the phone while the app is closed
 import { Capacitor } from "@capacitor/core";
 import { occurrences } from "./calendar";
 import { forMe, type CalEvent, type Task, type UserId } from "./types";
@@ -250,4 +252,66 @@ export function buzz(pattern: number[]) {
   } catch {
     /* not supported */
   }
+}
+
+// ——— push notifications (Firebase Cloud Messaging) ———
+// Only an app built with the Firebase config can register (asking Firebase
+// for an address without it would crash the app), and such a build says so in
+// its user agent: "BackstageFCM/1" (see mobile/prepare.mjs).
+export const hasPush = () => isApp() && /\bBackstageFCM\//.test(navigator.userAgent);
+const PUSH_KEY = "backstage:push-address";
+
+/**
+ * Register this phone for push: asks Firebase for the phone's address and
+ * hands it to `save` (which gives it to the server). `onOpen` gets the link
+ * of a notification the person tapped. Safe to call on every start.
+ */
+export async function registerPush(save: (token: string) => Promise<unknown>, onOpen: (url: string) => void): Promise<"on" | "denied" | "off"> {
+  if (!hasPush()) return "off";
+  try {
+    const { PushNotifications: PN } = await import("@capacitor/push-notifications");
+    let perm = await PN.checkPermissions();
+    if (perm.receive !== "granted") perm = await PN.requestPermissions();
+    if (perm.receive !== "granted") return "denied";
+    await PN.createChannel({
+      id: "backstage",
+      name: "Hearts, messages and updates",
+      description: "When the other person sends a heart or a message, or changes something you share",
+      importance: 4,
+      visibility: 1,
+      vibration: true,
+    }).catch(() => {});
+    await PN.removeAllListeners();
+    await PN.addListener("registration", (t) => {
+      try {
+        localStorage.setItem(PUSH_KEY, t.value);
+      } catch {
+        /* fine */
+      }
+      void save(t.value).catch(() => {});
+    });
+    await PN.addListener("registrationError", (e) => console.warn("push registration failed:", e.error));
+    await PN.addListener("pushNotificationActionPerformed", (a) => {
+      const url = (a.notification.data as { url?: string } | undefined)?.url;
+      if (url) onOpen(url);
+    });
+    await PN.register();
+    return "on";
+  } catch (e) {
+    console.warn("push setup failed:", e);
+    return "off";
+  }
+}
+
+/** Signing out: this phone stops getting the person's notifications. */
+export async function forgetPush(drop: (token: string) => Promise<unknown>): Promise<void> {
+  if (!hasPush()) return;
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem(PUSH_KEY);
+    localStorage.removeItem(PUSH_KEY);
+  } catch {
+    /* fine */
+  }
+  if (token) await drop(token).catch(() => {});
 }

@@ -43,6 +43,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <!-- Push notifications (hearts, messages, joint to-dos): icon, colour and channel
+             used when one arrives while the app is closed. -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_backstage" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/backstage_blue" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="backstage" />
     </application>
 
     <!-- Permissions -->

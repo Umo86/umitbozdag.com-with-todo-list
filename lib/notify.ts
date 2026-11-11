@@ -1,11 +1,14 @@
 import webpush from "web-push";
 import { db } from "./db";
 import { nameOf } from "./names";
+import { fcmReady, sendFcm } from "./fcm";
 
-// Tells the other person something happened, without Firebase:
+// Tells the other person something happened, wherever they are:
 // - browsers that switched notifications on get a Web Push at once
 //   (keys in VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY; subscriptions in push_subs)
-// - inside the Android app, new messages pop up while it's open (polling)
+// - the Android app gets a push through Firebase Cloud Messaging, so it
+//   arrives with the app closed (see lib/fcm.ts; phones in fcm_tokens)
+// - an open Backstage also hears about everything by itself (the heartbeat)
 
 let ready: boolean | null = null;
 function setup(): boolean {
@@ -20,8 +23,23 @@ export const pushKey = () => process.env.VAPID_PUBLIC_KEY ?? "";
 
 export type Note = { title: string; body: string; url?: string; tag?: string };
 
-/** Push a note to every browser the person switched notifications on in. Never throws. */
+/** Push a note to every browser and phone the person switched notifications on in. Never throws. */
 export async function notify(userId: string, note: Note): Promise<void> {
+  await Promise.all([toBrowsers(userId, note), toPhones(userId, note)]);
+}
+
+async function toPhones(userId: string, note: Note): Promise<void> {
+  if (!fcmReady()) return;
+  try {
+    const r = await db().query(`select token from fcm_tokens where user_id = $1`, [userId]);
+    const dead = await sendFcm(r.rows.map((x) => x.token as string), note);
+    if (dead.length) await db().query(`delete from fcm_tokens where token = any($1::text[])`, [dead]);
+  } catch (err) {
+    console.error("notify (phones) error:", err);
+  }
+}
+
+async function toBrowsers(userId: string, note: Note): Promise<void> {
   if (!setup()) return;
   try {
     const subs = await db().query(`select id, endpoint, p256dh, auth from push_subs where user_id = $1`, [userId]);
