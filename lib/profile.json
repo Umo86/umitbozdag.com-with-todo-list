@@ -193,7 +193,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "uk-construction-week-birmingham",
@@ -217,7 +218,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "futurebuild",
@@ -241,7 +243,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "stone-and-surfaces-show",
@@ -265,7 +268,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "gastech-2026-bangkok",
@@ -287,7 +291,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "gastech-2025",
@@ -315,7 +320,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "world-lng-summit-2025",
@@ -363,7 +369,8 @@
           "url": "https://worldlngsummit.com/content-media-hub/2025-photo-gallery/"
         }
       ],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "bharat-electricity-summit-2025",
@@ -385,7 +392,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "breakbulk-europe",
@@ -414,7 +422,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "breakbulk-americas",
@@ -440,7 +449,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "pure-london",
@@ -463,7 +473,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "source-fashion",
@@ -486,7 +497,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     },
     {
       "id": "world-travel-market-london",
@@ -529,7 +541,15 @@
           "url": "https://www.avrupatimes.com/world-travel-market-2013-turkish-culture-and-tourism"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": {
+        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Catalunya_a_la_World_Travel_Market_%2807-11-2022%29.JPG/1280px-Catalunya_a_la_World_Travel_Market_%2807-11-2022%29.JPG",
+        "caption": "The show floor at World Travel Market London, ExCeL, November 2022 (Catalonia’s stand in view).",
+        "credit": "Government of Catalonia",
+        "source": "https://commons.wikimedia.org/wiki/File:Catalunya_a_la_World_Travel_Market_(07-11-2022).JPG",
+        "licence": "free to use with attribution",
+        "licenceUrl": ""
+      }
     },
     {
       "id": "wtm-africa",
@@ -571,7 +591,8 @@
           "url": "https://turob.com/en_US/news/2017/show/1298/the-wtm-africa-tourism-fair-has-begun"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "holiday-world-show-dublin",
@@ -594,7 +615,8 @@
       ],
       "highlights": [],
       "press": [],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "destinations-show",
@@ -624,7 +646,8 @@
           "url": "https://www.breakingtravelnews.com/news/article/turkey-set-to-thrill-at-destinations-london/"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "international-confex",
@@ -654,7 +677,8 @@
           "url": "https://www.breakingtravelnews.com/news/article/international-confex-reports-stellar-line-up-for-its-30th-anniversary-show/"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "the-meetings-show",
@@ -696,7 +720,8 @@
           "url": "https://www.avrupatimes.com/business/istanbul-to-premiere-inspiring-multimedia-intro-package-that-showcases-the-city-at-the-meetings-show-uk-h4852.html"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "london-boat-show",
@@ -725,7 +750,8 @@
           "url": "https://avrupatimes.com/business/turkey-sailing-ahead-h3528.html"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "london-book-fair",
@@ -772,7 +798,8 @@
           "url": "https://www.hurriyetdailynews.com/turkish-culture-minister-promotes-london-book-fair-44043"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "london-fashion-week",
@@ -823,7 +850,8 @@
           "url": "https://www.dailysabah.com/fashion/2017/09/20/turkish-designers-new-collection-presented-in-london"
         }
       ],
-      "side": "sponsor"
+      "side": "sponsor",
+      "photo": null
     },
     {
       "id": "taste-of-london",
@@ -865,7 +893,8 @@
           "url": "https://www.anews.com.tr/gallery/turkey/turkish-cuisine-introduced-at-london-food-festival/amp"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "liverpool-food-and-drink-festival",
@@ -912,7 +941,8 @@
           "url": "https://turkeydestination.blogspot.com/2015/09/taste-of-turkey-at-liverpool-food-and.html"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": null
     },
     {
       "id": "rhs-hampton-court-2015",
@@ -958,7 +988,15 @@
           "url": "https://www.floraldaily.com/article/9001281/uk-apl-members-at-rhs-hampton-2015"
         }
       ],
-      "side": "exhibitor"
+      "side": "exhibitor",
+      "photo": {
+        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/2015_Hampton_Court_Flower_Show_01.JPG/1280px-2015_Hampton_Court_Flower_Show_01.JPG",
+        "caption": "Inside the Floral Marquee at the RHS Hampton Court Palace Flower Show, 3 July 2015.",
+        "credit": "Jonathan Cardy",
+        "source": "https://commons.wikimedia.org/wiki/File:2015_Hampton_Court_Flower_Show_01.JPG",
+        "licence": "CC BY-SA 3.0",
+        "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+      }
     },
     {
       "id": "turkiye-roadshows",
@@ -988,7 +1026,8 @@
           "url": "https://turkeydestination.blogspot.com/2015/11/hundreds-trained-at-turkey-roadshow.html"
         }
       ],
-      "side": "organiser"
+      "side": "organiser",
+      "photo": null
     }
   ],
   "experience": [

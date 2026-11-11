@@ -146,11 +146,38 @@ export default async function ShowPage({ params }: Params) {
         <section className="showbody">
           <div className="wrap">
             <div>
-              {show.image && (
-                <figure className="showbody__figure">
+              {show.photo ? (
+                <figure className="showbody__figure showbody__figure--photo">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={show.image} alt="" loading="lazy" />
+                  <img src={show.photo.src} alt={show.photo.caption} loading="lazy" referrerPolicy="no-referrer" />
+                  <figcaption>
+                    {show.photo.caption}{" "}
+                    <span>
+                      Photo:{" "}
+                      <a href={show.photo.source} target="_blank" rel="noopener nofollow">
+                        {show.photo.credit}
+                      </a>
+                      {show.photo.licenceUrl ? (
+                        <>
+                          ,{" "}
+                          <a href={show.photo.licenceUrl} target="_blank" rel="noopener nofollow">
+                            {show.photo.licence}
+                          </a>
+                        </>
+                      ) : (
+                        `, ${show.photo.licence}`
+                      )}
+                      .
+                    </span>
+                  </figcaption>
                 </figure>
+              ) : (
+                show.image && (
+                  <figure className="showbody__figure">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={show.image} alt="" loading="lazy" />
+                  </figure>
+                )
               )}
               <p className="showbody__summary">{show.summary}</p>
               {show.highlights.length > 0 && (

@@ -530,3 +530,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .evt-short .evt__side{align-self:flex-start;margin-bottom:6px}
 .evt-short a span:nth-of-type(1){color:var(--text)}
 .footer nav{flex-wrap:wrap;row-gap:8px}
+.showbody__figure--photo figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.45}
+.showbody__figure--photo figcaption span{color:var(--soft)}
+.showbody__figure--photo figcaption a{text-decoration:underline}
+.showbody__figure--photo{background:none;overflow:visible}.showbody__figure--photo img{border-radius:14px;aspect-ratio:3/2;object-fit:cover}
