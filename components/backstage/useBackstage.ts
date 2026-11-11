@@ -313,6 +313,45 @@ export function useBackstage() {
   const chatRef = useRef<ChatMessage[]>([]);
   chatRef.current = chat;
   /** Fetch all (first time) or only new messages. Returns the new ones from the other person. */
+  // A new message or heart from the other person is announced exactly once,
+  // whoever fetched it (the regular check, opening the chat, a nudge) and
+  // whichever screen is open. A marker on this device remembers how far the
+  // announcing has got, so a heart sent while Backstage was closed still shows
+  // on the next open, and nothing is announced twice.
+  const incomingHandler = useRef<((fresh: ChatMessage[]) => void) | null>(null);
+  const onIncoming = useCallback((fn: ((fresh: ChatMessage[]) => void) | null) => {
+    incomingHandler.current = fn;
+  }, []);
+  const chatMark = useRef<number | null>(null);
+  const announce = useCallback(
+    (messages: ChatMessage[]) => {
+      if (!me) return;
+      const store = `backstage:chat-mark:${me.id}`;
+      if (chatMark.current === null) {
+        try {
+          chatMark.current = Number(localStorage.getItem(store)) || 0;
+        } catch {
+          chatMark.current = 0;
+        }
+      }
+      const mark = chatMark.current;
+      const at = (m: ChatMessage) => new Date(m.created_at).getTime();
+      const theirs = messages.filter((m) => m.sender !== me.id && !m.pending);
+      // first time on this device: only what's unread and recent, not the whole history
+      const fresh = theirs.filter((m) => at(m) > mark && (mark > 0 || (!m.read_at && Date.now() - at(m) < 12 * 3_600_000)));
+      const newest = theirs.reduce((a, m) => Math.max(a, at(m)), mark);
+      if (newest > mark) {
+        chatMark.current = newest;
+        try {
+          localStorage.setItem(store, String(newest));
+        } catch {
+          /* private mode: the ref still stops repeats */
+        }
+      }
+      if (fresh.length) incomingHandler.current?.(fresh);
+    },
+    [me]
+  );
   const pollChat = useCallback(
     async (full = false): Promise<ChatMessage[]> => {
       const last = chatRef.current[chatRef.current.length - 1];
@@ -321,6 +360,7 @@ export function useBackstage() {
       );
       setChatUnread(r.unread);
       setSeenUpTo(r.seen_up_to);
+      announce(r.messages);
       if (full || !last) {
         setChat(r.messages);
         return [];
@@ -330,7 +370,7 @@ export function useBackstage() {
       if (fresh.length) setChat((prev) => [...prev, ...fresh]);
       return fresh.filter((m) => m.sender !== me?.id);
     },
-    [api, me]
+    [api, me, announce]
   );
   const pollChatRef = useRef<((full?: boolean) => Promise<ChatMessage[]>) | null>(null);
   pollChatRef.current = pollChat;
@@ -606,6 +646,7 @@ export function useBackstage() {
     chatUnread,
     seenUpTo,
     pollChat,
+    onIncoming,
     sendChat,
     dropChat,
     deleteChat,

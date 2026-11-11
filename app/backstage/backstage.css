@@ -486,7 +486,7 @@
 .bs-welcome .dots i.on{background:var(--accent);width:20px;border-radius:4px}
 .bs-welcome .bs-drawer-foot{border-top:none;padding-top:8px}
 .badge.us{background:#e0457b}
-.bs-hearts{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.bs-hearts{position:fixed;inset:0;pointer-events:none;z-index:95;overflow:hidden}
 .bs-hearts span{position:absolute;bottom:-40px;animation:bs-float 2.6s ease-in forwards}
 @keyframes bs-float{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translateY(-105vh) scale(1.2) rotate(18deg);opacity:0}}
 
@@ -653,7 +653,12 @@
   .bs-us .bs-chat{height:calc(100dvh - 205px - env(safe-area-inset-bottom) - env(safe-area-inset-top))}
 }
 @media (prefers-reduced-motion: reduce){
-  .bs-hearts,.bs-confetti{display:none}
+  .bs-confetti{display:none}
+  /* hearts still show with animations switched off on the phone: they fade in and out in place */
+  .bs-hearts span{animation:bs-heartfade 3s ease forwards;bottom:20%}
+  .bs-hearts span:nth-child(3n+1){bottom:45%}
+  .bs-hearts span:nth-child(3n+2){bottom:70%}
+  .bs-hearts span:nth-child(n+13){display:none}
   .bs-lovenote button{animation:none}
 }
 .bs-due span{flex:1;font-size:14px}
@@ -756,3 +761,4 @@
 @media (prefers-reduced-motion:reduce){.bs-match.pop,.bs-match.pop .e{animation:none}}
 .bs-matchpop .bs-confetti{z-index:81}
 .bs-app:has(.bs-matchpop) .bs-fabs{display:none}
+@keyframes bs-heartfade{0%{opacity:0}20%,70%{opacity:1}100%{opacity:0}}

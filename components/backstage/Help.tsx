@@ -112,7 +112,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
   {
     q: "The fun stuff (Us tab and Today)",
     a: [
-      "❤️ in the top bar: sends a heart. Floating hearts pop up for the other person.",
+      "❤️ in the top bar: sends a heart. Floating hearts pop up for the other person, whichever screen they are on.",
       "Mood: pick how you feel on the Today screen. The other person gets a pop-up and a buzz within seconds (🤗 = needs a hug).",
       "Countdowns: add a date (holiday, anniversary) and watch the days drop. Confetti on the day.",
       "Chore battle: ticking off a joint to-do scores a point (urgent = 2). Last week's winner wears the 👑.",

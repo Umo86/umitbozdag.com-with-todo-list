@@ -265,45 +265,53 @@ export default function BackstageApp() {
     else if (shouldShowNew()) setSheet((s) => s ?? { kind: "whatsnew" });
   }, [phase.kind, me]);
 
-  // ——— chat: look for new messages (often while it's open, now and then otherwise) ———
+  // ——— chat: new messages and hearts, on every screen ———
+  // One steady check every few seconds (it doesn't restart when you change
+  // screen). Whatever arrives is announced by the handler below: floating
+  // hearts and a buzz for a heart, a buzz and a toast for a message.
   const [hearts, setHearts] = useState(0);
   const [notifOff, setNotifOff] = useState(false);
+  const chatLive = useRef({ poll: bs.pollChat, say: bs.say });
+  chatLive.current = { poll: bs.pollChat, say: bs.say };
+  const onIncoming = bs.onIncoming;
   useEffect(() => {
     if (phase.kind !== "app" || !me) return;
-    let stop = false;
-    const tick = async () => {
-      if (document.hidden || !navigator.onLine) return;
-      try {
-        const fresh = await bs.pollChat(false);
-        if (stop || !fresh.length) return;
-        if (fresh.some((m) => m.kind === "heart")) {
-          setHearts((h) => h + 1);
-          buzz(BUZZ.heart);
-        } else buzz(BUZZ.message);
-        const last = fresh[fresh.length - 1];
-        if (live.current.view !== "us" || live.current.usSection !== "chat") {
-          bs.say(
-            last.kind === "heart" ? `${nameOf(last.sender)} is thinking of you ❤️` : `💬 ${nameOf(last.sender)}: ${last.body.slice(0, 80)}`,
-            "info",
-            {
-              label: "Open",
-              run: () => {
-                setUsSection("chat");
-                setView("us");
-              },
-            }
-          );
-        }
-      } catch {
-        /* the next tick tries again */
+    onIncoming((fresh) => {
+      if (fresh.some((m) => m.kind === "heart")) {
+        setHearts((h) => h + 1);
+        buzz(BUZZ.heart);
+      } else buzz(BUZZ.message);
+      const last = fresh[fresh.length - 1];
+      if (live.current.view !== "us" || live.current.usSection !== "chat") {
+        chatLive.current.say(
+          last.kind === "heart" ? `${nameOf(last.sender)} is thinking of you ❤️` : `💬 ${nameOf(last.sender)}: ${last.body.slice(0, 80)}`,
+          "info",
+          {
+            label: "Open",
+            run: () => {
+              setUsSection("chat");
+              setView("us");
+            },
+          }
+        );
       }
+    });
+    const tick = () => {
+      if (document.hidden || !navigator.onLine) return;
+      chatLive.current.poll(false).catch(() => {
+        /* the next tick tries again */
+      });
     };
-    const timer = setInterval(tick, view === "us" && usSection === "chat" ? 4000 : 20000);
+    tick();
+    const timer = setInterval(tick, 5000);
+    const onVis = () => !document.hidden && tick();
+    document.addEventListener("visibilitychange", onVis);
     return () => {
-      stop = true;
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+      onIncoming(null);
     };
-  }, [phase.kind, me, view, usSection, bs, setView]);
+  }, [phase.kind, me, onIncoming, setView]);
 
   // ——— the other person's "how was your day": a card pops up when it changes ———
   const [moodAlert, setMoodAlert] = useState<{ emoji: string; n: number } | null>(null);

@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-11",
+    "title": "Hearts on every screen",
+    "items": [
+      "A heart from the other person now floats up whichever screen you are on, even with a task or sheet open",
+      "Hearts and messages arrive within about 5 seconds, and no longer get missed when you move between screens",
+      "A heart sent while Backstage was closed shows when you next open it",
+      "Hearts still show on phones that have animations switched off"
+    ]
+  },
+  {
+    "date": "2026-11-11",
     "title": "Dinner match, shown to both of you",
     "items": [
       "When you both say yes to the same dish, each of you gets a pop-up with the dish, wherever you are in Backstage",
