@@ -194,7 +194,15 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "oSSIckJJbvA",
+          "title": "UKCW26 London: day 1 highlights",
+          "channel": "UK Construction Week",
+          "published": "May 2026"
+        }
+      ]
     },
     {
       "id": "uk-construction-week-birmingham",
@@ -219,7 +227,15 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "IvDPozzjyCE",
+          "title": "UKCW Birmingham: day 1 highlights",
+          "channel": "UK Construction Week",
+          "published": "September 2026"
+        }
+      ]
     },
     {
       "id": "futurebuild",
@@ -244,7 +260,15 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "uBzEt3475R4",
+          "title": "Futurebuild 2026 highlights",
+          "channel": "Futurebuild",
+          "published": "August 2026"
+        }
+      ]
     },
     {
       "id": "stone-and-surfaces-show",
@@ -269,7 +293,8 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": []
     },
     {
       "id": "gastech-2026-bangkok",
@@ -292,7 +317,15 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "3ZivHohMD4w",
+          "title": "Gastech 2026 wrap-up",
+          "channel": "Gastech",
+          "published": "September 2026"
+        }
+      ]
     },
     {
       "id": "gastech-2025",
@@ -321,7 +354,21 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "wk6sUwH7WRc",
+          "title": "Gastech 2025: day 1 wrap-up",
+          "channel": "Gastech",
+          "published": "September 2025"
+        },
+        {
+          "id": "GKTRfQFD7YE",
+          "title": "Gastech 2025: day 4 wrap-up",
+          "channel": "Gastech",
+          "published": "September 2025"
+        }
+      ]
     },
     {
       "id": "world-lng-summit-2025",
@@ -370,7 +417,21 @@
         }
       ],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "2nfUGUBPloE",
+          "title": "World LNG Summit & Awards 2025 highlights",
+          "channel": "World LNG Summit & Awards",
+          "published": "February 2026"
+        },
+        {
+          "id": "47gD6e1OFEI",
+          "title": "World LNG Summit & Awards 2025: first day highlights",
+          "channel": "World LNG Summit & Awards",
+          "published": "December 2025"
+        }
+      ]
     },
     {
       "id": "bharat-electricity-summit-2025",
@@ -393,7 +454,8 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": []
     },
     {
       "id": "breakbulk-europe",
@@ -423,7 +485,21 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "g8Y-90d1u0A",
+          "title": "Breakbulk Europe 2023: official event video",
+          "channel": "Breakbulk Events & Media",
+          "published": "June 2023"
+        },
+        {
+          "id": "WxiRouJydRI",
+          "title": "Breakbulk Europe 2024: opening day",
+          "channel": "Breakbulk Events & Media",
+          "published": "May 2024"
+        }
+      ]
     },
     {
       "id": "breakbulk-americas",
@@ -450,7 +526,21 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "RPfhBja6_-s",
+          "title": "Breakbulk Americas 2024: day 1 highlights",
+          "channel": "Breakbulk Events & Media",
+          "published": "July 2025"
+        },
+        {
+          "id": "yXF52cBvKfM",
+          "title": "Breakbulk Americas 2023: welcome reception recap",
+          "channel": "Breakbulk Events & Media",
+          "published": "September 2023"
+        }
+      ]
     },
     {
       "id": "pure-london",
@@ -474,7 +564,15 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "YfKfRik1DxU",
+          "title": "Pure London: the UK’s largest festival of fashion",
+          "channel": "Pure London x JATC",
+          "published": "July 2023"
+        }
+      ]
     },
     {
       "id": "source-fashion",
@@ -498,7 +596,21 @@
       "highlights": [],
       "press": [],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": [
+        {
+          "id": "bqig257VPX8",
+          "title": "Source Fashion: July 2024 highlights",
+          "channel": "Source Fashion",
+          "published": "July 2024"
+        },
+        {
+          "id": "DVGAC0n-uqw",
+          "title": "Source Fashion: recap of February 2024",
+          "channel": "Source Fashion",
+          "published": "April 2024"
+        }
+      ]
     },
     {
       "id": "world-travel-market-london",
@@ -542,14 +654,49 @@
         }
       ],
       "side": "exhibitor",
-      "photo": {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Catalunya_a_la_World_Travel_Market_%2807-11-2022%29.JPG/1280px-Catalunya_a_la_World_Travel_Market_%2807-11-2022%29.JPG",
-        "caption": "The show floor at World Travel Market London, ExCeL, November 2022 (Catalonia’s stand in view).",
-        "credit": "Government of Catalonia",
-        "source": "https://commons.wikimedia.org/wiki/File:Catalunya_a_la_World_Travel_Market_(07-11-2022).JPG",
-        "licence": "free to use with attribution",
-        "licenceUrl": ""
-      }
+      "gallery": [
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Catalunya_a_la_World_Travel_Market_%2807-11-2022%29.JPG/1280px-Catalunya_a_la_World_Travel_Market_%2807-11-2022%29.JPG",
+          "caption": "The show floor at World Travel Market London, ExCeL, November 2022 (Catalonia’s stand in view).",
+          "credit": "Government of Catalonia",
+          "source": "https://commons.wikimedia.org/wiki/File:Catalunya_a_la_World_Travel_Market_(07-11-2022).JPG",
+          "licence": "free to use with attribution",
+          "licenceUrl": ""
+        },
+        {
+          "src": "https://live.staticflickr.com/5527/30777706862_84e5ab348f_b.jpg",
+          "caption": "Looking across the stands at World Travel Market London, ExCeL, 8 November 2016.",
+          "credit": "osde8info on Flickr",
+          "source": "https://www.flickr.com/photos/osde-info/30777706862/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/5443/30592431770_807384c196_b.jpg",
+          "caption": "A busy aisle at World Travel Market London, 8 November 2016.",
+          "credit": "osde8info on Flickr",
+          "source": "https://www.flickr.com/photos/osde-info/30592431770/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/5641/30261587894_cef4aa24e7_b.jpg",
+          "caption": "Destination stands at World Travel Market London, 8 November 2016.",
+          "credit": "osde8info on Flickr",
+          "source": "https://www.flickr.com/photos/osde-info/30261587894/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/5468/30857540886_7ce66264a8_b.jpg",
+          "caption": "The show floor at World Travel Market London, 8 November 2016.",
+          "credit": "osde8info on Flickr",
+          "source": "https://www.flickr.com/photos/osde-info/30857540886/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "wtm-africa",
@@ -592,7 +739,25 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [
+        {
+          "src": "https://live.staticflickr.com/7080/26397926954_84cf77000e_b.jpg",
+          "caption": "A conference session at WTM Africa, Cape Town, April 2016.",
+          "credit": "The Travel Manuel on Flickr",
+          "source": "https://www.flickr.com/photos/73796220@N04/26397926954/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/7285/26397917114_71919e5b24_b.jpg",
+          "caption": "On stage at WTM Africa, Cape Town, April 2016.",
+          "credit": "The Travel Manuel on Flickr",
+          "source": "https://www.flickr.com/photos/73796220@N04/26397917114/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "holiday-world-show-dublin",
@@ -616,7 +781,8 @@
       "highlights": [],
       "press": [],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [],
+      "videos": []
     },
     {
       "id": "destinations-show",
@@ -647,7 +813,8 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [],
+      "videos": []
     },
     {
       "id": "international-confex",
@@ -678,7 +845,8 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [],
+      "videos": []
     },
     {
       "id": "the-meetings-show",
@@ -721,7 +889,8 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [],
+      "videos": []
     },
     {
       "id": "london-boat-show",
@@ -751,7 +920,41 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/London_Boat_Show_-_2012-01-09.jpg/1280px-London_Boat_Show_-_2012-01-09.jpg",
+          "caption": "Boats on display at the London Boat Show, ExCeL, 9 January 2012.",
+          "credit": "Richard Penn",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Boat_Show_-_2012-01-09.jpg",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/London_Boat_Show_%286699816879%29.jpg/1280px-London_Boat_Show_%286699816879%29.jpg",
+          "caption": "A motor yacht at the London Boat Show, ExCeL, 14 January 2012.",
+          "credit": "oatsy40",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Boat_Show_%286699816879%29.jpg",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/London_Boat_Show%2C_2012-01-09.jpg/1280px-London_Boat_Show%2C_2012-01-09.jpg",
+          "caption": "Inside the hall at the London Boat Show, 9 January 2012.",
+          "credit": "Richard Penn",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Boat_Show%2C_2012-01-09.jpg",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/London_Boat_Show_2012-01-09.jpg/1280px-London_Boat_Show_2012-01-09.jpg",
+          "caption": "Stands at the London Boat Show, 9 January 2012.",
+          "credit": "Richard Penn",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Boat_Show_2012-01-09.jpg",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "london-book-fair",
@@ -799,7 +1002,57 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/London-Book-fair.jpg/1280px-London-Book-fair.jpg",
+          "caption": "The London Book Fair at Olympia, a few minutes before opening, 12 April 2016.",
+          "credit": "Arielinson",
+          "source": "https://commons.wikimedia.org/wiki/File:London-Book-fair.jpg",
+          "licence": "CC BY-SA 4.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/London_Book_Fair_2016_-_26123417160.jpg/1280px-London_Book_Fair_2016_-_26123417160.jpg",
+          "caption": "London Book Fair, Olympia, 12 April 2016.",
+          "credit": "ActuaLitté",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Book_Fair_2016_-_26123417160.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/London_Book_Fair_2015_-_16524388893.jpg/1280px-London_Book_Fair_2015_-_16524388893.jpg",
+          "caption": "London Book Fair, Olympia, 14 April 2015.",
+          "credit": "ActuaLitté",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Book_Fair_2015_-_16524388893.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/London_Book_Fair_2015_-_16524361783.jpg/1280px-London_Book_Fair_2015_-_16524361783.jpg",
+          "caption": "The halls at London Book Fair, Olympia, 14 April 2015.",
+          "credit": "ActuaLitté",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Book_Fair_2015_-_16524361783.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/London_Book_Fair_2015_-_16982077520.jpg/1280px-London_Book_Fair_2015_-_16982077520.jpg",
+          "caption": "London Book Fair, Olympia, 16 April 2015.",
+          "credit": "ActuaLitté",
+          "source": "https://commons.wikimedia.org/wiki/File:London_Book_Fair_2015_-_16982077520.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/International_Rights_Center_-_London_Book_Fair_2018_-_40513306325.jpg/1280px-International_Rights_Center_-_London_Book_Fair_2018_-_40513306325.jpg",
+          "caption": "The International Rights Centre at London Book Fair, Olympia, 12 April 2018.",
+          "credit": "ActuaLitté",
+          "source": "https://commons.wikimedia.org/wiki/File:International_Rights_Center_-_London_Book_Fair_2018_-_40513306325.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "london-fashion-week",
@@ -851,7 +1104,17 @@
         }
       ],
       "side": "sponsor",
-      "photo": null
+      "gallery": [
+        {
+          "src": "https://live.staticflickr.com/7069/6893618667_c9a406a6b0_b.jpg",
+          "caption": "Photographers and guests in the courtyard of Somerset House during London Fashion Week, 17 February 2012.",
+          "credit": "saw2th on Flickr",
+          "source": "https://www.flickr.com/photos/saw2th/6893618667/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "taste-of-london",
@@ -894,7 +1157,57 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [
+        {
+          "src": "https://live.staticflickr.com/3775/18370306773_bbeefc3edd_b.jpg",
+          "caption": "Taste of London in Regent’s Park, 18 June 2015.",
+          "credit": "Kent Wang on Flickr",
+          "source": "https://www.flickr.com/photos/kentwang/18370306773/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Taste_of_London_Carnival.JPG/1280px-Taste_of_London_Carnival.JPG",
+          "caption": "Carnival performers at Taste of London, Regent’s Park, 22 June 2012.",
+          "credit": "Anamariasmith",
+          "source": "https://commons.wikimedia.org/wiki/File:Taste_of_London_Carnival.JPG",
+          "licence": "CC BY-SA 3.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Taste_of_London_2012.JPG/1280px-Taste_of_London_2012.JPG",
+          "caption": "Taste of London in Regent’s Park, 22 June 2012.",
+          "credit": "Anamariasmith",
+          "source": "https://commons.wikimedia.org/wiki/File:Taste_of_London_2012.JPG",
+          "licence": "CC BY-SA 3.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Taste_of_London_ethnic_stand.JPG/1280px-Taste_of_London_ethnic_stand.JPG",
+          "caption": "A stand at Taste of London, 22 June 2012.",
+          "credit": "Anamariasmith",
+          "source": "https://commons.wikimedia.org/wiki/File:Taste_of_London_ethnic_stand.JPG",
+          "licence": "CC BY-SA 3.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/465/18993881041_d6853655a9_b.jpg",
+          "caption": "Dishes at Taste of London, 18 June 2015.",
+          "credit": "Kent Wang on Flickr",
+          "source": "https://www.flickr.com/photos/kentwang/18993881041/",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/2939/14796645785_ea74f66fd7_b.jpg",
+          "caption": "Fettuccine with black truffle from L’Anima at Taste of London, 21 June 2014.",
+          "credit": "Jaume Escofet on Flickr",
+          "source": "https://www.flickr.com/photos/jaumescar/14796645785/",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "liverpool-food-and-drink-festival",
@@ -942,7 +1255,33 @@
         }
       ],
       "side": "exhibitor",
-      "photo": null
+      "gallery": [
+        {
+          "src": "https://live.staticflickr.com/1573/26021054193_aed4c7a185_b.jpg",
+          "caption": "Food stalls at the Liverpool Food and Drink Festival, Sefton Park, 24 April 2016.",
+          "credit": "Radarsmum67 on Flickr",
+          "source": "https://www.flickr.com/photos/radarsmum67/26021054193/",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/1627/26531434152_a035f85dbe_b.jpg",
+          "caption": "Street-food traders at the Liverpool Food and Drink Festival, 24 April 2016.",
+          "credit": "Radarsmum67 on Flickr",
+          "source": "https://www.flickr.com/photos/radarsmum67/26531434152/",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        },
+        {
+          "src": "https://live.staticflickr.com/1683/26598200796_baedef8ee5_b.jpg",
+          "caption": "A stall at the Liverpool Food and Drink Festival, 24 April 2016.",
+          "credit": "Radarsmum67 on Flickr",
+          "source": "https://www.flickr.com/photos/radarsmum67/26598200796/",
+          "licence": "CC BY 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "rhs-hampton-court-2015",
@@ -989,14 +1328,57 @@
         }
       ],
       "side": "exhibitor",
-      "photo": {
-        "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/2015_Hampton_Court_Flower_Show_01.JPG/1280px-2015_Hampton_Court_Flower_Show_01.JPG",
-        "caption": "Inside the Floral Marquee at the RHS Hampton Court Palace Flower Show, 3 July 2015.",
-        "credit": "Jonathan Cardy",
-        "source": "https://commons.wikimedia.org/wiki/File:2015_Hampton_Court_Flower_Show_01.JPG",
-        "licence": "CC BY-SA 3.0",
-        "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
-      }
+      "gallery": [
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/2015_Hampton_Court_Flower_Show_01.JPG/1280px-2015_Hampton_Court_Flower_Show_01.JPG",
+          "caption": "Inside the Floral Marquee at the RHS Hampton Court Palace Flower Show, 3 July 2015.",
+          "credit": "Jonathan Cardy",
+          "source": "https://commons.wikimedia.org/wiki/File:2015_Hampton_Court_Flower_Show_01.JPG",
+          "licence": "CC BY-SA 3.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/RHS_Hampton_Court_Flower_Show_-_geograph.org.uk_-_5257767.jpg/1280px-RHS_Hampton_Court_Flower_Show_-_geograph.org.uk_-_5257767.jpg",
+          "caption": "The showground at the RHS Hampton Court Palace Flower Show, 4 July 2015.",
+          "credit": "Colin Smith",
+          "source": "https://commons.wikimedia.org/wiki/File:RHS_Hampton_Court_Flower_Show_-_geograph.org.uk_-_5257767.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/2015_Hampton_Court_Flower_Show_02.JPG/1280px-2015_Hampton_Court_Flower_Show_02.JPG",
+          "caption": "A show garden themed on the Mad Hatter’s tea party, 3 July 2015.",
+          "credit": "Jonathan Cardy",
+          "source": "https://commons.wikimedia.org/wiki/File:2015_Hampton_Court_Flower_Show_02.JPG",
+          "licence": "CC BY-SA 3.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/2015_Hampton_Court_Flower_Show_14.JPG/1280px-2015_Hampton_Court_Flower_Show_14.JPG",
+          "caption": "A display at the show, 3 July 2015.",
+          "credit": "Jonathan Cardy",
+          "source": "https://commons.wikimedia.org/wiki/File:2015_Hampton_Court_Flower_Show_14.JPG",
+          "licence": "CC BY-SA 3.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Chrysanthemums_-_geograph.org.uk_-_5257776.jpg/1280px-Chrysanthemums_-_geograph.org.uk_-_5257776.jpg",
+          "caption": "Chrysanthemums on display, 4 July 2015.",
+          "credit": "Colin Smith",
+          "source": "https://commons.wikimedia.org/wiki/File:Chrysanthemums_-_geograph.org.uk_-_5257776.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        },
+        {
+          "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Hampton_Court_-_Bandstand_-_geograph.org.uk_-_5257784.jpg/1280px-Hampton_Court_-_Bandstand_-_geograph.org.uk_-_5257784.jpg",
+          "caption": "The bandstand at the show, 4 July 2015.",
+          "credit": "Colin Smith",
+          "source": "https://commons.wikimedia.org/wiki/File:Hampton_Court_-_Bandstand_-_geograph.org.uk_-_5257784.jpg",
+          "licence": "CC BY-SA 2.0",
+          "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
+        }
+      ],
+      "videos": []
     },
     {
       "id": "turkiye-roadshows",
@@ -1027,7 +1409,8 @@
         }
       ],
       "side": "organiser",
-      "photo": null
+      "gallery": [],
+      "videos": []
     }
   ],
   "experience": [

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter, SiteNav, WaIcon } from "@/components/SiteChrome";
 import { PROFILE as p, SITE } from "@/lib/content";
 import { SIDE } from "@/components/EventsList";
+import ShowGallery, { type GalleryPhoto, type GalleryVideo } from "@/components/ShowGallery";
 
 type Params = { params: Promise<{ id: string }> };
 type ShowT = (typeof p.shows)[number];
@@ -47,7 +48,11 @@ function showLd(s: ShowT) {
         },
         ...(employer ? { organizer: { "@type": "Organization", name: employer.name, url: employer.url } } : {}),
         ...(s.url ? { url: s.url } : {}),
-        ...(s.image ? { image: `${SITE.url}${s.image}` } : {}),
+        ...((s.gallery as GalleryPhoto[]).length
+          ? { image: (s.gallery as GalleryPhoto[]).map((g) => g.src) }
+          : s.image
+            ? { image: `${SITE.url}${s.image}` }
+            : {}),
       }
     : null;
   return { "@context": "https://schema.org", "@graph": event ? [crumbs, event] : [crumbs] };
@@ -85,6 +90,8 @@ export default async function ShowPage({ params }: Params) {
   const i = p.shows.findIndex((s) => s.id === id);
   if (i < 0) notFound();
   const show = p.shows[i];
+  const gallery = show.gallery as GalleryPhoto[];
+  const videos = show.videos as GalleryVideo[];
   const employer = p.employers.find((e) => e.id === show.organiser);
   const exp = p.experience.find((x) => employer && x.company.startsWith(employer.name));
   const prev = p.shows[i - 1];
@@ -146,31 +153,8 @@ export default async function ShowPage({ params }: Params) {
         <section className="showbody">
           <div className="wrap">
             <div>
-              {show.photo ? (
-                <figure className="showbody__figure showbody__figure--photo">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={show.photo.src} alt={show.photo.caption} loading="lazy" referrerPolicy="no-referrer" />
-                  <figcaption>
-                    {show.photo.caption}{" "}
-                    <span>
-                      Photo:{" "}
-                      <a href={show.photo.source} target="_blank" rel="noopener nofollow">
-                        {show.photo.credit}
-                      </a>
-                      {show.photo.licenceUrl ? (
-                        <>
-                          ,{" "}
-                          <a href={show.photo.licenceUrl} target="_blank" rel="noopener nofollow">
-                            {show.photo.licence}
-                          </a>
-                        </>
-                      ) : (
-                        `, ${show.photo.licence}`
-                      )}
-                      .
-                    </span>
-                  </figcaption>
-                </figure>
+              {gallery.length || videos.length ? (
+                <ShowGallery name={show.name} photos={gallery} videos={videos} />
               ) : (
                 show.image && (
                   <figure className="showbody__figure">
