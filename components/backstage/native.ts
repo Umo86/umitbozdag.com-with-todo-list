@@ -356,7 +356,7 @@ export async function listenForSpeech(opts: {
 
 /** Buzz the phone (Android app and Android browsers; quietly does nothing elsewhere). */
 export const BUZZ = {
-  heart: [180, 120, 180, 520, 180, 120, 180, 520, 180, 120, 180, 520, 180, 120, 180, 520, 180, 120, 180], // heartbeats for 5 seconds
+  heart: [180, 120, 180, 520, 180, 120, 180, 520, 180, 120, 180, 520, 180, 120, 180, 520, 180, 120, 700], // heartbeats for 5 seconds
   mood: [600, 150, 600, 150, 600, 150, 600, 150, 600, 150, 600, 150, 500], // pulses for 5 seconds
   message: [120, 80, 120],
   tap: [25],
