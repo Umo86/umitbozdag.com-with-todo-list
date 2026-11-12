@@ -14,6 +14,7 @@ export default function NewTask({
   defaultList,
   defaultProject,
   defaultOwner,
+  defaultWedding,
   onClose,
   onSwitchToEvent,
 }: {
@@ -24,11 +25,14 @@ export default function NewTask({
   defaultList: ListName;
   defaultProject: string | null;
   defaultOwner: Owner;
+  defaultWedding?: boolean; // opened from the Wedding section
   onClose: () => void;
   onSwitchToEvent?: () => void;
 }) {
-  const [joint, setJoint] = useState(defaultOwner === "joint");
-  const [assignee, setAssignee] = useState<Assignee>("both");
+  const [wedding, setWedding] = useState(!!defaultWedding);
+  const [joint, setJoint] = useState(defaultOwner === "joint" || !!defaultWedding);
+  // joint to-dos are for both by default; a wedding to-do can be left with no one yet
+  const [assignee, setAssignee] = useState<Assignee | null>(defaultWedding ? null : "both");
   const other = users.find((u) => u.id !== me.id);
   const [busy, setBusy] = useState(false);
   const [more, setMore] = useState(!!defaultProject); // open when a project is already chosen
@@ -61,6 +65,7 @@ export default function NewTask({
             list: f.get("list") === "personal" ? "personal" : "work",
             owner: joint ? "joint" : me.id,
             assignee: joint ? assignee : null,
+            wedding: joint && wedding,
             project_id: String(f.get("project") ?? "") || null,
             priority: (String(f.get("priority")) as Priority) || "normal",
             due_date: String(f.get("due") ?? "") || null,
@@ -111,15 +116,46 @@ export default function NewTask({
 
         <label>Whose</label>
         <div className="bs-seg" role="group" aria-label="Whose list">
-          <button type="button" aria-pressed={!joint} onClick={() => setJoint(false)}>
+          <button
+            type="button"
+            aria-pressed={!joint}
+            onClick={() => {
+              setJoint(false);
+              setWedding(false);
+            }}
+          >
             Mine
           </button>
-          <button type="button" aria-pressed={joint} onClick={() => setJoint(true)}>
+          <button
+            type="button"
+            aria-pressed={joint && !wedding}
+            onClick={() => {
+              setJoint(true);
+              setWedding(false);
+              setAssignee((a) => a ?? "both");
+            }}
+          >
             Joint
+          </button>
+          <button
+            type="button"
+            className="wed"
+            aria-pressed={joint && wedding}
+            onClick={() => {
+              setJoint(true);
+              setWedding(true);
+            }}
+          >
+            💍 Wedding
           </button>
         </div>
         {joint && (
           <div className="bs-seg small" role="group" aria-label="Who it's for">
+            {wedding && (
+              <button type="button" aria-pressed={assignee === null} onClick={() => setAssignee(null)}>
+                No one yet
+              </button>
+            )}
             {(["both", me.id, other?.id].filter(Boolean) as Assignee[]).map((a) => (
               <button type="button" key={a} aria-pressed={assignee === a} onClick={() => setAssignee(a)}>
                 {a === "both" ? "Both of us" : a === me.id ? "Me" : nameOf(a)}

@@ -38,6 +38,7 @@ export type Task = {
   assignee: Assignee | null;
   love_note: string | null;
   completed_by: UserId | null;
+  wedding: boolean; // part of the wedding planning (always joint)
   updated_by?: UserId | null; // who last changed it
   nudges: number;
 };
@@ -57,13 +58,14 @@ export type CalEvent = {
   end_date: string | null; // inclusive
   remind_minutes: number | null;
   repeat: Repeat | null;
-  busy: boolean; // the other person's private event: only the time is known
+  wedding: boolean; // a wedding date: always on the joint calendar
+  busy: boolean; // (no longer sent: each person's own calendar is theirs alone)
   created_at: string;
   updated_at: string;
 };
 
 export type EventPatch = Partial<
-  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee">
+  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee" | "wedding">
 >;
 
 export type Message = {
@@ -80,7 +82,7 @@ export type Message = {
 export type TaskPatch = Partial<
   Pick<
     Task,
-    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee" | "love_note"
+    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee" | "love_note" | "wedding"
   >
 >;
 
@@ -177,3 +179,6 @@ export type UsItem = {
   updated_at: string;
 };
 export type Score = { who: UserId; this_week: number; last_week: number };
+
+// Wedding planning has its own colour, different from both people's and from everything else.
+export const WEDDING = { color: "#a16207", soft: "#fdf3d6", bright: "#d4a017" };

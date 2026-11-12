@@ -35,7 +35,7 @@ export function cleanAssignee(v: unknown): string | null {
 
 export const EVENT_COLS = `id, owner, assignee, added_by, title, notes, location, all_day,
   starts_at, ends_at, to_char(start_date, 'YYYY-MM-DD') as start_date,
-  to_char(end_date, 'YYYY-MM-DD') as end_date, remind_minutes, repeat, created_at, updated_at`;
+  to_char(end_date, 'YYYY-MM-DD') as end_date, remind_minutes, repeat, wedding, created_at, updated_at`;
 /** The other person's private events: when, never what. */
 export const BUSY_COLS = `id, owner, null as assignee, owner as added_by, 'Busy' as title, null as notes,
   null as location, all_day, starts_at, ends_at, to_char(start_date, 'YYYY-MM-DD') as start_date,
@@ -69,7 +69,7 @@ export function cleanPosition(v: unknown): number | null {
 
 export const TASK_COLS = `id, project_id, list, title, notes, status, priority,
   to_char(due_date, 'YYYY-MM-DD') as due_date, remind_at, added_by, position,
-  calendar_ref, repeat, owner, assignee, love_note, completed_by, nudges, created_at, updated_at, updated_by, completed_at`;
+  calendar_ref, repeat, owner, assignee, love_note, completed_by, nudges, wedding, created_at, updated_at, updated_by, completed_at`;
 
 export const TASK_ORDER = `order by position asc, created_at desc`;
 

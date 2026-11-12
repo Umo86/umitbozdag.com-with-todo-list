@@ -41,14 +41,15 @@ export default function EventSheet({
   users: Person[];
   event?: CalEvent; // editing
   day?: string; // new event on this day
-  preset?: { title: string; time: string; joint?: boolean };
+  preset?: { title: string; time: string; joint?: boolean; wedding?: boolean };
   onClose: () => void;
   onSwitchToTask?: () => void;
 }) {
   const start = event?.starts_at ? new Date(event.starts_at) : null;
   const end = event?.ends_at ? new Date(event.ends_at) : null;
   const [title, setTitle] = useState(event?.title ?? preset?.title ?? "");
-  const [joint, setJoint] = useState(event ? event.owner === "joint" : preset?.joint ?? false);
+  const [wedding, setWedding] = useState(event ? !!event.wedding : !!preset?.wedding);
+  const [joint, setJoint] = useState(event ? event.owner === "joint" : (preset?.joint ?? false) || !!preset?.wedding);
   const [assignee, setAssignee] = useState<Assignee>(event?.assignee ?? "both");
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
   const [date, setDate] = useState(event?.start_date ?? (start ? ymd(start) : day ?? ymd(new Date())));
@@ -79,6 +80,7 @@ export default function EventSheet({
       title: title.trim(),
       owner: joint ? "joint" : me.id,
       assignee: joint ? assignee : null,
+      wedding: joint && wedding,
       all_day: allDay,
       start_date: allDay ? date : null,
       end_date: allDay && endDate && endDate > date ? endDate : null,
@@ -141,11 +143,36 @@ export default function EventSheet({
 
         <label>Whose</label>
         <div className="bs-seg" role="group" aria-label="Whose calendar">
-          <button type="button" aria-pressed={!joint} onClick={() => setJoint(false)}>
+          <button
+            type="button"
+            aria-pressed={!joint}
+            onClick={() => {
+              setJoint(false);
+              setWedding(false);
+            }}
+          >
             Mine
           </button>
-          <button type="button" aria-pressed={joint} onClick={() => setJoint(true)}>
+          <button
+            type="button"
+            aria-pressed={joint && !wedding}
+            onClick={() => {
+              setJoint(true);
+              setWedding(false);
+            }}
+          >
             Joint
+          </button>
+          <button
+            type="button"
+            className="wed"
+            aria-pressed={joint && wedding}
+            onClick={() => {
+              setJoint(true);
+              setWedding(true);
+            }}
+          >
+            💍 Wedding
           </button>
         </div>
         {joint && (
@@ -157,7 +184,13 @@ export default function EventSheet({
             ))}
           </div>
         )}
-        {!joint && other && <p className="bs-hint">{other.name} sees this as &ldquo;Busy&rdquo;, without details.</p>}
+        <p className="bs-hint">
+          {!joint
+            ? `Your own calendar: only you can see this${other ? `, ${other.name} can’t` : ""}.`
+            : wedding
+              ? "A wedding date: on the joint calendar, in the wedding colour."
+              : "The joint calendar: you both see it and can both change it."}
+        </p>
 
         <label className="bs-switch">
           <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />

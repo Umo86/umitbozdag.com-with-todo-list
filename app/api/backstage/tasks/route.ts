@@ -29,7 +29,9 @@ export async function POST(req: Request) {
     const title = cleanTitle(body.title);
     if (!title) return NextResponse.json({ error: "A task needs a title." }, { status: 400 });
 
-    const owner = cleanOwner(body.owner, me);
+    // a wedding to-do is always joint: both of you see all of the wedding planning
+    const wedding = body.wedding === true;
+    const owner = wedding ? JOINT : cleanOwner(body.owner, me);
     if (!owner) return NextResponse.json({ error: "You can add to your own list or the joint one." }, { status: 400 });
 
     let list = "personal";
@@ -58,13 +60,13 @@ export async function POST(req: Request) {
     // New cards go to the top of To do unless a position is given.
     const r = await db().query(
       `insert into tasks
-         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, owner, assignee, updated_by, position)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, $12, $8,
+         (list, project_id, title, notes, priority, due_date, remind_at, added_by, repeat, owner, assignee, wedding, updated_by, position)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, $12, $13, $8,
          coalesce($9::double precision,
            (select min(position) - 1 from tasks where list = $1 and owner = $11 and status = 'todo'),
            0))
        returning ${TASK_COLS}`,
-      [list, projectId, title, notes, priority, due, remindAt, me.id, position, repeat, owner, assignee]
+      [list, projectId, title, notes, priority, due, remindAt, me.id, position, repeat, owner, assignee, wedding]
     );
     if (owner === JOINT && assignee !== me.id) {
       await notify(otherOf(me.id), {

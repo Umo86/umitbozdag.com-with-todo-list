@@ -28,7 +28,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskActions } from "./TaskList";
-import {
+import { WEDDING,
   STATUSES,
   colorOf,
   nameOf,
@@ -324,8 +324,8 @@ function Card({
   const reminderDue = !!t.remind_at && !done && new Date(t.remind_at) <= new Date();
   return (
     <article
-      className={`bs-cardlet${done ? " done" : ""}${lifted ? " lifted" : ""}`}
-      style={{ ["--who" as string]: colorOf(t.added_by) }}
+      className={`bs-cardlet${done ? " done" : ""}${lifted ? " lifted" : ""}${t.wedding ? " wedding" : ""}`}
+      style={{ ["--who" as string]: t.wedding ? WEDDING.bright : colorOf(t.added_by) }}
     >
       {onToggle && (
         <input
@@ -371,6 +371,8 @@ function Card({
             {t.priority === "high" && <span className="high">High</span>}
             {t.priority === "low" && <span>Low priority</span>}
             {t.notes && <span>Has notes</span>}
+            {t.wedding && <span className="wed">💍 Wedding</span>}
+            {t.wedding && !t.assignee && !done && <span className="who none">No one yet</span>}
             {t.owner === "joint" && t.assignee && (
               <span className="who" style={{ color: t.assignee === "both" ? undefined : colorOf(t.assignee) }}>
                 {t.assignee === "both" ? "For both" : `For ${nameOf(t.assignee)}`}

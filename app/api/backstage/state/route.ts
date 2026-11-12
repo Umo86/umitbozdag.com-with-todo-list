@@ -27,7 +27,8 @@ export async function GET(req: Request) {
       db().query(`select ${PROJECT_COLS} from projects where ${visibleTo(1)} order by position, created_at`, [me.id]),
       db().query(`select ${TASK_COLS} from tasks where ${visibleTo(1)} ${TASK_ORDER}`, [me.id]),
       db().query(`select ${EVENT_COLS}, false as busy from events where ${visibleTo(1)} order by coalesce(start_date::timestamptz, starts_at)`, [me.id]),
-      db().query(`select ${BUSY_COLS} from events where owner not in ($1, 'joint')`, [me.id]),
+      // (each person's own calendar is theirs alone: nothing of it is sent to the other)
+      Promise.resolve({ rows: [] as Array<Record<string, unknown>> }),
       me.admin
         ? db()
             .query(

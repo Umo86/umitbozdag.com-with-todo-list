@@ -4,7 +4,7 @@
 // Each row has a coloured edge for who added it (blue Umit, pink Dilfiraz).
 import { useState } from "react";
 import { REPEAT_LABEL } from "@/lib/parse";
-import {
+import { WEDDING,
   colorOf,
   fmtDay,
   fmtWhen,
@@ -71,7 +71,7 @@ export function TaskRow({
   const done = t.status === "done";
   const p = projects.find((x) => x.id === t.project_id);
   return (
-    <li className={`bs-row${done ? " done" : ""}`} style={{ ["--who" as string]: colorOf(t.added_by) }}>
+    <li className={`bs-row${done ? " done" : ""}${t.wedding ? " wedding" : ""}`} style={{ ["--who" as string]: t.wedding ? WEDDING.bright : colorOf(t.added_by) }}>
       <input
         type="checkbox"
         aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
@@ -98,11 +98,14 @@ export function TaskRow({
         {t.priority === "high" && <span className="high">High</span>}
         {t.love_note && t.added_by !== me && <span title="There's a note for you">💌</span>}
         {t.nudges > 0 && !done && <span title="Nudges">👉 {t.nudges}</span>}
+        {t.wedding && <span className="wed">💍 Wedding</span>}
         {t.owner === "joint" && t.assignee && t.assignee !== "both" && (
           <span className="who" style={{ color: colorOf(t.assignee) }}>
             For {t.assignee === me ? "you" : nameOf(t.assignee)}
           </span>
         )}
+        {t.wedding && t.assignee === "both" && <span className="who">Both of you</span>}
+        {t.wedding && !t.assignee && !done && <span className="who none">No one yet</span>}
         {showList && <span className="tag">{t.owner === "joint" ? "Joint" : t.list === "work" ? "Work" : "Personal"}</span>}
       </span>
     </li>

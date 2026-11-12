@@ -1,25 +1,26 @@
 "use client";
 
 // The calendar: a month at a time, with the chosen day's agenda. Your own
-// events, joint ones, the other person's "Busy" times, to-dos with a due
-// date and project deadlines. Blue is Umit, pink is Dilfiraz, grey is busy.
+// events, joint ones, wedding dates, to-dos with a due
+// date and project deadlines. Blue is Umit, pink is Dilfiraz, gold is the wedding.
+// Your own calendar is only yours: the other person sees nothing of it.
 import { useMemo, useState } from "react";
 import { ymd } from "@/lib/parse";
 import { hhmm, itemsByDay, parseDay, type DayItem } from "./calendar";
-import { BUSY, colorOf, nameOf, softOf, type CalEvent, type Me, type Person, type Project, type Task } from "./types";
+import { BUSY, WEDDING, colorOf, nameOf, softOf, type CalEvent, type Me, type Person, type Project, type Task } from "./types";
 
 const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-type Show = { mine: boolean; joint: boolean; other: boolean; todos: boolean };
+type Show = { mine: boolean; joint: boolean; wedding: boolean; todos: boolean };
 const SHOW_KEY = "backstage:cal-show";
 
 function load(): Show {
   try {
     const v = JSON.parse(localStorage.getItem(SHOW_KEY) ?? "null");
-    if (v && typeof v === "object") return { mine: true, joint: true, other: true, todos: true, ...v };
+    if (v && typeof v === "object") return { mine: true, joint: true, wedding: true, todos: true, ...v };
   } catch {
     /* fine */
   }
-  return { mine: true, joint: true, other: true, todos: true };
+  return { mine: true, joint: true, wedding: true, todos: true };
 }
 
 export default function Calendar({
@@ -47,7 +48,7 @@ export default function Calendar({
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selected, setSelected] = useState(today);
-  const [show, setShowState] = useState<Show>(() => (typeof window === "undefined" ? { mine: true, joint: true, other: true, todos: true } : load()));
+  const [show, setShowState] = useState<Show>(() => (typeof window === "undefined" ? { mine: true, joint: true, wedding: true, todos: true } : load()));
   const setShow = (s: Show) => {
     setShowState(s);
     try {
@@ -56,7 +57,6 @@ export default function Calendar({
       /* fine */
     }
   };
-  const other = users.find((u) => u.id !== me.id);
 
   // six weeks from the Monday on or before the 1st
   const first = new Date(cursor);
@@ -68,7 +68,7 @@ export default function Calendar({
   const visible = useMemo(
     () =>
       events.filter((e) =>
-        e.busy ? show.other : e.owner === "joint" ? show.joint : show.mine
+        e.wedding ? show.wedding : e.owner === "joint" ? show.joint : show.mine
       ),
     [events, show]
   );
@@ -116,11 +116,9 @@ export default function Calendar({
           <Chip on={show.joint} color="linear-gradient(90deg,#1a47ff 50%,#e0457b 50%)" onClick={() => setShow({ ...show, joint: !show.joint })}>
             Joint
           </Chip>
-          {other && (
-            <Chip on={show.other} color={BUSY.color} onClick={() => setShow({ ...show, other: !show.other })}>
-              {other.name} busy
-            </Chip>
-          )}
+          <Chip on={show.wedding} color={WEDDING.bright} onClick={() => setShow({ ...show, wedding: !show.wedding })}>
+            Wedding
+          </Chip>
           <Chip on={show.todos} color="#0b0d12" onClick={() => setShow({ ...show, todos: !show.todos })}>
             To-dos
           </Chip>
@@ -204,12 +202,12 @@ export default function Calendar({
                       <span className="sub">
                         {it.event && !it.event.busy && it.event.location ? `${it.event.location} · ` : ""}
                         {it.event?.owner === "joint"
-                          ? `Joint${it.event.assignee && it.event.assignee !== "both" ? ` · for ${it.event.assignee === me.id ? "you" : nameOf(it.event.assignee)}` : ""}`
+                          ? `${it.event.wedding ? "Wedding" : "Joint"}${it.event.assignee && it.event.assignee !== "both" ? ` · for ${it.event.assignee === me.id ? "you" : nameOf(it.event.assignee)}` : ""}`
                           : it.event && !it.event.busy
                             ? "Yours"
                             : it.task
                               ? it.task.owner === "joint"
-                                ? "Joint to-do"
+                                ? it.task?.wedding ? "Wedding to-do" : "Joint to-do"
                                 : "Your to-do"
                               : ""}
                         {it.event?.repeat && !it.event.busy ? " · ↻" : ""}
@@ -242,12 +240,14 @@ const label = (it: DayItem) =>
 
 function dotColor(it: DayItem): string {
   if (it.event?.busy) return BUSY.color;
+  if (it.event?.wedding || it.task?.wedding) return WEDDING.bright;
   if (it.event) return colorOf(it.event.added_by);
   if (it.task) return colorOf(it.task.added_by);
   return "#0b0d12";
 }
 function tone(it: DayItem): React.CSSProperties {
   if (it.event?.busy) return { background: BUSY.soft, color: "#5b6270" };
+  if (it.event?.wedding || it.task?.wedding) return { background: WEDDING.soft, color: WEDDING.color };
   if (it.event) return { background: softOf(it.event.added_by), color: colorOf(it.event.added_by) };
   return {};
 }

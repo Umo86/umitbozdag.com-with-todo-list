@@ -112,6 +112,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (body.assignee !== undefined) {
       add("assignee = ?", cleanAssignee(body.assignee));
     }
+    // Wedding planning is joint by definition: marking a to-do "wedding" moves
+    // it to the joint side, and moving one to a private list takes the mark off.
+    if (body.wedding === true) {
+      sets.push("wedding = true");
+      if (body.owner === undefined) sets.push(`owner = '${JOINT}'`, "list = 'personal'");
+      else if (body.owner !== JOINT) return NextResponse.json({ error: "Wedding to-dos are always joint." }, { status: 400 });
+    } else if (body.wedding === false || (body.owner !== undefined && body.owner !== JOINT)) {
+      sets.push("wedding = false");
+    }
     if (body.love_note !== undefined) {
       add("love_note = ?", typeof body.love_note === "string" && body.love_note.trim() ? body.love_note.trim().slice(0, 1000) : null);
     }

@@ -19,6 +19,7 @@ export type DraftAssignee = "umit" | "dilfiraz" | "both";
 export type Draft = {
   kind: "task" | "event";
   joint: boolean; // on the joint list / calendar instead of your own
+  wedding?: boolean; // part of the wedding planning (always joint)
   assignee: DraftAssignee | null; // joint items: who it's for
   start_local: string | null; // events with a time: YYYY-MM-DDTHH:MM, local (day is due_date)
   remind_minutes: number | null; // events: minutes before the start

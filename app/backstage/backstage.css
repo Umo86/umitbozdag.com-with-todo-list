@@ -762,3 +762,30 @@
 .bs-matchpop .bs-confetti{z-index:81}
 .bs-app:has(.bs-matchpop) .bs-fabs{display:none}
 @keyframes bs-heartfade{0%{opacity:0}20%,70%{opacity:1}100%{opacity:0}}
+
+/* ——— wedding planning: its own colour (gold), different from everything else ——— */
+.bs{--wed:#a16207;--wed-bright:#d4a017;--wed-soft:#fdf3d6}
+.bs-row .meta .wed,.bs-cardlet .meta .wed{background:var(--wed-soft);color:var(--wed);font-weight:650;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.bs-row .meta .who.none,.bs-cardlet .meta .who.none{color:var(--muted);font-style:italic}
+.bs-row.wedding,.bs-cardlet.wedding{background:linear-gradient(90deg,var(--wed-soft),#fff 46%)}
+.bs-row.wedding.done,.bs-cardlet.wedding.done{background:#fff}
+.bs-seg button.wed[aria-pressed="true"]{background:var(--wed-bright);color:#fff;border-color:var(--wed-bright)}
+.btn.wed{background:var(--wed-bright);color:#fff;border-color:var(--wed-bright);white-space:nowrap}
+.btn.wed:hover{background:var(--wed)}
+.bs-wedbar{display:grid;gap:12px}
+.bs-wedhead{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:18px;background:linear-gradient(120deg,var(--wed-soft),#fff8e6 60%,#fff);border:1px solid #f0dfae}
+.bs-wedhead .ring{font-size:34px;line-height:1}
+.bs-wedhead h2{margin:0;font-size:20px;letter-spacing:-.01em;color:#5c3d04}
+.bs-wedhead p{margin:2px 0 0;font-size:13.5px;color:#7a5a12}
+.bs-wedhead>div{flex:1;min-width:0}
+.bs-wedprog{height:8px;border-radius:999px;background:var(--wed-soft);overflow:hidden}
+.bs-wedprog span{display:block;height:100%;border-radius:999px;background:var(--wed-bright);transition:width .4s ease}
+.bs-app[data-view="wedding"] .bs-fab.plus{background:var(--wed-bright)}
+@media (max-width:900px){
+  .bs-bottom{grid-template-columns:repeat(6,1fr)}
+  .bs-bottom .lbl{font-size:10.5px;letter-spacing:-.01em}
+  .bs-bottom .ico{width:44px}
+  .bs-bottom button[aria-current="page"][data-nav="wedding"] .ico{background:var(--wed-soft);color:var(--wed)}
+  .bs-wedhead{flex-wrap:wrap;padding:14px}
+  .bs-wedhead .btn.wed{width:100%;justify-content:center}
+}

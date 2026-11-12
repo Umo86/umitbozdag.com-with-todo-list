@@ -65,6 +65,9 @@ alter table tasks add column if not exists added_by     text not null default 'u
 alter table tasks add column if not exists position     double precision not null default 0;
 alter table tasks add column if not exists calendar_ref text;
 alter table tasks add column if not exists updated_at   timestamptz not null default now();
+-- Wedding planning: a to-do or event marked for the wedding is always joint
+alter table tasks  add column if not exists wedding boolean not null default false;
+alter table events add column if not exists wedding boolean not null default false;
 -- who last changed it, so the other person's app can say "Dilfiraz ticked off …"
 alter table tasks add column if not exists updated_by   text;
 

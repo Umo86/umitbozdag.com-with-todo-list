@@ -27,10 +27,10 @@ import { BUZZ, buzz, isApp, listen, prepareNotifications, registerPush, syncRemi
 import { forMe, nameOf, type ListName } from "./types";
 import { useBackstage } from "./useBackstage";
 
-type View = "today" | "mine" | "joint" | "calendar" | "us" | "messages";
+type View = "today" | "mine" | "joint" | "wedding" | "calendar" | "us" | "messages";
 type Sheet =
   | { kind: "task"; id: string }
-  | { kind: "event"; id?: string; day?: string; preset?: { title: string; time: string; joint?: boolean } }
+  | { kind: "event"; id?: string; day?: string; preset?: { title: string; time: string; joint?: boolean; wedding?: boolean } }
   | { kind: "new-task" }
   | { kind: "projects" }
   | { kind: "settings" }
@@ -78,6 +78,7 @@ export default function BackstageApp() {
   const [list, setList] = useState<ListName>("work");
   const [project, setProject] = useState<string | null>(null);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
+  const [wedFor, setWedFor] = useState<"all" | "none" | "me" | "other">("all");
   const [jointTab, setJointTab] = useState<"todos" | "shopping">("todos");
   const [usSection, setUsSection] = useState<UsSection>("chat");
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -93,7 +94,7 @@ export default function BackstageApp() {
   useEffect(() => {
     setList(recall<ListName>(LIST_KEY, "work") === "personal" ? "personal" : "work");
     const v = recall<View>(VIEW_KEY, "today");
-    if (["today", "mine", "joint", "calendar", "us", "messages"].includes(v)) setViewState(v);
+    if (["today", "mine", "joint", "wedding", "calendar", "us", "messages"].includes(v)) setViewState(v);
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     const q = new URLSearchParams(window.location.search);
     if (q.has("capture") || q.has("add")) setSheet({ kind: "new-task" });
@@ -160,7 +161,7 @@ export default function BackstageApp() {
       void registerPush(
         (token) => bs.api("/push/fcm", { method: "POST", body: { token } }),
         (url) => {
-          const view = /[?&]view=(joint|calendar|mine|today|us)\b/.exec(url)?.[1] as View | undefined;
+          const view = /[?&]view=(joint|wedding|calendar|mine|today|us)\b/.exec(url)?.[1] as View | undefined;
           if (view) setViewState(view);
         }
       );
@@ -451,10 +452,12 @@ export default function BackstageApp() {
       const still = new Set(after.map((t) => t.id));
       for (const [id, old] of was) if (!still.has(id)) lines.push(`${otherName} removed ${short(old)}`);
       if (!lines.length) return;
+      const changed = now.filter((t) => { const o = was.get(t.id); return !o || o.status !== t.status || o.title !== t.title || o.assignee !== t.assignee; });
+      const target: View = changed.length > 0 && changed.every((t) => t.wedding) ? "wedding" : "joint";
       pulseLive.current.say(
-        lines.length === 1 ? lines[0] : `${lines.length} changes to the joint list: ${lines[0]}, and more`,
+        lines.length === 1 ? lines[0] : `${lines.length} changes to the ${target === "wedding" ? "wedding" : "joint"} list: ${lines[0]}, and more`,
         "info",
-        live.current.view === "joint" ? undefined : { label: "Open", run: () => setView("joint") }
+        live.current.view === target ? undefined : { label: "Open", run: () => setView(target) }
       );
     };
     const beat = async () => {
@@ -517,7 +520,23 @@ export default function BackstageApp() {
     () => (project ? mineInList.filter((t) => t.project_id === project) : mineInList),
     [mineInList, project]
   );
-  const joint = useMemo(() => tasks.filter((t) => t.owner === "joint"), [tasks]);
+  // Wedding planning is its own joint section; the everyday joint list is everything else.
+  const wedding = useMemo(() => tasks.filter((t) => t.wedding), [tasks]);
+  const weddingShown = useMemo(
+    () =>
+      wedding.filter((t) =>
+        wedFor === "all"
+          ? true
+          : wedFor === "none"
+            ? !t.assignee
+            : wedFor === "me"
+              ? t.assignee === "both" || t.assignee === me?.id
+              : t.assignee === "both" || (!!t.assignee && t.assignee !== me?.id)
+      ),
+    [wedding, wedFor, me]
+  );
+  const weddingOpen = wedding.filter((t) => t.status !== "done").length;
+  const joint = useMemo(() => tasks.filter((t) => t.owner === "joint" && !t.wedding), [tasks]);
   const jointShown = useMemo(
     () =>
       joint.filter((t) =>
@@ -545,7 +564,7 @@ export default function BackstageApp() {
   const openEvent = sheet?.kind === "event" && sheet.id ? events.find((e) => e.id === sheet.id) : undefined;
 
   // Whatever is typed into an "Add…" box is one task, however long it is.
-  const addTyped = (text: string, owner: "mine" | "joint") => {
+  const addTyped = (text: string, owner: "mine" | "joint" | "wedding") => {
     const d = parseTask(text, { projects, others: users.filter((u) => u.id !== me.id) });
     if (!d) return;
     void bs.addDrafts(
@@ -553,8 +572,10 @@ export default function BackstageApp() {
         {
           ...d,
           kind: "task" as const,
-          joint: owner === "joint" || d.joint,
-          assignee: owner === "joint" || d.joint ? d.assignee ?? "both" : null,
+          joint: owner !== "mine" || d.joint,
+          wedding: owner === "wedding",
+          // a wedding to-do starts with no one on it, unless the text names someone
+          assignee: owner === "wedding" ? d.assignee : owner === "joint" || d.joint ? d.assignee ?? "both" : null,
           project_id: d.project_id ?? (owner === "mine" ? project : null),
         },
       ],
@@ -566,6 +587,7 @@ export default function BackstageApp() {
     { id: "today", label: "Today", icon: <IconToday /> },
     { id: "mine", label: "My tasks", n: openCount("work") + openCount("personal"), icon: <IconCheck /> },
     { id: "joint", label: "Joint", n: jointOpen, icon: <IconJoint /> },
+    { id: "wedding", label: "Wedding", n: weddingOpen, icon: <IconRing /> },
     { id: "calendar", label: "Calendar", icon: <IconCal /> },
     { id: "us", label: "Us", n: bs.chatUnread, icon: <IconHeart /> },
   ];
@@ -853,6 +875,72 @@ export default function BackstageApp() {
           </>
         )}
 
+        {view === "wedding" && (
+          <>
+            <div className="bs-bar bs-wedbar">
+              <div className="bs-wedhead">
+                <span className="ring" aria-hidden="true">
+                  💍
+                </span>
+                <div>
+                  <h2>Wedding planning</h2>
+                  <p>
+                    Shared with {other?.name ?? "each other"}: you both see and change everything here.{" "}
+                    {wedding.length ? `${wedding.length - weddingOpen} of ${wedding.length} done.` : "Nothing on the list yet."}
+                  </p>
+                </div>
+                <button className="btn wed" onClick={() => setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}>
+                  + Wedding date
+                </button>
+              </div>
+              {wedding.length > 0 && (
+                <div className="bs-wedprog" role="img" aria-label={`${wedding.length - weddingOpen} of ${wedding.length} done`}>
+                  <span style={{ width: `${((wedding.length - weddingOpen) / wedding.length) * 100}%` }} />
+                </div>
+              )}
+              <div className="bs-seg small" role="group" aria-label="Show">
+                <button aria-pressed={wedFor === "all"} onClick={() => setWedFor("all")}>
+                  Everything
+                </button>
+                <button aria-pressed={wedFor === "none"} onClick={() => setWedFor("none")}>
+                  No one yet <span className="n">{wedding.filter((t) => !t.assignee && t.status !== "done").length}</span>
+                </button>
+                <button aria-pressed={wedFor === "me"} onClick={() => setWedFor("me")}>
+                  For me
+                </button>
+                {other && (
+                  <button aria-pressed={wedFor === "other"} onClick={() => setWedFor("other")}>
+                    For {other.name}
+                  </button>
+                )}
+              </div>
+            </div>
+            {narrow ? (
+              <TaskList
+                tasks={weddingShown}
+                projects={projects}
+                me={me.id}
+                onOpen={(id) => setSheet({ kind: "task", id })}
+                onPatch={bs.patchTask}
+                onDelete={bs.deleteTask}
+                onAdd={(t) => addTyped(t, "wedding")}
+                placeholder="Add a wedding to-do…"
+              />
+            ) : (
+              <Board
+                key="wedding"
+                tasks={weddingShown}
+                projects={projects}
+                canEdit
+                onAdd={(t) => addTyped(t, "wedding")}
+                onPatch={bs.patchTask}
+                onDelete={bs.deleteTask}
+                onOpen={(id) => setSheet({ kind: "task", id })}
+              />
+            )}
+          </>
+        )}
+
         {view === "calendar" && (
           <Calendar
             me={me}
@@ -882,7 +970,7 @@ export default function BackstageApp() {
 
       <nav className="bs-bottom" aria-label="Sections">
         {NAV.map((n) => (
-          <button key={n.id} aria-current={view === n.id ? "page" : undefined} onClick={() => setView(n.id)}>
+          <button key={n.id} data-nav={n.id} aria-current={view === n.id ? "page" : undefined} onClick={() => setView(n.id)}>
             <span className="ico">
               {n.icon}
               {!!n.n && (n.id === "joint" || n.id === "us") && <span className={`badge${n.id === "us" ? " us" : ""}`}>{n.n}</span>}
@@ -940,7 +1028,8 @@ export default function BackstageApp() {
           projects={myProjects}
           defaultList={list}
           defaultProject={view === "mine" ? project : null}
-          defaultOwner={view === "joint" ? "joint" : me.id}
+          defaultOwner={view === "joint" || view === "wedding" ? "joint" : me.id}
+          defaultWedding={view === "wedding"}
           onClose={() => setSheet(null)}
           onSwitchToEvent={() => setSheet({ kind: "event", day: ymd(new Date()) })}
         />
@@ -1053,6 +1142,14 @@ function IconCheck() {
     <svg {...S}>
       <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
       <path d="M8 12.5l2.8 2.8L16.5 9" />
+    </svg>
+  );
+}
+function IconRing() {
+  return (
+    <svg {...S}>
+      <circle cx="12" cy="15" r="5.6" />
+      <path d="M9.6 6.2 12 3.6l2.4 2.6L12 9.4z" />
     </svg>
   );
 }

@@ -184,16 +184,19 @@ export default function TaskDrawer({
             <label htmlFor="d-list">List</label>
             <select
               id="d-list"
-              value={task.owner === "joint" ? "joint" : task.list}
+              value={task.wedding ? "wedding" : task.owner === "joint" ? "joint" : task.list}
               onChange={(e) =>
-                e.target.value === "joint"
-                  ? patch({ owner: "joint", assignee: task.assignee ?? "both" })
-                  : patch({ owner: me.id, list: e.target.value as ListName })
+                e.target.value === "wedding"
+                  ? patch({ owner: "joint", wedding: true })
+                  : e.target.value === "joint"
+                    ? patch({ owner: "joint", wedding: false, assignee: task.assignee ?? "both" })
+                    : patch({ owner: me.id, wedding: false, list: e.target.value as ListName })
               }
             >
               <option value="work">My work</option>
               <option value="personal">My personal</option>
               <option value="joint">Joint</option>
+              <option value="wedding">💍 Wedding (joint)</option>
             </select>
           </div>
           {task.owner === "joint" && (
@@ -201,9 +204,10 @@ export default function TaskDrawer({
               <label htmlFor="d-for">For</label>
               <select
                 id="d-for"
-                value={task.assignee ?? "both"}
-                onChange={(e) => patch({ assignee: e.target.value as Assignee })}
+                value={task.assignee ?? (task.wedding ? "" : "both")}
+                onChange={(e) => patch({ assignee: (e.target.value || null) as Assignee | null })}
               >
+                {task.wedding && <option value="">No one yet</option>}
                 <option value="both">Both of us</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>

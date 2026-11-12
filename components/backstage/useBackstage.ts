@@ -30,6 +30,7 @@ export type NewTask = {
   list: ListName;
   owner?: Owner;
   assignee?: Assignee | null;
+  wedding?: boolean;
   project_id?: string | null;
   notes?: string | null;
   priority?: Priority;
@@ -289,8 +290,9 @@ export function useBackstage() {
             method: "POST",
             body: {
               title: d.title,
-              owner: d.joint ? "joint" : me?.id,
-              assignee: d.joint ? d.assignee ?? "both" : null,
+              owner: d.joint || d.wedding ? "joint" : me?.id,
+              assignee: d.wedding ? d.assignee : d.joint ? d.assignee ?? "both" : null,
+              wedding: !!d.wedding,
               list: d.list ?? fallbackList,
               project_id: d.project_id,
               priority: d.priority,

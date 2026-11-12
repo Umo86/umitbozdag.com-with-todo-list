@@ -23,6 +23,13 @@ export function readEvent(body: Record<string, unknown>, me: Me, partial: boolea
     if (o !== JOINT) f.assignee = null;
   }
   if (has("assignee")) f.assignee = cleanAssignee(body.assignee);
+  // a wedding event is always on the joint calendar
+  if (body.wedding === true) {
+    f.wedding = true;
+    f.owner = JOINT;
+  } else if (body.wedding === false || (f.owner !== undefined && f.owner !== JOINT)) {
+    f.wedding = false;
+  }
   if (has("notes")) f.notes = typeof body.notes === "string" ? body.notes.slice(0, 4000) || null : null;
   if (has("location")) f.location = typeof body.location === "string" ? body.location.slice(0, 300) || null : null;
   if (has("repeat")) {
