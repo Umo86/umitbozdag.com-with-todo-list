@@ -20,12 +20,14 @@ import {
   type Person,
   type Priority,
   type Project,
+  type Space,
   type Status,
   type Task,
   type TaskPatch,
 } from "./types";
 
 export default function TaskDrawer({
+  space,
   task,
   projects,
   me,
@@ -37,6 +39,7 @@ export default function TaskDrawer({
   onNudge,
 }: {
   onNudge?: (id: string) => void;
+  space: Space; // on the Work side the joint and wedding lists aren't offered
   task: Task;
   projects: Project[];
   me: Me;
@@ -194,10 +197,10 @@ export default function TaskDrawer({
                     : patch({ owner: me.id, wedding: false, list: e.target.value as ListName })
               }
             >
-              <option value="work">My work</option>
-              <option value="personal">My personal</option>
-              <option value="joint">Joint</option>
-              <option value="wedding">💍 Wedding (joint)</option>
+              <option value="work">{space === "work" ? "Work" : "My work"}</option>
+              <option value="personal">{space === "work" ? "Personal" : "My personal"}</option>
+              {space === "personal" && <option value="joint">Joint</option>}
+              {space === "personal" && <option value="wedding">💍 Wedding (joint)</option>}
             </select>
           </div>
           {task.wedding && (
@@ -240,7 +243,10 @@ export default function TaskDrawer({
               onChange={(e) => patch({ project_id: e.target.value || null })}
             >
               <option value="">No project</option>
-              {projects.map((p) => (
+              {projects
+                // projects from the task's own side (and the one it is in now, whichever side that is)
+                .filter((p) => p.id === task.project_id || p.list === (task.owner === "joint" ? "personal" : task.list))
+                .map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>

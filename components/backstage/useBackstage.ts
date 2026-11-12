@@ -288,6 +288,7 @@ export function useBackstage() {
                   : undefined,
                 remind_minutes: d.remind_minutes,
                 repeat: d.repeat,
+                work: !d.joint && fallbackList === "work",
               },
             });
             evs.push(e);
@@ -348,8 +349,10 @@ export function useBackstage() {
   // whichever screen is open. A marker on this device remembers how far the
   // announcing has got, so a heart sent while Backstage was closed still shows
   // on the next open, and nothing is announced twice.
-  const incomingHandler = useRef<((fresh: ChatMessage[]) => void) | null>(null);
-  const onIncoming = useCallback((fn: ((fresh: ChatMessage[]) => void) | null) => {
+  // The handler may answer false ("not now": the Work side is showing). Then
+  // the marker stays put and the same messages are offered again later.
+  const incomingHandler = useRef<((fresh: ChatMessage[]) => boolean | void) | null>(null);
+  const onIncoming = useCallback((fn: ((fresh: ChatMessage[]) => boolean | void) | null) => {
     incomingHandler.current = fn;
   }, []);
   const chatMark = useRef<number | null>(null);
@@ -370,6 +373,7 @@ export function useBackstage() {
       // first time on this device: only what's unread and recent, not the whole history
       const fresh = theirs.filter((m) => at(m) > mark && (mark > 0 || (!m.read_at && Date.now() - at(m) < 12 * 3_600_000)));
       const newest = theirs.reduce((a, m) => Math.max(a, at(m)), mark);
+      if (fresh.length && incomingHandler.current?.(fresh) === false) return;
       if (newest > mark) {
         chatMark.current = newest;
         try {
@@ -378,7 +382,6 @@ export function useBackstage() {
           /* private mode: the ref still stops repeats */
         }
       }
-      if (fresh.length) incomingHandler.current?.(fresh);
     },
     [me]
   );
@@ -643,9 +646,9 @@ export function useBackstage() {
   }, []);
 
   const addProject = useCallback(
-    async (name: string, color: string, due_date: string | null = null, owner: Owner | null = null) => {
+    async (name: string, color: string, due_date: string | null = null, owner: Owner | null = null, list: ListName = "work") => {
       try {
-        const p = await api<Project>("/projects", { method: "POST", body: { name, color, due_date, owner: owner ?? undefined } });
+        const p = await api<Project>("/projects", { method: "POST", body: { name, color, due_date, owner: owner ?? undefined, list } });
         setProjects((prev) => [...prev, p]);
       } catch (e) {
         fail(e);
@@ -655,8 +658,11 @@ export function useBackstage() {
   );
 
   const patchProject = useCallback(
-    (id: string, patch: { name?: string; color?: string; due_date?: string | null; owner?: Owner }) => {
+    (id: string, patch: { name?: string; color?: string; due_date?: string | null; owner?: Owner; list?: ListName }) => {
       setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+      // a project's own tasks move with it between Work and Personal
+      const to = patch.list;
+      if (to) setTasks((prev) => prev.map((t) => (t.project_id === id && t.owner !== "joint" && t.list !== to ? { ...t, list: to } : t)));
       api(`/projects/${id}`, { method: "PATCH", body: patch }).catch(fail);
     },
     [api, fail]

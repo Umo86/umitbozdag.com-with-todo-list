@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-11-12",
+    "title": "Two sides: Work and Personal",
+    "items": [
+      "A switch at the top: Work or Personal. Each side has its own Today page, tasks, projects and calendar",
+      "Work shows only work things. Nothing personal, joint or wedding appears there, and hearts and messages wait until you switch back",
+      "Each device remembers its side. A browser starts on Work, the phone app on Personal",
+      "Every project is a Work or a Personal one: choose when you create it. Change it later and its tasks move with it",
+      "Your own calendar entries can be marked Work; only those show on the Work calendar"
+    ]
+  },
+  {
+    "date": "2026-11-12",
     "title": "Wedding planner: countdown, guests, budget and areas",
     "items": [
       "Set the wedding date and venue: a countdown appears, and the day goes on the joint calendar",

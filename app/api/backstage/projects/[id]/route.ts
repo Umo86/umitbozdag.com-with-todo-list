@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { cleanOwner, cleanTitle, COLOR, DATE, PROJECT_COLS, UUID } from "@/lib/backstage";
+import { cleanList, cleanOwner, cleanTitle, COLOR, DATE, PROJECT_COLS, UUID } from "@/lib/backstage";
 
 export const dynamic = "force-dynamic";
 
@@ -37,18 +37,32 @@ export async function PATCH(req: Request, ctx: Ctx) {
       owner = cleanOwner(body.owner, auth.me);
       if (!owner) return NextResponse.json({ error: "A project is yours or joint." }, { status: 400 });
     }
-    if (name === undefined && color === null && !dueGiven && !owner) {
+    let list: string | null = null;
+    if (body.list !== undefined) {
+      list = cleanList(body.list);
+      if (!list) return NextResponse.json({ error: "A project is Work or Personal." }, { status: 400 });
+    }
+    if (name === undefined && color === null && !dueGiven && !owner && !list) {
       return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
     }
     const r = await db().query(
       `update projects set name = coalesce($2, name), color = coalesce($3, color),
          due_date = case when $4 then $5::date else due_date end,
-         owner = coalesce($7, owner)
+         owner = coalesce($7, owner), list = coalesce($8, list)
        where id = $1 and owner in ($6, 'joint') returning ${PROJECT_COLS}`,
-      [id, name ?? null, color, dueGiven, dueGiven ? body.due_date : null, auth.me.id, owner]
+      [id, name ?? null, color, dueGiven, dueGiven ? body.due_date : null, auth.me.id, owner, list]
     );
     if (!r.rows.length) {
       return NextResponse.json({ error: "Unknown project." }, { status: 404 });
+    }
+    // Moving a project between Work and Personal takes its tasks along.
+    // (Joint tasks have no Work / Personal, so they stay as they are.)
+    if (list) {
+      await db().query(
+        `update tasks set list = $2, updated_at = now(), updated_by = $3
+         where project_id = $1 and owner <> 'joint' and list <> $2`,
+        [id, list, auth.me.id]
+      );
     }
     return NextResponse.json(r.rows[0]);
   } catch (err) {

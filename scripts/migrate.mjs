@@ -138,6 +138,20 @@ insert into users (id, name, color, admin) values
 alter table tasks    add column if not exists owner    text not null default 'umit';
 alter table tasks    add column if not exists assignee text;
 alter table projects add column if not exists owner    text not null default 'umit';
+
+-- A project is Work or Personal, like a task. Projects that existed before
+-- this take the list most of their tasks are in (Work if they have none).
+alter table projects add column if not exists list text check (list in ('personal','work'));
+update projects p set list = coalesce(
+    (select t.list from tasks t where t.project_id = p.id and t.owner <> 'joint'
+      group by t.list order by count(*) desc, t.list desc limit 1), 'work')
+  where p.list is null;
+alter table projects alter column list set default 'work';
+alter table projects alter column list set not null;
+
+-- A calendar entry of your own can be a Work one. The Work side of Backstage
+-- shows only those; everything that existed before stays on the Personal side.
+alter table events add column if not exists work boolean not null default false;
 create index if not exists tasks_owner_idx on tasks (owner);
 
 create table if not exists events (

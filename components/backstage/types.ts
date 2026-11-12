@@ -1,5 +1,7 @@
 export type Status = "todo" | "doing" | "done";
 export type ListName = "personal" | "work";
+/** The two sides of Backstage. Work shows nothing personal. */
+export type Space = ListName;
 export type Priority = "low" | "normal" | "high";
 export type UserId = "umit" | "dilfiraz";
 export type Owner = UserId | "joint";
@@ -16,6 +18,7 @@ export type Project = {
   position: number;
   due_date: string | null; // YYYY-MM-DD
   owner: Owner;
+  list: ListName; // a Work project or a Personal one
 };
 
 export type Task = {
@@ -60,13 +63,14 @@ export type CalEvent = {
   remind_minutes: number | null;
   repeat: Repeat | null;
   wedding: boolean; // a wedding date: always on the joint calendar
+  work: boolean; // one of your own entries, on the Work side
   busy: boolean; // (no longer sent: each person's own calendar is theirs alone)
   created_at: string;
   updated_at: string;
 };
 
 export type EventPatch = Partial<
-  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee" | "wedding">
+  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee" | "wedding" | "work">
 >;
 
 export type Message = {

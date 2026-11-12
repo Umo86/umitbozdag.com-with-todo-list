@@ -20,7 +20,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!keys.length) return NextResponse.json({ error: "Nothing to change." }, { status: 400 });
   try {
     const r = await db().query(
-      `update events set ${keys.map((k, i) => `${k} = $${i + 3}`).join(", ")}, updated_at = now()
+      `update events set ${keys.map((k, i) => (k === "work" ? `work = ($${i + 3}::boolean and ${ev.fields.owner === undefined ? "owner <> 'joint'" : "true"})` : `${k} = $${i + 3}`)).join(", ")}, updated_at = now()
        where id = $1 and owner in ($2, 'joint') returning ${EVENT_COLS}, false as busy`,
       [id, auth.me.id, ...keys.map((k) => ev.fields[k])]
     );

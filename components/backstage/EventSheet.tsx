@@ -4,7 +4,7 @@
 // a place, a reminder, a repeat. Repeating events change as a whole series.
 import { useEffect, useState } from "react";
 import { REPEAT_LABEL, REPEATS, ymd, type Repeat } from "@/lib/parse";
-import { colorOf, nameOf, type Assignee, type CalEvent, type EventPatch, type Me, type Person } from "./types";
+import { colorOf, nameOf, type Assignee, type CalEvent, type EventPatch, type Me, type Person, type Space } from "./types";
 import type { Backstage } from "./useBackstage";
 
 const REMINDERS: Array<[number | null, string]> = [
@@ -27,6 +27,7 @@ const plusHour = (t: string) => {
 };
 
 export default function EventSheet({
+  space,
   bs,
   me,
   users,
@@ -36,6 +37,7 @@ export default function EventSheet({
   onClose,
   onSwitchToTask,
 }: {
+  space: Space; // the side you are on: a new entry starts as a Work or a Personal one
   bs: Backstage;
   me: Me;
   users: Person[];
@@ -49,7 +51,9 @@ export default function EventSheet({
   const end = event?.ends_at ? new Date(event.ends_at) : null;
   const [title, setTitle] = useState(event?.title ?? preset?.title ?? "");
   const [wedding, setWedding] = useState(event ? !!event.wedding : !!preset?.wedding);
-  const [joint, setJoint] = useState(event ? event.owner === "joint" : (preset?.joint ?? false) || !!preset?.wedding);
+  const [joint, setJoint] = useState(event ? event.owner === "joint" : space === "personal" && ((preset?.joint ?? false) || !!preset?.wedding));
+  const [work, setWork] = useState(event ? !!event.work : space === "work");
+  const onWork = space === "work";
   const [assignee, setAssignee] = useState<Assignee>(event?.assignee ?? "both");
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
   const [date, setDate] = useState(event?.start_date ?? (start ? ymd(start) : day ?? ymd(new Date())));
@@ -81,6 +85,7 @@ export default function EventSheet({
       owner: joint ? "joint" : me.id,
       assignee: joint ? assignee : null,
       wedding: joint && wedding,
+      work: !joint && work,
       all_day: allDay,
       start_date: allDay ? date : null,
       end_date: allDay && endDate && endDate > date ? endDate : null,
@@ -139,10 +144,10 @@ export default function EventSheet({
         )}
 
         <label htmlFor="ev-title">Event</label>
-        <input id="ev-title" value={title} maxLength={300} required autoFocus={!event} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Dinner at Mangal" />
+        <input id="ev-title" value={title} maxLength={300} required autoFocus={!event} onChange={(e) => setTitle(e.target.value)} placeholder={onWork ? "e.g. Site visit, ExCeL" : "e.g. Dinner at Mangal"} />
 
-        <label>Whose</label>
-        <div className="bs-seg" role="group" aria-label="Whose calendar">
+        {!onWork && <label>Whose</label>}
+        <div className="bs-seg" role="group" aria-label="Whose calendar" hidden={onWork}>
           <button
             type="button"
             aria-pressed={!joint}
@@ -184,9 +189,26 @@ export default function EventSheet({
             ))}
           </div>
         )}
+        {!joint && (
+          <>
+            {onWork && <label>Calendar</label>}
+            <div className={`bs-seg${onWork ? "" : " small"}`} role="group" aria-label="Work or Personal">
+              <button type="button" aria-pressed={!work} onClick={() => setWork(false)}>
+                Personal
+              </button>
+              <button type="button" aria-pressed={work} onClick={() => setWork(true)}>
+                Work
+              </button>
+            </div>
+          </>
+        )}
         <p className="bs-hint">
           {!joint
-            ? `Your own calendar: only you can see this${other ? `, ${other.name} can’t` : ""}.`
+            ? work
+              ? "Your work calendar: only you see it, and it is the only calendar the Work side shows."
+              : onWork
+                ? "Your personal calendar: this won’t show on the Work side."
+                : `Your own calendar: only you can see this${other ? `, ${other.name} can’t` : ""}.`
             : wedding
               ? "A wedding date: on the joint calendar, in the wedding colour."
               : "The joint calendar: you both see it and can both change it."}

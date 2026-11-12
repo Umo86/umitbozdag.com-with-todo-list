@@ -30,6 +30,9 @@ export function readEvent(body: Record<string, unknown>, me: Me, partial: boolea
   } else if (body.wedding === false || (f.owner !== undefined && f.owner !== JOINT)) {
     f.wedding = false;
   }
+  // Work or Personal: only your own entries can be Work ones
+  if (has("work")) f.work = body.work === true;
+  if (f.owner === JOINT) f.work = false;
   if (has("notes")) f.notes = typeof body.notes === "string" ? body.notes.slice(0, 4000) || null : null;
   if (has("location")) f.location = typeof body.location === "string" ? body.location.slice(0, 300) || null : null;
   if (has("repeat")) {

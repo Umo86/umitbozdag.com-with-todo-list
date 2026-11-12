@@ -80,6 +80,14 @@ step(
 
 const pr = await api("/projects", "POST", { name: "E2E project", color: "#3f5fae" });
 step("api: create project", pr.status === 201 && !!pr.data.id, pr.data.error || pr.data.id);
+step("api: a new project is a Work one unless told otherwise", pr.data.list === "work", pr.data.list);
+const pk = await api("/projects", "POST", { name: "E2E personal project", color: "#3f5fae", list: "personal" });
+step("api: a project can be created as Personal", pk.status === 201 && pk.data.list === "personal", pk.data.list);
+const pk2 = await api(`/projects/${pk.data.id}`, "PATCH", { list: "work" });
+step("api: a project can be moved to Work", pk2.status === 200 && pk2.data.list === "work");
+const pk3 = await api(`/projects/${pk.data.id}`, "PATCH", { list: "holiday" });
+step("api: a project is only Work or Personal", pk3.status === 400);
+await api(`/projects/${pk.data.id}`, "DELETE");
 
 const t1 = await api("/tasks", "POST", {
   title: "E2E task",

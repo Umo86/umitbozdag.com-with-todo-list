@@ -3,15 +3,15 @@
 // Add one task by hand: every field as an ordinary control, nothing guessed.
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
-import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, type Priority, type Project } from "./types";
+import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, type Priority, type Project, type Space } from "./types";
 import type { Backstage } from "./useBackstage";
 
 export default function NewTask({
   bs,
   me,
   users,
+  space,
   projects,
-  defaultList,
   defaultProject,
   defaultOwner,
   defaultWedding,
@@ -22,8 +22,8 @@ export default function NewTask({
   bs: Backstage;
   me: Me;
   users: Person[];
+  space: Space; // the side you are on: on Work, a new task is simply a work task
   projects: Project[];
-  defaultList: ListName;
   defaultProject: string | null;
   defaultOwner: Owner;
   defaultWedding?: boolean; // opened from the Wedding section
@@ -31,8 +31,12 @@ export default function NewTask({
   onClose: () => void;
   onSwitchToEvent?: () => void;
 }) {
-  const [wedding, setWedding] = useState(!!defaultWedding);
-  const [joint, setJoint] = useState(defaultOwner === "joint" || !!defaultWedding);
+  const work = space === "work";
+  const [wedding, setWedding] = useState(!work && !!defaultWedding);
+  const [joint, setJoint] = useState(!work && (defaultOwner === "joint" || !!defaultWedding));
+  const [list, setList] = useState<ListName>(space);
+  // only projects from the same side as the task (joint to-dos sit on Personal)
+  const options = projects.filter((p) => p.list === (joint ? "personal" : list));
   // joint to-dos are for both by default; a wedding to-do can be left with no one yet
   const [assignee, setAssignee] = useState<Assignee | null>(defaultWedding ? null : "both");
   const other = users.find((u) => u.id !== me.id);
@@ -64,7 +68,7 @@ export default function NewTask({
           const t = await bs.addTask({
             title: name,
             notes: String(f.get("notes") ?? "").trim() || null,
-            list: f.get("list") === "personal" ? "personal" : "work",
+            list: joint ? "personal" : list,
             owner: joint ? "joint" : me.id,
             assignee: joint ? assignee : null,
             wedding: joint && wedding,
@@ -108,7 +112,7 @@ export default function NewTask({
           rows={2}
           maxLength={500}
           required
-          placeholder="e.g. Chase the signage quote"
+          placeholder={work ? "e.g. Chase the signage quote" : "e.g. Book the dentist"}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -117,8 +121,8 @@ export default function NewTask({
           }}
         />
 
-        <label>Whose</label>
-        <div className="bs-seg" role="group" aria-label="Whose list">
+        {!work && <label>Whose</label>}
+        <div className="bs-seg" role="group" aria-label="Whose list" hidden={work}>
           <button
             type="button"
             aria-pressed={!joint}
@@ -182,12 +186,12 @@ export default function NewTask({
               </select>
             </div>
           )}
-          {!joint && (
+          {!joint && !work && (
             <div>
               <label htmlFor="nt-list">List</label>
-              <select id="nt-list" name="list" defaultValue={defaultList}>
-                <option value="work">Work</option>
+              <select id="nt-list" name="list" value={list} onChange={(e) => setList(e.target.value === "work" ? "work" : "personal")}>
                 <option value="personal">Personal</option>
+                <option value="work">Work</option>
               </select>
             </div>
           )}
@@ -211,7 +215,7 @@ export default function NewTask({
               <label htmlFor="nt-project">Project</label>
               <select id="nt-project" name="project" defaultValue={defaultProject ?? ""}>
                 <option value="">No project</option>
-                {projects.map((p) => (
+                {options.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

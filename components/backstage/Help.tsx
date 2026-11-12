@@ -95,10 +95,12 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
   {
     q: "Mine, joint and the colours",
     a: [
-      "My tasks: your own Work and Personal lists. Only you see them.",
+      "Backstage has two sides, Work and Personal; the switch is at the top. Work shows only your work tasks, work projects and work calendar. Nothing personal, joint or wedding appears there, and hearts and messages wait until you switch back.",
+      "Each device remembers its side: a browser starts on Work, the phone app on Personal.",
+      "My tasks: your own lists. Only you see them.",
       "Joint: the shared list. Either of you can add, edit and tick things off. A joint item can be for one of you or both.",
       "Blue = added by Umit, pink = added by Dilfiraz (the coloured edge on each card).",
-      "Projects can be yours or joint (Projects › Whose).",
+      "Every project is a Work or a Personal one (you choose when you create it) and shows on that side. A personal project can be yours or joint.",
     ],
   },
   {

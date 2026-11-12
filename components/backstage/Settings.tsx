@@ -5,10 +5,10 @@
 import { useEffect, useState } from "react";
 import { exactAlarms, forgetPush, hasPush, isApp, openExactAlarmSetting, prepareNotifications } from "./native";
 import { disablePush, enablePush, pushState, type PushState } from "./push";
-import type { Me } from "./types";
+import type { Me, Space } from "./types";
 import type { Backstage } from "./useBackstage";
 
-export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; me: Me; onClose: () => void; onHelp: () => void }) {
+export default function Settings({ bs, me, space, onClose, onHelp }: { bs: Backstage; me: Me; space: Space; onClose: () => void; onHelp: () => void }) {
   const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
   const [notif, setNotif] = useState<string>("");
   const [push, setPush] = useState<PushState>("unsupported");
@@ -90,8 +90,11 @@ export default function Settings({ bs, me, onClose, onHelp }: { bs: Backstage; m
         ) : (
           <>
             <p className="bs-hint">
-              Get a notification on this {/Android|iPhone|Mobile/i.test(navigator.userAgent) ? "phone" : "computer"} when{" "}
-              {me.id === "umit" ? "Dilfiraz" : "Umit"} messages you, sends a heart or a nudge, or adds something joint, even with Backstage closed.
+              {space === "work"
+                ? "Notifications on this device are for personal things (messages and joint to-dos), and they pop up whichever side is open. On a work computer, leave them off."
+                : `Get a notification on this ${/Android|iPhone|Mobile/i.test(navigator.userAgent) ? "phone" : "computer"} when ${
+                    me.id === "umit" ? "Dilfiraz" : "Umit"
+                  } messages you, sends a heart or a nudge, or adds something joint, even with Backstage closed.`}
               {notif === "granted" ? "" : ""}
             </p>
             {push === "unsupported" ? (

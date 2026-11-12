@@ -1,7 +1,9 @@
 "use client";
 
-// Today: one screen that answers "what needs me?" across both lists:
-// what's late, what's due today and this week, the next reminders, and how
+// Today: one screen that answers "what needs me?" on the side you are on.
+// Work: work tasks, the work calendar and work projects, nothing else.
+// Personal: your personal and joint things, plus the two-of-you extras.
+// What's late, what's due today and this week, the next reminders, and how
 // each project stands against its deadline.
 import { useMemo } from "react";
 import { ymd } from "@/lib/parse";
@@ -9,7 +11,7 @@ import { hhmm, itemsByDay } from "./calendar";
 import { TaskRow } from "./TaskList";
 import { BirthdayNote, Countdowns, MemoryOfTheDay, MoodBar, Scoreboard } from "./Fun";
 import type { Backstage } from "./useBackstage";
-import type { Person } from "./types";
+import type { Person, Space } from "./types";
 import { colorOf, fmtDay, fmtWhen, nameOf, type CalEvent, type Me, type Project, type Task, type TaskPatch } from "./types";
 
 const DAY = 86_400_000;
@@ -32,6 +34,7 @@ const byUrgency = (a: Task, b: Task) =>
   (a.remind_at ?? "").localeCompare(b.remind_at ?? "");
 
 export default function Dashboard({
+  space,
   me,
   tasks,
   events,
@@ -49,8 +52,9 @@ export default function Dashboard({
   top,
   side,
 }: {
+  space: Space;
   me: Me;
-  tasks: Task[];
+  tasks: Task[]; // already only this side's
   events: CalEvent[];
   projects: Project[];
   onOpen: (id: string) => void;
@@ -100,12 +104,15 @@ export default function Dashboard({
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
+  const personal = space === "personal";
   const nothing = !overdue.length && !dueToday.length && !week.length && !urgentUndated.length;
 
   return (
     <div className="bs-dash">
       <p className="bs-hello">
         {greeting}, <span style={{ color: me.color }}>{me.name}</span>
+        <span className={`bs-sidetag ${space}`}>{personal ? "Personal" : "Work"}</span>
+        <span className="bs-hello-date">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</span>
       </p>
       <div className="bs-stats">
         <Stat n={overdue.length} label="Overdue" tone={overdue.length ? "bad" : undefined} />
@@ -116,9 +123,9 @@ export default function Dashboard({
         <Stat n={soon} label="Reminders in 24h" extra />
       </div>
 
-      <MoodBar bs={bs} me={me} users={users} />
+      {personal && <MoodBar bs={bs} me={me} users={users} />}
       {top}
-      <BirthdayNote bs={bs} me={me} users={users} onGifts={() => onUs("gifts")} />
+      {personal && <BirthdayNote bs={bs} me={me} users={users} onGifts={() => onUs("gifts")} />}
 
       <div className="bs-dash-grid">
         <section className="bs-dash-main" aria-label="Due">
@@ -148,7 +155,7 @@ export default function Dashboard({
                 ))}
               </ul>
             ) : (
-              <p className="quiet small">Nothing in the calendar today.</p>
+              <p className="quiet small">Nothing in your {personal ? "" : "work "}calendar today.</p>
             )}
             {tomorrowEvents.length > 0 && (
               <p className="bs-tomorrow quiet small">
@@ -164,7 +171,7 @@ export default function Dashboard({
 
           {nothing && (
             <p className="bs-empty">
-              Nothing due this week. Anything with a date or a reminder shows up here.
+              Nothing due this week{personal ? "" : " at work"}. Anything with a date or a reminder shows up here.
             </p>
           )}
           <Group title="Overdue" tone="bad" items={overdue} {...{ projects, onOpen, onPatch, onDelete, today, me: me.id }} />
@@ -175,9 +182,13 @@ export default function Dashboard({
 
         <aside className="bs-dash-side">
           {side}
-          <Countdowns bs={bs} />
-          <Scoreboard scores={bs.scores} users={users} me={me} />
-          <MemoryOfTheDay bs={bs} onOpen={() => onUs("memories")} />
+          {personal && (
+            <>
+              <Countdowns bs={bs} />
+              <Scoreboard scores={bs.scores} users={users} me={me} />
+              <MemoryOfTheDay bs={bs} onOpen={() => onUs("memories")} />
+            </>
+          )}
           <section aria-labelledby="h-rem">
             <h2 id="h-rem">Coming up</h2>
             {reminders.length ? (
@@ -196,7 +207,7 @@ export default function Dashboard({
 
           <section aria-labelledby="h-proj">
             <div className="bs-side-head">
-              <h2 id="h-proj">Projects</h2>
+              <h2 id="h-proj">{personal ? "Personal projects" : "Work projects"}</h2>
               <button className="bs-link" onClick={onManageProjects}>
                 Add or edit
               </button>
@@ -235,7 +246,7 @@ export default function Dashboard({
                 );
               })}
               {!projectCards.length && (
-                <li className="quiet small">No projects yet.</li>
+                <li className="quiet small">No {personal ? "personal" : "work"} projects yet.</li>
               )}
             </ul>
           </section>

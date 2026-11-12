@@ -848,3 +848,36 @@
   .bs-fields.three{grid-template-columns:repeat(3,1fr)}
 }
 .bs-who-pick[hidden]{display:none}
+
+/* ——— two sides: Work and Personal ——— */
+.bs [hidden]{display:none!important}
+.bs:has(.bs-app[data-space="personal"]){--bg:#fbf6f4}
+.bs-title{align-items:center}
+.bs-space{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.bs-space button{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;font-size:14px;font-weight:600;color:var(--muted);border-radius:999px;white-space:nowrap;transition:background .2s,color .2s}
+.bs-space button:hover{color:var(--ink)}
+.bs-space button[aria-pressed="true"][data-space="work"]{background:var(--ink);color:#fff}
+.bs-space button[aria-pressed="true"][data-space="personal"]{background:#e0457b;color:#fff}
+.bs-sidetag{display:inline-block;vertical-align:middle;margin-left:12px;padding:3px 10px;border-radius:999px;font-family:var(--font);font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;line-height:1.4}
+.bs-sidetag.work{background:var(--ink);color:#fff}
+.bs-sidetag.personal{background:#fde8ef;color:#c92f66}
+.bs-hello-date{display:block;font-family:var(--font);font-size:14.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-top:4px}
+.bs-viewtitle{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.02em;line-height:1.1;white-space:nowrap}
+.bs-viewtitle .n{font-family:var(--font);font-weight:400;letter-spacing:0}
+.bs-projsel{display:inline-flex;gap:6px}
+.bs-newproj .bs-seg{margin-bottom:2px}
+@media (max-width:900px){
+  .bs-head h1{display:none}
+  .bs-app[data-space="personal"] .bs-head{background:rgba(251,246,244,.92)}
+  .bs-space button{padding:7px 14px}
+  .bs-space svg{display:none}
+  .bs-bottom{grid-template-columns:repeat(var(--cols,6),1fr)}
+  .bs-bar .bs-viewtitle{width:100%}
+}
+.bs-head .bs-title,.bs-head .who{flex-wrap:nowrap}
+.bs-tabs button{white-space:nowrap}
+.bs-head .bs-mail[aria-current="page"]{background:var(--ink);color:#fff}
+@media (min-width:901px) and (max-width:1250px){
+  .bs-head{grid-template-columns:1fr auto;row-gap:12px}
+  .bs-head .bs-tabs{grid-column:1/-1;order:3;justify-self:start}
+}

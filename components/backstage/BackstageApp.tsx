@@ -25,7 +25,7 @@ import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
 import { enablePush, pushState } from "./push";
 import { BUZZ, buzz, isApp, listen, prepareNotifications, registerPush, syncReminders, type Extra, type NotificationAction } from "./native";
-import { forMe, nameOf, type ListName } from "./types";
+import { forMe, nameOf, type ChatMessage, type ListName, type Space } from "./types";
 import { useBackstage } from "./useBackstage";
 
 type View = "today" | "mine" | "joint" | "wedding" | "calendar" | "us" | "messages";
@@ -39,7 +39,10 @@ type Sheet =
   | { kind: "welcome" }
   | { kind: "whatsnew" };
 
-const LIST_KEY = "backstage:list";
+const SPACE_KEY = "backstage:space";
+// what each side of Backstage holds: Work shows nothing personal
+const WORK_VIEWS: View[] = ["today", "mine", "calendar"];
+const PERSONAL_ONLY: View[] = ["joint", "wedding", "us", "messages"];
 const VIEW_KEY = "backstage:view";
 const SEEN_KEY = "backstage:reminded";
 
@@ -75,8 +78,15 @@ export default function BackstageApp() {
   const bs = useBackstage();
   const { phase, me, tasks, projects, events, users } = bs;
   const narrow = useNarrow();
-  const [view, setViewState] = useState<View>("today");
-  const [list, setList] = useState<ListName>("work");
+  const [viewState, setViewState] = useState<View>("today");
+  // Two sides: Work and Personal. It starts on Work, so nothing personal can
+  // flash up on an office screen before this device's own choice is read.
+  const [space, setSpaceState] = useState<Space>("work");
+  const spaceRef = useRef<Space>("work");
+  spaceRef.current = space;
+  const list: ListName = space;
+  // Joint, Wedding, Us and Messages can never show on the Work side
+  const view: View = space === "work" && !WORK_VIEWS.includes(viewState) ? "today" : viewState;
   const [project, setProject] = useState<string | null>(null);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
   const [wedArea, setWedArea] = useState<string | null>(null); // the wedding area being looked at
@@ -87,20 +97,46 @@ export default function BackstageApp() {
   const seen = useRef<Set<string>>(new Set());
 
   const setView = useCallback((v: View) => {
+    // Joint, Wedding, Us and Messages only exist on the Personal side
+    if (PERSONAL_ONLY.includes(v) && spaceRef.current !== "personal") {
+      setSpaceState("personal");
+      remember(SPACE_KEY, "personal");
+    }
     setViewState(v);
     remember(VIEW_KEY, v);
     window.scrollTo({ top: 0 });
   }, []);
+  /** Switch side. Anything that only exists on the other side closes. */
+  const setSpace = useCallback((sp: Space) => {
+    setSpaceState(sp);
+    remember(SPACE_KEY, sp);
+    setProject(null);
+    setSheet(null);
+    setViewState((v) => {
+      const next = sp === "work" && !WORK_VIEWS.includes(v) ? "today" : v;
+      remember(VIEW_KEY, next);
+      return next;
+    });
+    window.scrollTo({ top: 0 });
+  }, []);
 
   useEffect(() => {
-    setList(recall<ListName>(LIST_KEY, "work") === "personal" ? "personal" : "work");
-    const v = recall<View>(VIEW_KEY, "today");
-    if (["today", "mine", "joint", "wedding", "calendar", "us", "messages"].includes(v)) setViewState(v);
+    // this device's side: a browser starts on Work, the phone app on Personal
+    let sp = recall<Space | null>(SPACE_KEY, null);
+    if (sp !== "work" && sp !== "personal") sp = isApp() ? "personal" : "work";
+    let v = recall<View>(VIEW_KEY, "today");
+    if (!["today", "mine", "joint", "wedding", "calendar", "us", "messages"].includes(v)) v = "today";
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     const q = new URLSearchParams(window.location.search);
     if (q.has("capture") || q.has("add")) setSheet({ kind: "new-task" });
     const qv = q.get("view");
-    if (qv && ["today", "mine", "joint", "calendar", "us"].includes(qv)) setViewState(qv as View);
+    if (qv && ["today", "mine", "joint", "wedding", "calendar", "us"].includes(qv)) {
+      v = qv as View;
+      if (PERSONAL_ONLY.includes(v)) sp = "personal"; // a notification about something personal was tapped
+    }
+    if (sp === "work" && !WORK_VIEWS.includes(v)) v = "today";
+    setSpaceState(sp);
+    setViewState(v);
     if (q.has("view") || q.has("capture") || q.has("add")) window.history.replaceState(null, "", "/backstage");
   }, []);
 
@@ -112,6 +148,7 @@ export default function BackstageApp() {
       const fresh = tasks.filter(
         (t) =>
           forMe(t.owner, t.assignee, me.id) &&
+          (space === "personal" || (t.owner === me.id && t.list === "work")) &&
           t.remind_at &&
           t.status !== "done" &&
           new Date(t.remind_at).getTime() <= now &&
@@ -134,7 +171,7 @@ export default function BackstageApp() {
     check();
     const timer = setInterval(check, 30_000);
     return () => clearInterval(timer);
-  }, [phase.kind, tasks, me]);
+  }, [phase.kind, tasks, me, space]);
 
   // ——— the Android app: phone reminders, notification buttons, shortcuts, back ———
   const live = useRef({ tasks, events, sheet, view, usSection: "chat" as string, patchTask: bs.patchTask, refresh: bs.refresh });
@@ -142,13 +179,22 @@ export default function BackstageApp() {
 
   const onNotification = useCallback((a: NotificationAction) => {
     const t = a.taskId ? live.current.tasks.find((x) => x.id === a.taskId) : undefined;
+    const ev = a.eventId ? live.current.events.find((e) => e.id === a.eventId) : undefined;
+    // a tapped reminder opens on the side it belongs to
+    const side = (sp: Space) => {
+      setSpaceState(sp);
+      remember(SPACE_KEY, sp);
+    };
     if (a.action === "done" && t) live.current.patchTask(t.id, { status: "done" });
     else if (a.action === "snooze" && t)
       live.current.patchTask(t.id, { remind_at: new Date(Date.now() + 60 * 60_000).toISOString() });
-    else if (t) setSheet({ kind: "task", id: t.id });
-    else if (a.eventId && live.current.events.some((e) => e.id === a.eventId)) {
+    else if (t) {
+      side(t.owner !== "joint" && t.list === "work" ? "work" : "personal");
+      setSheet({ kind: "task", id: t.id });
+    } else if (ev) {
+      side(ev.work ? "work" : "personal");
       setViewState("calendar");
-      setSheet({ kind: "event", id: a.eventId });
+      setSheet({ kind: "event", id: ev.id });
     } else setViewState("today");
   }, []);
 
@@ -163,7 +209,7 @@ export default function BackstageApp() {
         (token) => bs.api("/push/fcm", { method: "POST", body: { token } }),
         (url) => {
           const view = /[?&]view=(joint|wedding|calendar|mine|today|us)\b/.exec(url)?.[1] as View | undefined;
-          if (view) setViewState(view);
+          if (view) setView(view);
         }
       );
     });
@@ -187,7 +233,7 @@ export default function BackstageApp() {
       },
     }).then((f) => (off = f));
     return () => off();
-  }, [phase.kind, onNotification]);
+  }, [phase.kind, onNotification, setView]);
 
   useEffect(() => {
     if (phase.kind !== "app" || !isApp() || !me) return;
@@ -273,10 +319,10 @@ export default function BackstageApp() {
 
   // ——— welcome, once per person per device ———
   useEffect(() => {
-    if (phase.kind !== "app" || !me) return;
+    if (phase.kind !== "app" || !me || space !== "personal") return;
     if (shouldWelcome(me)) setSheet((s) => s ?? { kind: "welcome" });
     else if (shouldShowNew()) setSheet((s) => s ?? { kind: "whatsnew" });
-  }, [phase.kind, me]);
+  }, [phase.kind, me, space]);
 
   // ——— chat: new messages and hearts, on every screen ———
   // The heartbeat (further down) fetches the chat the moment it changes, on
@@ -289,7 +335,10 @@ export default function BackstageApp() {
   const onIncoming = bs.onIncoming;
   useEffect(() => {
     if (phase.kind !== "app" || !me) return;
-    onIncoming((fresh) => {
+    onIncoming((fresh: ChatMessage[]) => {
+      // On the Work side nothing personal shows. Saying "not yet" keeps these
+      // waiting, and they are announced the moment you switch to Personal.
+      if (spaceRef.current === "work") return false;
       if (fresh.some((m) => m.kind === "heart")) {
         setHearts((h) => h + 1);
         buzz(BUZZ.heart);
@@ -308,6 +357,7 @@ export default function BackstageApp() {
           }
         );
       }
+      return true;
     });
     const tick = () => {
       if (document.hidden || !navigator.onLine) return;
@@ -325,6 +375,21 @@ export default function BackstageApp() {
       onIncoming(null);
     };
   }, [phase.kind, me, onIncoming, setView]);
+
+  // back on Personal: whatever waited while Work was showing comes through now
+  const firstSpace = useRef(true);
+  useEffect(() => {
+    if (phase.kind !== "app" || !me || space !== "personal") return;
+    if (firstSpace.current) {
+      firstSpace.current = false;
+      return; // the checks that start with the app cover the first look
+    }
+    chatLive.current.poll(true).catch(() => {});
+    quickCheck.current();
+  }, [space, phase.kind, me]);
+  useEffect(() => {
+    if (space === "work") firstSpace.current = false;
+  }, [space]);
 
   // ——— the other person's "how was your day": a card pops up when it changes ———
   const [moodAlert, setMoodAlert] = useState<{ emoji: string; n: number } | null>(null);
@@ -358,18 +423,19 @@ export default function BackstageApp() {
           video_out?: VideoOut | null;
         };
         if (stop) return;
+        const personal = spaceRef.current === "personal"; // on the Work side these wait, unannounced
         if (!playingRef.current) {
           setVideoIn((cur) => {
             if (video_in && video_in.id !== cur?.id) {
               setVideoPrompt(video_in.id);
-              buzz(BUZZ.heart);
+              if (personal) buzz(BUZZ.heart);
             }
             return video_in ?? null;
           });
         }
         setVideoOut(video_out ?? null);
         for (const m of [dm && { ...dm, game: "dinner" as const }, dt && { ...dt, game: "date" as const }]) {
-          if (!m) continue;
+          if (!m || !personal) continue;
           // a new match (also one made while this was closed): show it once
           const id = `${m.game}|${m.key}|${m.at}`;
           const store = `backstage:${m.game}-match:${me.id}`;
@@ -393,6 +459,7 @@ export default function BackstageApp() {
         const theirs = moods.find((m) => m.added_by === otherId);
         const key = theirs ? `${theirs.emoji}|${theirs.updated_at}` : null;
         if (stop) return;
+        if (!personal) return; // their mood is looked at again once you are on Personal
         if (seen !== undefined && key && key !== seen) {
           setMoodAlert((a) => ({ emoji: theirs!.emoji, n: (a?.n ?? 0) + 1 }));
           buzz(BUZZ.mood);
@@ -435,6 +502,7 @@ export default function BackstageApp() {
     const short = (t: { title: string }) => `“${t.title.length > 42 ? `${t.title.slice(0, 40)}…` : t.title}”`;
     // say what changed on the joint list (changes you made yourself are already on screen)
     const news = (before: typeof tasks, after: typeof tasks) => {
+      if (spaceRef.current === "work") return; // joint and wedding changes are personal
       const was = new Map(before.filter((t) => t.owner === "joint").map((t) => [t.id, t]));
       const now = after.filter((t) => t.owner === "joint");
       const lines: string[] = [];
@@ -513,6 +581,13 @@ export default function BackstageApp() {
   }, [phase.kind]);
 
   // ——— what each view shows ———
+  // Work: your own work tasks, work projects and work calendar entries, and
+  // nothing else. Personal: your personal tasks plus everything joint.
+  const spaceTasks = useMemo(
+    () => tasks.filter((t) => (space === "work" ? t.owner === me?.id && t.list === "work" : t.owner === "joint" || t.list === "personal")),
+    [tasks, space, me]
+  );
+  const spaceEvents = useMemo(() => events.filter((e) => (space === "work" ? e.work : !e.work)), [events, space]);
   const mineInList = useMemo(
     () => tasks.filter((t) => me && t.owner === me.id && t.list === list),
     [tasks, me, list]
@@ -537,30 +612,38 @@ export default function BackstageApp() {
     [joint, jointFor, me]
   );
   const myProjects = projects.filter((p) => p.owner === me?.id || p.owner === "joint");
+  const spaceProjects = myProjects.filter((p) => p.list === space);
+  // the filter row also keeps a project from the other side that still has open tasks here
+  const chipProjects = [
+    ...spaceProjects,
+    ...myProjects.filter((p) => p.list !== space && mineInList.some((t) => t.project_id === p.id && t.status !== "done")),
+  ];
   const openCount = (l: ListName) => tasks.filter((t) => t.owner === me?.id && t.list === l && t.status !== "done").length;
   const jointOpen = joint.filter((t) => t.status !== "done").length;
   const unread = bs.messages.filter((m) => !m.read_at).length;
   const dueTasks = due
     .map((id) => tasks.find((t) => t.id === id))
-    .filter((t): t is NonNullable<typeof t> => !!t && t.status !== "done");
+    .filter((t): t is NonNullable<typeof t> => !!t && t.status !== "done" && (space === "personal" || (t.owner === me?.id && t.list === "work")));
   const other = users.find((u) => u.id !== me?.id);
   const champion = lastWeekChampion(bs.scores, users);
 
   if (phase.kind !== "app" || !me) return <Gate bs={bs} />;
 
+  const personal = space === "personal";
   const openTask = sheet?.kind === "task" ? tasks.find((t) => t.id === sheet.id) : undefined;
   const openEvent = sheet?.kind === "event" && sheet.id ? events.find((e) => e.id === sheet.id) : undefined;
 
   // Whatever is typed into an "Add…" box is one task, however long it is.
   const addTyped = (text: string, owner: "mine" | "joint" | "wedding", areaId: string | null = null) => {
-    const d = parseTask(text, { projects, others: users.filter((u) => u.id !== me.id) });
+    const d = parseTask(text, { projects: spaceProjects, others: personal ? users.filter((u) => u.id !== me.id) : [] });
     if (!d) return;
     void bs.addDrafts(
       [
         {
           ...d,
           kind: "task" as const,
-          joint: owner !== "mine" || d.joint,
+          list: space, // what you add on a side stays on that side
+          joint: personal && (owner !== "mine" || d.joint),
           wedding: owner === "wedding",
           area_id: owner === "wedding" ? areaId : null,
           // a wedding to-do starts with no one on it, unless the text names someone
@@ -572,23 +655,34 @@ export default function BackstageApp() {
     );
   };
 
-  const NAV: Array<{ id: View; label: string; n?: number; icon: React.ReactNode }> = [
-    { id: "today", label: "Today", icon: <IconToday /> },
-    { id: "mine", label: "My tasks", n: openCount("work") + openCount("personal"), icon: <IconCheck /> },
-    { id: "joint", label: "Joint", n: jointOpen, icon: <IconJoint /> },
-    { id: "wedding", label: "Wedding", n: weddingOpen, icon: <IconRing /> },
-    { id: "calendar", label: "Calendar", icon: <IconCal /> },
-    { id: "us", label: "Us", n: bs.chatUnread, icon: <IconHeart /> },
-  ];
+  const NAV: Array<{ id: View; label: string; n?: number; icon: React.ReactNode }> = personal
+    ? [
+        { id: "today", label: "Today", icon: <IconToday /> },
+        { id: "mine", label: "My tasks", n: openCount("personal"), icon: <IconCheck /> },
+        { id: "joint", label: "Joint", n: jointOpen, icon: <IconJoint /> },
+        { id: "wedding", label: "Wedding", n: weddingOpen, icon: <IconRing /> },
+        { id: "calendar", label: "Calendar", icon: <IconCal /> },
+        { id: "us", label: "Us", n: bs.chatUnread, icon: <IconHeart /> },
+      ]
+    : [
+        { id: "today", label: "Today", icon: <IconToday /> },
+        { id: "mine", label: "Tasks", n: openCount("work"), icon: <IconCheck /> },
+        { id: "calendar", label: "Calendar", icon: <IconCal /> },
+      ];
 
   return (
-    <div className="bs-app" data-view={view}>
+    <div className="bs-app" data-view={view} data-space={space}>
       <header className="bs-head">
         <div className="bs-title">
           <h1>Backstage</h1>
-          <span className="today">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-          </span>
+          <div className="bs-space" role="group" aria-label="Work or Personal">
+            {(["work", "personal"] as Space[]).map((sp) => (
+              <button key={sp} data-space={sp} aria-pressed={space === sp} onClick={() => space !== sp && setSpace(sp)}>
+                {sp === "work" ? <IconWork /> : <IconHome />}
+                {sp === "work" ? "Work" : "Personal"}
+              </button>
+            ))}
+          </div>
         </div>
         <nav className="bs-tabs" aria-label="Sections">
           {NAV.map((n) => (
@@ -597,40 +691,36 @@ export default function BackstageApp() {
               {!!n.n && <span className="n">{n.n}</span>}
             </button>
           ))}
-          {me.admin && (
-            <button aria-current={view === "messages" ? "page" : undefined} onClick={() => setView("messages")}>
-              Messages
-              {unread > 0 && <span className="n new">{unread}</span>}
-            </button>
-          )}
         </nav>
         <div className="who">
           <button className="bs-add" onClick={() => setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" })}>
             + New
           </button>
-          {me.admin && (
-            <button className="bs-iconbtn bs-mail" aria-label={`Messages${unread ? `, ${unread} unread` : ""}`} onClick={() => setView("messages")}>
+          {me.admin && personal && (
+            <button className="bs-iconbtn bs-mail" aria-current={view === "messages" ? "page" : undefined} title="Messages from the website" aria-label={`Messages${unread ? `, ${unread} unread` : ""}`} onClick={() => setView("messages")}>
               <IconMail />
               {unread > 0 && <span className="badge">{unread}</span>}
             </button>
           )}
-          <button
-            className="bs-iconbtn bs-love"
-            aria-label={`Send ${other?.name ?? ""} a heart`}
-            title={`Thinking of ${other?.name ?? "you"}`}
-            onClick={() => {
-              buzz(BUZZ.tap);
-              void bs.sendChat("❤️", "heart").then((ok) => ok && bs.say(`❤️ sent to ${other?.name ?? ""}`));
-              setHearts((h) => h + 1);
-            }}
-          >
-            <IconHeart filled />
-          </button>
+          {personal && (
+            <button
+              className="bs-iconbtn bs-love"
+              aria-label={`Send ${other?.name ?? ""} a heart`}
+              title={`Thinking of ${other?.name ?? "you"}`}
+              onClick={() => {
+                buzz(BUZZ.tap);
+                void bs.sendChat("❤️", "heart").then((ok) => ok && bs.say(`❤️ sent to ${other?.name ?? ""}`));
+                setHearts((h) => h + 1);
+              }}
+            >
+              <IconHeart filled />
+            </button>
+          )}
           <button className="bs-avatar-btn" onClick={() => setSheet({ kind: "settings" })} aria-label={`${me.name}: settings and sign out`}>
             <span className="bs-avatar" style={{ background: me.color }}>
               {me.name[0]}
             </span>
-            {champion === me.id && (
+            {personal && champion === me.id && (
               <span className="bs-crown" title="Last week's chore champion">
                 👑
               </span>
@@ -677,7 +767,7 @@ export default function BackstageApp() {
           </button>
         </div>
       )}
-      {askPush && !sheet && (
+      {askPush && !sheet && personal && (
         <div className="bs-due" role="status">
           <strong>🔔 Get notified</strong>
           <span>
@@ -703,10 +793,11 @@ export default function BackstageApp() {
       <main className="bs-main">
         {view === "today" && (
           <Dashboard
+            space={space}
             me={me}
-            tasks={tasks}
-            events={events}
-            projects={myProjects}
+            tasks={spaceTasks}
+            events={spaceEvents}
+            projects={spaceProjects}
             onOpen={(id) => setSheet({ kind: "task", id })}
             onOpenEvent={(id) => setSheet({ kind: "event", id })}
             onCalendar={() => setView("calendar")}
@@ -718,7 +809,7 @@ export default function BackstageApp() {
             }}
             onManageProjects={() => setSheet({ kind: "projects" })}
             top={
-              videoIn && other ? (
+              personal && videoIn && other ? (
                 <VideoWaiting
                   fromName={other.name}
                   video={videoIn}
@@ -729,7 +820,7 @@ export default function BackstageApp() {
                 />
               ) : null
             }
-            side={me.admin && other ? <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} /> : null}
+            side={personal && me.admin && other ? <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} /> : null}
             bs={bs}
             users={users}
             onUs={(sec) => {
@@ -742,28 +833,14 @@ export default function BackstageApp() {
         {view === "mine" && (
           <>
             <div className="bs-bar">
-              <div className="bs-seg" role="tablist" aria-label="List">
-                {(["work", "personal"] as ListName[]).map((l) => (
-                  <button
-                    key={l}
-                    role="tab"
-                    aria-selected={list === l}
-                    aria-pressed={list === l}
-                    onClick={() => {
-                      setList(l);
-                      remember(LIST_KEY, l);
-                    }}
-                  >
-                    {l === "work" ? "Work" : "Personal"}
-                    <span className="n">{openCount(l)}</span>
-                  </button>
-                ))}
-              </div>
+              <h2 className="bs-viewtitle">
+                {personal ? "My personal tasks" : "Work tasks"} <span className="n">{openCount(list)} open</span>
+              </h2>
               <div className="bs-filter">
                 <button aria-pressed={project === null} onClick={() => setProject(null)}>
                   All
                 </button>
-                {myProjects.map((p) => {
+                {chipProjects.map((p) => {
                   const n = mineInList.filter((t) => t.project_id === p.id && t.status !== "done").length;
                   return (
                     <button key={p.id} aria-pressed={project === p.id} onClick={() => setProject(project === p.id ? null : p.id)}>
@@ -774,7 +851,7 @@ export default function BackstageApp() {
                   );
                 })}
                 <button className="edit" onClick={() => setSheet({ kind: "projects" })}>
-                  Projects
+                  {spaceProjects.length ? "Projects" : "+ Project"}
                 </button>
               </div>
             </div>
@@ -787,7 +864,7 @@ export default function BackstageApp() {
                 onPatch={bs.patchTask}
                 onDelete={bs.deleteTask}
                 onAdd={(t) => addTyped(t, "mine")}
-                placeholder={`Add to ${list === "work" ? "Work" : "Personal"}…`}
+                placeholder={personal ? "Add a personal task…" : "Add a work task…"}
               />
             ) : (
               <Board
@@ -882,11 +959,12 @@ export default function BackstageApp() {
 
         {view === "calendar" && (
           <Calendar
+            space={space}
             me={me}
             users={users}
-            events={events}
-            tasks={tasks}
-            projects={myProjects}
+            events={spaceEvents}
+            tasks={spaceTasks}
+            projects={spaceProjects}
             onOpenEvent={(id) => setSheet({ kind: "event", id })}
             onOpenTask={(id) => setSheet({ kind: "task", id })}
             onNewEvent={(day) => setSheet({ kind: "event", day })}
@@ -907,12 +985,12 @@ export default function BackstageApp() {
         {view === "messages" && me.admin && <Messages bs={bs} messages={bs.messages} />}
       </main>
 
-      <nav className="bs-bottom" aria-label="Sections">
+      <nav className="bs-bottom" aria-label="Sections" style={{ ["--cols" as string]: NAV.length }}>
         {NAV.map((n) => (
           <button key={n.id} data-nav={n.id} aria-current={view === n.id ? "page" : undefined} onClick={() => setView(n.id)}>
             <span className="ico">
               {n.icon}
-              {!!n.n && (n.id === "joint" || n.id === "us") && <span className={`badge${n.id === "us" ? " us" : ""}`}>{n.n}</span>}
+              {!!n.n && personal && (n.id === "joint" || n.id === "us") && <span className={`badge${n.id === "us" ? " us" : ""}`}>{n.n}</span>}
             </span>
             <span className="lbl">{n.label}</span>
           </button>
@@ -935,8 +1013,9 @@ export default function BackstageApp() {
 
       {openTask && (
         <TaskDrawer
+          space={space}
           task={openTask}
-          projects={projects}
+          projects={myProjects}
           me={me}
           users={users}
           onPatch={bs.patchTask}
@@ -949,6 +1028,7 @@ export default function BackstageApp() {
       {sheet?.kind === "event" && (!sheet.id || openEvent) && !openEvent?.busy && (
         <EventSheet
           key={sheet.id ?? sheet.day}
+          space={space}
           bs={bs}
           me={me}
           users={users}
@@ -964,19 +1044,19 @@ export default function BackstageApp() {
           bs={bs}
           me={me}
           users={users}
+          space={space}
           projects={myProjects}
-          defaultList={list}
           defaultProject={view === "mine" ? project : null}
-          defaultOwner={view === "joint" || view === "wedding" ? "joint" : me.id}
+          defaultOwner={personal && (view === "joint" || view === "wedding") ? "joint" : me.id}
           defaultWedding={view === "wedding"}
           defaultArea={view === "wedding" && wedArea !== "none" ? wedArea : null}
           onClose={() => setSheet(null)}
           onSwitchToEvent={() => setSheet({ kind: "event", day: ymd(new Date()) })}
         />
       )}
-      {sheet?.kind === "projects" && <Projects bs={bs} projects={myProjects} onClose={() => setSheet(null)} />}
+      {sheet?.kind === "projects" && <Projects bs={bs} space={space} projects={myProjects} onClose={() => setSheet(null)} />}
       {sheet?.kind === "settings" && (
-        <Settings bs={bs} me={me} onClose={() => setSheet(null)} onHelp={() => setSheet({ kind: "help" })} />
+        <Settings bs={bs} me={me} space={space} onClose={() => setSheet(null)} onHelp={() => setSheet({ kind: "help" })} />
       )}
       {sheet?.kind === "help" && <Help onClose={() => setSheet(null)} onReplayWelcome={() => setSheet({ kind: "welcome" })} />}
       {sheet?.kind === "welcome" && <Welcome me={me} users={users} onClose={() => setSheet(null)} />}
@@ -986,7 +1066,7 @@ export default function BackstageApp() {
           <strong>You&rsquo;re offline.</strong> You can look around, but changes won&rsquo;t save until you&rsquo;re back online.
         </div>
       )}
-      {videoIn && other && (
+      {personal && videoIn && other && (
         <VideoGift
           key={videoIn.id}
           fromName={other.name}
@@ -1012,8 +1092,8 @@ export default function BackstageApp() {
           }}
         />
       )}
-      {hearts > 0 && <Hearts key={hearts} />}
-      {moodAlert && other && (
+      {personal && hearts > 0 && <Hearts key={hearts} />}
+      {personal && moodAlert && other && (
         <MoodAlert
           key={moodAlert.n}
           name={other.name}
@@ -1031,7 +1111,7 @@ export default function BackstageApp() {
           }}
         />
       )}
-      {matches[0] && other && (
+      {personal && matches[0] && other && (
         <MatchAlert
           key={`${matches[0].game}|${matches[0].key}|${matches[0].at}`}
           match={matches[0]}
@@ -1168,6 +1248,22 @@ function Hearts() {
         </span>
       ))}
     </div>
+  );
+}
+function IconWork() {
+  return (
+    <svg {...S} width={18} height={18}>
+      <rect x="3" y="7.5" width="18" height="12.5" rx="2.5" />
+      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5M3 13h18" />
+    </svg>
+  );
+}
+function IconHome() {
+  return (
+    <svg {...S} width={18} height={18}>
+      <path d="M4 11.2 12 4.5l8 6.7V19a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 19z" />
+      <path d="M9.5 20.5v-6h5v6" />
+    </svg>
   );
 }
 function IconMail() {
