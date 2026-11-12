@@ -251,6 +251,26 @@ create table if not exists video_chunks (
   data     bytea not null,
   primary key (video_id, idx)
 );
+-- Files attached to a task (PDFs, Word and Excel files, photos, anything).
+-- Stored in pieces, like the videos; they go when the task is deleted.
+create table if not exists task_files (
+  id         uuid primary key default gen_random_uuid(),
+  task_id    uuid not null references tasks(id) on delete cascade,
+  name       text not null,
+  mime       text not null,
+  size       bigint not null,
+  chunks     int not null,
+  ready      boolean not null default false,
+  added_by   text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists task_files_task on task_files (task_id);
+create table if not exists task_file_chunks (
+  file_id uuid not null references task_files(id) on delete cascade,
+  idx     int not null,
+  data    bytea not null,
+  primary key (file_id, idx)
+);
 -- Phones with the Android app, for push notifications (Firebase Cloud
 -- Messaging). One row per installed app; the token is Firebase's address for it.
 create table if not exists fcm_tokens (

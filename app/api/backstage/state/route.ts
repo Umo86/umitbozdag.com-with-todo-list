@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { FILE_COLS } from "@/lib/files";
 import { readWedding } from "@/lib/wedding";
 import { db } from "@/lib/db";
 import { requireUser, USERS } from "@/lib/auth";
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
   const me = auth.me;
   try {
     await seedIfFirstRun();
-    const [projects, tasks, events, busy, messages, chat, fun] = await Promise.all([
+    const [projects, tasks, events, busy, messages, chat, fun, files] = await Promise.all([
       db().query(`select ${PROJECT_COLS} from projects where ${visibleTo(1)} order by position, created_at`, [me.id]),
       db().query(`select ${TASK_COLS} from tasks where ${visibleTo(1)} ${TASK_ORDER}`, [me.id]),
       // your own and the joint entries, plus any of the other person's that they chose to let you see
@@ -46,6 +47,14 @@ export async function GET(req: Request) {
         console.error("backstage us load error:", err);
         return { us: [], scores: [], birthdays: {} };
       }),
+      // what is attached to the tasks this person can see (names and sizes, not the files themselves)
+      db()
+        .query(
+          `select ${FILE_COLS} from task_files f join tasks t on t.id = f.task_id
+           where f.ready and t.owner in ($1, 'joint') order by f.created_at`,
+          [me.id]
+        )
+        .catch(() => ({ rows: [] })),
     ]);
     return NextResponse.json({
       me,
@@ -53,6 +62,7 @@ export async function GET(req: Request) {
       projects: projects.rows,
       tasks: tasks.rows,
       events: [...events.rows, ...busy.rows],
+      files: files.rows,
       wedding: await readWedding(),
       messages: messages.rows,
       chat_unread: chat.rows[0]?.n ?? 0,

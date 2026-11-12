@@ -104,6 +104,15 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
     ],
   },
   {
+    q: "Files on a task",
+    a: [
+      "Open a task and tap Attach to add files: PDF, Word, Excel, photos or anything else, up to 25 MB each. You can also attach them while creating a task, or drop them onto the list on a computer.",
+      "Whoever can see the task can open, download and delete its files. Files on your own tasks are yours alone; files on joint and wedding tasks are for both of you.",
+      "Photos open in Backstage. Other files open in a new tab on the website; in the phone app they are handed to the phone’s browser to download and open.",
+      "A 📎 on a task shows how many files it has. Deleting a task deletes its files.",
+    ],
+  },
+  {
     q: "The calendar",
     a: [
       "Tap a day to see its plan; double-click (or + Event) to add an event.",

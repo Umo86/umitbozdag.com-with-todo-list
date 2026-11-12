@@ -25,8 +25,11 @@ import {
   type Task,
   type TaskPatch,
 } from "./types";
+import TaskFiles from "./TaskFiles";
+import type { Backstage } from "./useBackstage";
 
 export default function TaskDrawer({
+  bs,
   space,
   task,
   projects,
@@ -39,6 +42,7 @@ export default function TaskDrawer({
   onNudge,
 }: {
   onNudge?: (id: string) => void;
+  bs: Backstage;
   space: Space; // on the Work side the joint and wedding lists aren't offered
   task: Task;
   projects: Project[];
@@ -138,6 +142,8 @@ export default function TaskDrawer({
             else e.currentTarget.value = task.notes ?? "";
           }}
         />
+
+        <TaskFiles bs={bs} taskId={task.id} />
 
         {task.owner === "joint" && iWrote && (
           <>

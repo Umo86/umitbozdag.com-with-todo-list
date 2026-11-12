@@ -3,8 +3,9 @@
 // Add one task by hand: every field as an ordinary control, nothing guessed.
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
-import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, type Priority, type Project, type Space } from "./types";
+import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, FILE_MAX_MB, type Priority, type Project, type Space } from "./types";
 import type { Backstage } from "./useBackstage";
+import { ClipIcon, fileSize, KindBadge } from "./TaskFiles";
 
 export default function NewTask({
   bs,
@@ -41,6 +42,10 @@ export default function NewTask({
   const [assignee, setAssignee] = useState<Assignee | null>(defaultWedding ? null : "both");
   const other = users.find((u) => u.id !== me.id);
   const [busy, setBusy] = useState(false);
+  // files chosen here go up once the task exists
+  const [picked, setPicked] = useState<File[]>([]);
+  const [sending, setSending] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const [more, setMore] = useState(!!defaultProject); // open when a project is already chosen
   const [err, setErr] = useState("");
   const title = useRef<HTMLTextAreaElement>(null);
@@ -79,11 +84,17 @@ export default function NewTask({
             remind_at: fromLocalInput(String(f.get("remind") ?? "")),
             repeat: (String(f.get("repeat") ?? "") || null) as Repeat | null,
           });
-          setBusy(false);
           if (t) {
-            bs.say("Task added.");
+            let up = 0;
+            for (let i = 0; i < picked.length; i++) {
+              setSending(`Uploading ${i + 1} of ${picked.length}…`);
+              if (await bs.uploadFile(t.id, picked[i], (pct) => setSending(`Uploading ${i + 1} of ${picked.length}… ${pct}%`))) up++;
+            }
+            setBusy(false);
+            // (a file that didn't go up has already said why; the task is there, and it can be attached again)
+            if (up === picked.length) bs.say(up ? `Task added, with ${up} file${up === 1 ? "" : "s"}.` : "Task added.");
             onClose();
-          }
+          } else setBusy(false);
         }}
       >
         <div className="bs-grab" aria-hidden="true" />
@@ -201,6 +212,49 @@ export default function NewTask({
           </div>
         </div>
 
+        <div className="bs-files new">
+          <div className="bs-files-head">
+            <label>Files{picked.length ? ` (${picked.length})` : ""}</label>
+            <button type="button" className="bs-attach" onClick={() => fileInput.current?.click()}>
+              <ClipIcon /> Attach
+            </button>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              hidden
+              aria-label="Attach files"
+              onChange={(e) => {
+                const add = [...(e.target.files ?? [])];
+                const big = add.find((f) => f.size > FILE_MAX_MB * 1048576);
+                if (big) bs.say(`${big.name} is ${Math.round(big.size / 1048576)} MB. The limit is ${FILE_MAX_MB} MB a file.`, "error");
+                setPicked((p) => [...p, ...add.filter((f) => f.size && f.size <= FILE_MAX_MB * 1048576)].slice(0, 20));
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {picked.length > 0 && (
+            <ul className="bs-filelist">
+              {picked.map((f, i) => (
+                <li key={`${f.name}:${i}`}>
+                  <span className="open">
+                    <KindBadge name={f.name} mime={f.type} />
+                    <span className="nm">
+                      <b>{f.name}</b>
+                      <small>{fileSize(f.size)}</small>
+                    </span>
+                  </span>
+                  <span className="acts">
+                    <button type="button" aria-label={`Remove ${f.name}`} title="Remove" onClick={() => setPicked((p) => p.filter((_, j) => j !== i))}>
+                      ×
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <button type="button" className="bs-more" aria-expanded={more} onClick={() => setMore((v) => !v)}>
           {more ? "Fewer options" : "More options"} <span className="quiet">{more ? "" : "reminder, project, notes, repeat"}</span>
           <span aria-hidden="true">{more ? "▴" : "▾"}</span>
@@ -253,7 +307,7 @@ export default function NewTask({
             Cancel
           </button>
           <button type="submit" className="btn" disabled={busy}>
-            {busy ? "Adding…" : "Add task"}
+            {busy ? sending || "Adding…" : "Add task"}
           </button>
         </div>
       </form>

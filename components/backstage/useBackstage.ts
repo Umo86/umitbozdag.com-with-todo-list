@@ -4,7 +4,7 @@
 // the /api/backstage calls, and the data (tasks, projects, events) with
 // optimistic updates.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NO_WEDDING, setAreas, type Wedding } from "./types";
+import { countFiles, FILE_MAX_MB, NO_WEDDING, setAreas, type TaskFile, type Wedding } from "./types";
 import type {
   Assignee,
   ChatMessage,
@@ -66,6 +66,8 @@ export function useBackstage() {
   const deleting = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const [messages, setMessages] = useState<Message[]>([]);
   const [events, setEvents] = useState<CalEvent[]>([]);
+  const [files, setFiles] = useState<TaskFile[]>([]);
+  countFiles(files); // rows and cards read the paperclip count from this
   const [wedding, setWedding] = useState<Wedding>(NO_WEDDING);
   const [me, setMe] = useState<Me | null>(null);
   const [users, setUsers] = useState<Person[]>([]);
@@ -141,6 +143,7 @@ export function useBackstage() {
         projects: Project[];
         tasks: Task[];
         events: CalEvent[];
+        files?: TaskFile[];
         wedding?: Wedding;
         messages?: Message[];
         chat_unread?: number;
@@ -155,6 +158,7 @@ export function useBackstage() {
       setProjects(data.projects ?? []);
       setTasks((data.tasks ?? []).filter((t) => !deleting.current.has(t.id)));
       setEvents(data.events ?? []);
+      setFiles(data.files ?? []);
       if (data.wedding) {
         setAreas(data.wedding.areas);
         setWedding(data.wedding);
@@ -322,6 +326,80 @@ export function useBackstage() {
       return saved;
     },
     [api, say, me]
+  );
+
+  // ——— files on tasks ———
+  /**
+   * Attach a file to a task. It goes up in pieces (each retried a few times),
+   * so a big PDF or a weak signal is fine. `onPct` hears the progress.
+   * Hands back the stored file, or null if it didn't work (the reason is shown).
+   */
+  const uploadFile = useCallback(
+    async (taskId: string, file: File, onPct?: (pct: number) => void): Promise<TaskFile | null> => {
+      if (file.size > FILE_MAX_MB * 1048576) {
+        say(`${file.name} is ${Math.round(file.size / 1048576)} MB. The limit is ${FILE_MAX_MB} MB a file.`, "error");
+        return null;
+      }
+      if (!file.size) {
+        say(`${file.name} is empty.`, "error");
+        return null;
+      }
+      try {
+        const start = await send<{ id: string; chunk: number }>(`/tasks/${taskId}/files`, {
+          method: "POST",
+          body: { name: file.name, mime: file.type, size: file.size },
+        });
+        const total = Math.ceil(file.size / start.chunk);
+        for (let i = 0; i < total; i++) {
+          const part = file.slice(i * start.chunk, (i + 1) * start.chunk);
+          for (let attempt = 1; ; attempt++) {
+            const res = await fetch(`/api/backstage/files/${start.id}/chunk?i=${i}`, {
+              method: "PUT",
+              credentials: "same-origin",
+              headers: { "Content-Type": "application/octet-stream" },
+              body: part,
+            }).catch(() => null);
+            if (res?.ok) break;
+            if (attempt >= 4 || (res && res.status < 500)) {
+              const d = res ? ((await res.json().catch(() => ({}))) as { error?: string }) : {};
+              throw new Error(d.error || `${file.name} didn't upload. Check your connection and try again.`);
+            }
+            await new Promise((r) => setTimeout(r, 1200 * attempt));
+          }
+          onPct?.(Math.round(((i + 1) / total) * 100));
+        }
+        const f = await send<TaskFile>(`/files/${start.id}/done`, { method: "POST" });
+        setFiles((prev) => [...prev.filter((x) => x.id !== f.id), f]);
+        return f;
+      } catch (e) {
+        say((e as Error).message || `${file.name} didn't upload. Try again.`, "error");
+        return null;
+      }
+    },
+    [send, say]
+  );
+  const deleteFile = useCallback(
+    (id: string) => {
+      const before = files;
+      setFiles((prev) => prev.filter((f) => f.id !== id));
+      api(`/files/${id}`, { method: "DELETE" }).catch((e) => {
+        setFiles(before);
+        say((e as Error).message, "error");
+      });
+    },
+    [api, say, files]
+  );
+  /** A short-lived link to one file, for the phone's own browser (the app can't save files itself). */
+  const fileLink = useCallback(
+    async (id: string): Promise<string | null> => {
+      try {
+        return (await send<{ url: string }>(`/files/${id}/link`, { method: "POST" })).url;
+      } catch (e) {
+        say((e as Error).message, "error");
+        return null;
+      }
+    },
+    [send, say]
   );
 
   // ——— online / offline ———
@@ -702,6 +780,10 @@ export function useBackstage() {
     projects,
     tasks,
     events,
+    files,
+    uploadFile,
+    deleteFile,
+    fileLink,
     wedding,
     weddingCall,
     users,

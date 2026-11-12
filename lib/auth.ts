@@ -162,6 +162,23 @@ export async function requireUser(req: Request): Promise<AuthResult> {
   return { ok: true, me: { id: u.id as UserId, name: u.name, color: u.color, admin: u.admin } };
 }
 
+/**
+ * A link to one attached file that works for a few minutes without the
+ * session cookie. The phone app uses it to hand a file to the phone's own
+ * browser, which is not signed in. It opens that one file and nothing else.
+ */
+export async function issueFileLink(fileId: string): Promise<string> {
+  return new SignJWT({ use: "file" }).setProtectedHeader({ alg: "HS256" }).setSubject(`file:${fileId}`).setIssuedAt().setExpirationTime("5m").sign(signingKey());
+}
+export async function checkFileLink(token: string, fileId: string): Promise<boolean> {
+  try {
+    const { payload } = await jwtVerify(token, signingKey(), { algorithms: ["HS256"] });
+    return payload.use === "file" && payload.sub === `file:${fileId}`;
+  } catch {
+    return false;
+  }
+}
+
 /** Umit only (the website's contact messages). */
 export async function requireAdmin(req: Request): Promise<AuthResult> {
   const a = await requireUser(req);

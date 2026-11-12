@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-12",
+    "title": "Attach files to tasks",
+    "items": [
+      "Open a task and tap Attach: PDF, Word, Excel, photos or anything else, up to 25 MB each",
+      "You can also attach files while creating a task",
+      "Whoever can see the task can open, download and delete its files. A 📎 shows how many it has",
+      "Photos open in Backstage; other files open in your browser"
+    ]
+  },
+  {
+    "date": "2026-11-12",
     "title": "Events: choose the calendar and who can see it",
     "items": [
       "Every event now asks which calendar it goes on: Work, Personal, Joint or Wedding",

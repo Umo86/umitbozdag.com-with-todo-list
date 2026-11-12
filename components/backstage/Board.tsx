@@ -38,7 +38,7 @@ import { WEDDING, areaOf,
   type Project,
   type Status,
   type Task,
-  type TaskPatch,
+  type TaskPatch, filesOn,
 } from "./types";
 
 // True while a card is in the air: live updates wait, so the board never
@@ -349,7 +349,7 @@ function Card({
         ) : (
           <p className="title">{t.title}</p>
         )}
-        {(project || t.due_date || t.remind_at || t.repeat || t.priority !== "normal" || t.owner === "joint" || t.notes) && (
+        {(project || t.due_date || t.remind_at || t.repeat || t.priority !== "normal" || t.owner === "joint" || t.notes || filesOn(t.id) > 0) && (
           <div className="meta">
             {project && (
               <span className="proj">
@@ -371,6 +371,7 @@ function Card({
             {t.priority === "high" && <span className="high">High</span>}
             {t.priority === "low" && <span>Low priority</span>}
             {t.notes && <span>Has notes</span>}
+            {filesOn(t.id) > 0 && <span>📎 {filesOn(t.id)} file{filesOn(t.id) === 1 ? "" : "s"}</span>}
             {t.wedding && <span className="wed">{areaOf(t.area_id) ? `${areaOf(t.area_id)!.emoji ?? "💍"} ${areaOf(t.area_id)!.name}` : "💍 Wedding"}</span>}
             {t.wedding && !t.assignee && !done && <span className="who none">No one yet</span>}
             {t.owner === "joint" && t.assignee && (

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 // The heartbeat. Each open Backstage asks this every few seconds; the answer
 // is three short fingerprints of everything the person can see:
-//   v  tasks, projects, events and the "us" items (lists, votes, moods…)
+//   v  tasks (and the files on them), projects, events, the wedding plan
 //   c  the chat (newest message, unread count, newest read receipt)
 //   x  one-time videos
 // A fingerprint changes when anything behind it changes: added, edited,
@@ -25,6 +25,7 @@ export async function GET(req: Request) {
               ${sum("events", "e", "true")} as e,
               ${sum("wedding_plan", "wp", "true")} as wp,
               ${sum("wedding_areas", "wa", "true")} as wa,
+              ${sum("task_files", "f", "f.ready")} as f,
               ${sum("us_items", "u", "u.owner = 'joint' or u.owner = $1")} as u,
               ${sum("chat_messages", "m", "m.created_at > now() - interval '3 days' or m.read_at is null")} as c,
               ${sum("videos", "w", "true")} as x`,
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
     );
     const s = r.rows[0];
     return NextResponse.json(
-      { v: `${s.t}|${s.p}|${s.e}|${s.wp}|${s.wa}`, u: s.u, c: s.c, x: s.x },
+      { v: `${s.t}|${s.p}|${s.e}|${s.wp}|${s.wa}|${s.f}`, u: s.u, c: s.c, x: s.x },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {

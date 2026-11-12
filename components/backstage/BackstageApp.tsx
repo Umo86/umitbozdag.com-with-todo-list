@@ -1017,6 +1017,7 @@ export default function BackstageApp() {
 
       {openTask && (
         <TaskDrawer
+          bs={bs}
           space={space}
           task={openTask}
           projects={myProjects}

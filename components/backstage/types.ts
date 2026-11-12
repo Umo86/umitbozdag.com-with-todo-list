@@ -1,4 +1,27 @@
 export type Status = "todo" | "doing" | "done";
+/** A file attached to a task (the file itself is fetched only when opened). */
+export type TaskFile = {
+  id: string;
+  task_id: string;
+  name: string;
+  mime: string;
+  size: number;
+  added_by: UserId;
+  created_at: string;
+};
+export const FILE_MAX_MB = 25;
+// How many files each task has, for the paperclip on rows and cards. Counted
+// once per change of the list, by the one place that holds it.
+let counted: TaskFile[] | null = null;
+let counts = new Map<string, number>();
+export function countFiles(files: TaskFile[]) {
+  if (files === counted) return;
+  counted = files;
+  counts = new Map();
+  for (const f of files) counts.set(f.task_id, (counts.get(f.task_id) ?? 0) + 1);
+}
+export const filesOn = (taskId: string) => counts.get(taskId) ?? 0;
+
 export type ListName = "personal" | "work";
 /** The two sides of Backstage. Work shows nothing personal. */
 export type Space = ListName;

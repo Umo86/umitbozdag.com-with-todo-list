@@ -13,7 +13,7 @@ import { WEDDING, areaOf,
   type Project,
   type Task,
   type TaskPatch,
-  type UserId,
+  type UserId, filesOn,
 } from "./types";
 
 export function EditIcon() {
@@ -96,6 +96,7 @@ export function TaskRow({
         {t.remind_at && !done && <span>⏰ {fmtWhen(t.remind_at)}</span>}
         {t.repeat && <span title={REPEAT_LABEL[t.repeat]}>↻ {t.repeat}</span>}
         {t.priority === "high" && <span className="high">High</span>}
+        {filesOn(t.id) > 0 && <span title={`${filesOn(t.id)} file${filesOn(t.id) === 1 ? "" : "s"} attached`}>📎 {filesOn(t.id)}</span>}
         {t.love_note && t.added_by !== me && <span title="There's a note for you">💌</span>}
         {t.nudges > 0 && !done && <span title="Nudges">👉 {t.nudges}</span>}
         {t.wedding && <span className="wed">{areaOf(t.area_id) ? `${areaOf(t.area_id)!.emoji ?? "💍"} ${areaOf(t.area_id)!.name}` : "💍 Wedding"}</span>}
