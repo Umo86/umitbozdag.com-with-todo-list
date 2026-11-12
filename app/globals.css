@@ -586,3 +586,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 @media (hover:none){.gal--video .gal__nav button{background:rgba(255,255,255,.98)}}
 .showbody .wrap>*{min-width:0}
 .gal{min-width:0;max-width:100%}
+
+/* top menu: Backstage sign-in next to "Get the app" */
+.nav__links .nav__login{color:var(--text)}
+.nav__links .nav__login:hover{color:var(--accent)}
+.nav__short{display:none}
+@media (max-width:520px){
+  .nav__links{gap:12px}
+  .nav__links .nav__app{font-size:14px;gap:5px}
+  .nav__long{display:none}
+  .nav__short{display:inline}
+}

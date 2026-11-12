@@ -2,6 +2,7 @@
 
 // The door to Backstage: your name and your password.
 import { useEffect, useState } from "react";
+import { isApp } from "./native";
 import type { Backstage } from "./useBackstage";
 
 export default function Gate({ bs }: { bs: Backstage }) {
@@ -10,7 +11,12 @@ export default function Gate({ bs }: { bs: Backstage }) {
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
   const [name, setName] = useState("");
+  // The website's sign-in is linked from the public menu, so it names no one:
+  // just a username and a password. The app, on your own phone, keeps the
+  // two name buttons.
+  const [inApp, setInApp] = useState(false);
   useEffect(() => {
+    setInApp(isApp());
     try {
       setName(localStorage.getItem("backstage:last-user") ?? "");
     } catch {
@@ -21,7 +27,7 @@ export default function Gate({ bs }: { bs: Backstage }) {
     <div className="bs-gate">
       <div className="bs-card">
         <h1>Backstage</h1>
-        <p className="sub">Umit &amp; Dilfiraz&rsquo;s planner</p>
+        <p className="sub">{inApp ? <>Umit &amp; Dilfiraz&rsquo;s planner</> : "A private planner. Sign in to continue."}</p>
         {phase.kind === "loading" && <p className="notice">Opening…</p>}
         {phase.kind === "noconfig" && (
           <p className="notice">
@@ -60,8 +66,8 @@ export default function Gate({ bs }: { bs: Backstage }) {
               setBusy(false);
             }}
           >
-            <label htmlFor="f-user">Name</label>
-            <div className="bs-who-pick" role="group" aria-label="Who are you?">
+            <label htmlFor="f-user">{inApp ? "Name" : "Username"}</label>
+            <div className="bs-who-pick" role="group" aria-label="Who are you?" hidden={!inApp}>
               {["Umit", "Dilfiraz"].map((n) => (
                 <button
                   type="button"
@@ -85,9 +91,10 @@ export default function Gate({ bs }: { bs: Backstage }) {
               onChange={(e) => setName(e.target.value)}
               required
               autoComplete="username"
-              autoCapitalize="words"
+              autoCapitalize={inApp ? "words" : "none"}
+              autoCorrect="off"
               spellCheck={false}
-              className="bs-user-input"
+              className={inApp ? "bs-user-input" : undefined}
             />
             <label htmlFor="f-pass">Password</label>
             <div className="bs-pass">

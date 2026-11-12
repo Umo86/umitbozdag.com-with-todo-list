@@ -847,3 +847,4 @@
   .bs-wedareas li{flex:0 0 150px;scroll-snap-align:start}
   .bs-fields.three{grid-template-columns:repeat(3,1fr)}
 }
+.bs-who-pick[hidden]{display:none}

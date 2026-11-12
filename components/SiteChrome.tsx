@@ -15,12 +15,21 @@ export function SiteNav({ current = "" }: { current?: string }) {
               {pg.label}
             </a>
           ))}
-          <a className="nav__app" href="/app">
+          {/* Backstage on the web: the private planner, behind its sign-in */}
+          <a className="nav__app nav__login" href="/backstage" rel="nofollow">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+              <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+            </svg>
+            Backstage
+          </a>
+          <a className="nav__app" href="/app" aria-label="Get the app">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
               <path d="M11 18.5h2" />
             </svg>
-            Get the app
+            <span className="nav__long">Get the app</span>
+            <span className="nav__short">App</span>
           </a>
         </nav>
       </div>
@@ -43,6 +52,9 @@ export function SiteFooter() {
           ))}
           <a href={SITE.linkedin} target="_blank" rel="noopener">
             LinkedIn
+          </a>
+          <a href="/backstage" rel="nofollow">
+            Backstage sign-in
           </a>
         </nav>
       </div>
