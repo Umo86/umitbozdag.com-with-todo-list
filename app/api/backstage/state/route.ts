@@ -27,8 +27,9 @@ export async function GET(req: Request) {
     const [projects, tasks, events, busy, messages, chat, fun] = await Promise.all([
       db().query(`select ${PROJECT_COLS} from projects where ${visibleTo(1)} order by position, created_at`, [me.id]),
       db().query(`select ${TASK_COLS} from tasks where ${visibleTo(1)} ${TASK_ORDER}`, [me.id]),
-      db().query(`select ${EVENT_COLS}, false as busy from events where ${visibleTo(1)} order by coalesce(start_date::timestamptz, starts_at)`, [me.id]),
-      // (each person's own calendar is theirs alone: nothing of it is sent to the other)
+      // your own and the joint entries, plus any of the other person's that they chose to let you see
+      db().query(`select ${EVENT_COLS}, false as busy from events where ${visibleTo(1)} or shared order by coalesce(start_date::timestamptz, starts_at)`, [me.id]),
+      // (the rest of each person's own calendar is theirs alone: nothing of it is sent to the other)
       Promise.resolve({ rows: [] as Array<Record<string, unknown>> }),
       me.admin
         ? db()

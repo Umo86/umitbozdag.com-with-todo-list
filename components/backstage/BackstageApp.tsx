@@ -587,7 +587,11 @@ export default function BackstageApp() {
     () => tasks.filter((t) => (space === "work" ? t.owner === me?.id && t.list === "work" : t.owner === "joint" || t.list === "personal")),
     [tasks, space, me]
   );
-  const spaceEvents = useMemo(() => events.filter((e) => (space === "work" ? e.work : !e.work)), [events, space]);
+  // (an entry the other person shared with you is a personal thing, whatever they filed it under)
+  const spaceEvents = useMemo(
+    () => events.filter((e) => (e.owner !== me?.id && e.owner !== "joint" ? space === "personal" : space === "work" ? e.work : !e.work)),
+    [events, space, me]
+  );
   const mineInList = useMemo(
     () => tasks.filter((t) => me && t.owner === me.id && t.list === list),
     [tasks, me, list]

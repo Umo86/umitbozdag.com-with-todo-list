@@ -107,7 +107,8 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
     q: "The calendar",
     a: [
       "Tap a day to see its plan; double-click (or + Event) to add an event.",
-      "Your private events appear to the other person only as a grey “Busy” block.",
+      "Each event asks two things. Calendar: Work, Personal, Joint or Wedding. Who can see it: only you, or the other person too.",
+      "An event only you can see is never sent to the other person. One you share shows on their calendar in your colour; they can read it but not change it. Joint and wedding events are seen, and can be changed, by both.",
       "Repeating events: changes and deletes apply to every repeat.",
     ],
   },

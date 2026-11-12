@@ -881,3 +881,13 @@
   .bs-head{grid-template-columns:1fr auto;row-gap:12px}
   .bs-head .bs-tabs{grid-column:1/-1;order:3;justify-self:start}
 }
+
+/* event form: which calendar, who can see it; an entry shared with you (read only) */
+.bs-seg.four{display:flex}
+.bs-seg.four button{flex:1;padding-left:8px;padding-right:8px}
+.bs-seg button:disabled{cursor:default}
+.bs-ro{margin:4px 0 0}
+.bs-ro dt{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px}
+.bs-ro dd{margin:0;font-size:15.5px}
+.bs-ro dd.big{font-size:19px;font-weight:600}
+.bs-ro dd.pre{white-space:pre-wrap}

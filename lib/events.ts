@@ -32,7 +32,12 @@ export function readEvent(body: Record<string, unknown>, me: Me, partial: boolea
   }
   // Work or Personal: only your own entries can be Work ones
   if (has("work")) f.work = body.work === true;
-  if (f.owner === JOINT) f.work = false;
+  // who can see one of your own entries: only you, or the other person too
+  if (has("shared")) f.shared = body.shared === true;
+  if (f.owner === JOINT) {
+    f.work = false;
+    f.shared = false; // a joint entry is seen by both anyway
+  }
   if (has("notes")) f.notes = typeof body.notes === "string" ? body.notes.slice(0, 4000) || null : null;
   if (has("location")) f.location = typeof body.location === "string" ? body.location.slice(0, 300) || null : null;
   if (has("repeat")) {

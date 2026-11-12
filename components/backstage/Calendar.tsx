@@ -12,17 +12,18 @@ import { hhmm, itemsByDay, parseDay, type DayItem } from "./calendar";
 import { BUSY, WEDDING, colorOf, nameOf, softOf, type CalEvent, type Me, type Person, type Project, type Space, type Task } from "./types";
 
 const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-type Show = { mine: boolean; joint: boolean; wedding: boolean; todos: boolean };
+type Show = { mine: boolean; joint: boolean; wedding: boolean; todos: boolean; theirs: boolean };
+const ALL: Show = { mine: true, joint: true, wedding: true, todos: true, theirs: true };
 const SHOW_KEY = "backstage:cal-show";
 
 function load(): Show {
   try {
     const v = JSON.parse(localStorage.getItem(SHOW_KEY) ?? "null");
-    if (v && typeof v === "object") return { mine: true, joint: true, wedding: true, todos: true, ...v };
+    if (v && typeof v === "object") return { ...ALL, ...v };
   } catch {
     /* fine */
   }
-  return { mine: true, joint: true, wedding: true, todos: true };
+  return ALL;
 }
 
 export default function Calendar({
@@ -52,7 +53,7 @@ export default function Calendar({
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selected, setSelected] = useState(today);
-  const [show, setShowState] = useState<Show>(() => (typeof window === "undefined" ? { mine: true, joint: true, wedding: true, todos: true } : load()));
+  const [show, setShowState] = useState<Show>(() => (typeof window === "undefined" ? ALL : load()));
   const setShow = (s: Show) => {
     setShowState(s);
     try {
@@ -72,9 +73,9 @@ export default function Calendar({
   const visible = useMemo(
     () =>
       events.filter((e) =>
-        space === "work" ? true : e.wedding ? show.wedding : e.owner === "joint" ? show.joint : show.mine
+        space === "work" ? true : e.wedding ? show.wedding : e.owner === "joint" ? show.joint : e.owner === me.id ? show.mine : show.theirs
       ),
-    [events, show, space]
+    [events, show, space, me.id]
   );
   const byDay = useMemo(
     () =>
@@ -87,6 +88,7 @@ export default function Calendar({
       ),
     [from, to, selected, visible, tasks, projects, show.todos]
   );
+  const other = users.find((u) => u.id !== me.id);
   const agenda = byDay.get(selected) ?? [];
   const monthLabel = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const move = (n: number) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + n, 1));
@@ -125,6 +127,11 @@ export default function Calendar({
               <Chip on={show.wedding} color={WEDDING.bright} onClick={() => setShow({ ...show, wedding: !show.wedding })}>
                 Wedding
               </Chip>
+              {other && events.some((e) => e.owner === other.id) && (
+                <Chip on={show.theirs} color={colorOf(other.id)} onClick={() => setShow({ ...show, theirs: !show.theirs })}>
+                  {other.name}&rsquo;s
+                </Chip>
+              )}
             </>
           )}
           <Chip on={show.todos} color="#0b0d12" onClick={() => setShow({ ...show, todos: !show.todos })}>
@@ -212,7 +219,9 @@ export default function Calendar({
                         {it.event?.owner === "joint"
                           ? `${it.event.wedding ? "Wedding" : "Joint"}${it.event.assignee && it.event.assignee !== "both" ? ` · for ${it.event.assignee === me.id ? "you" : nameOf(it.event.assignee)}` : ""}`
                           : it.event && !it.event.busy
-                            ? it.event.work ? "Work" : "Yours"
+                            ? it.event.owner !== me.id
+                              ? `${nameOf(it.event.owner)}’s calendar · shared with you`
+                              : `${it.event.work ? "Work" : "Yours"}${it.event.shared ? (space === "work" ? " · shared" : ` · ${other?.name ?? "both"} can see it`) : ""}`
                             : it.task
                               ? it.task.owner === "joint"
                                 ? it.task?.wedding ? "Wedding to-do" : "Joint to-do"

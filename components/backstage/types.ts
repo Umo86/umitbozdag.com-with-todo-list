@@ -64,13 +64,14 @@ export type CalEvent = {
   repeat: Repeat | null;
   wedding: boolean; // a wedding date: always on the joint calendar
   work: boolean; // one of your own entries, on the Work side
+  shared: boolean; // one of your own entries that the other person can see too (not change)
   busy: boolean; // (no longer sent: each person's own calendar is theirs alone)
   created_at: string;
   updated_at: string;
 };
 
 export type EventPatch = Partial<
-  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee" | "wedding" | "work">
+  Pick<CalEvent, "title" | "notes" | "location" | "all_day" | "starts_at" | "ends_at" | "start_date" | "end_date" | "remind_minutes" | "repeat" | "owner" | "assignee" | "wedding" | "work" | "shared">
 >;
 
 export type Message = {

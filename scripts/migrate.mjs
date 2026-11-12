@@ -152,6 +152,9 @@ alter table projects alter column list set not null;
 -- A calendar entry of your own can be a Work one. The Work side of Backstage
 -- shows only those; everything that existed before stays on the Personal side.
 alter table events add column if not exists work boolean not null default false;
+-- "Who can see it": one of your own entries that the other person can see
+-- (but not change) on their calendar. Joint entries are seen by both anyway.
+alter table events add column if not exists shared boolean not null default false;
 create index if not exists tasks_owner_idx on tasks (owner);
 
 create table if not exists events (

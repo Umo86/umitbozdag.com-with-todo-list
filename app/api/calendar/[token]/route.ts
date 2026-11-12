@@ -50,7 +50,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   if (!user) return new Response("Not found", { status: 404 });
 
   const [events, tasks, projects, users] = await Promise.all([
-    db().query(`select ${EVENT_COLS} from events where owner in ($1, 'joint')`, [user.id]),
+    db().query(`select ${EVENT_COLS} from events where owner in ($1, 'joint') or shared`, [user.id]),
     db().query(`select ${TASK_COLS} from tasks where owner in ($1, 'joint') and status <> 'done' and due_date is not null`, [user.id]),
     db().query(`select ${PROJECT_COLS} from projects where owner in ($1, 'joint') and due_date is not null`, [user.id]),
     db().query(`select id, name from users`),
@@ -78,7 +78,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
       L.push(`DTSTART:${utc(e.starts_at)}`);
       L.push(`DTEND:${utc(e.ends_at ?? new Date(new Date(e.starts_at).getTime() + 3_600_000))}`);
     }
-    L.push(`SUMMARY:${esc((e.owner === "joint" ? "👥 " : "") + e.title)}`);
+    // the other person's entry, shared with you, carries their name
+    L.push(`SUMMARY:${esc((e.owner === "joint" ? "👥 " : e.owner !== user.id ? `${nameOf(e.owner)}: ` : "") + e.title)}`);
     const desc = [e.notes, `${who} · added by ${nameOf(e.added_by)}`].filter(Boolean).join("\n\n");
     L.push(`DESCRIPTION:${esc(desc)}`);
     if (e.location) L.push(`LOCATION:${esc(e.location)}`);

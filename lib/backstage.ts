@@ -35,7 +35,7 @@ export function cleanAssignee(v: unknown): string | null {
 
 export const EVENT_COLS = `id, owner, assignee, added_by, title, notes, location, all_day,
   starts_at, ends_at, to_char(start_date, 'YYYY-MM-DD') as start_date,
-  to_char(end_date, 'YYYY-MM-DD') as end_date, remind_minutes, repeat, wedding, work, created_at, updated_at`;
+  to_char(end_date, 'YYYY-MM-DD') as end_date, remind_minutes, repeat, wedding, work, shared, created_at, updated_at`;
 /** The other person's private events: when, never what. */
 export const BUSY_COLS = `id, owner, null as assignee, owner as added_by, 'Busy' as title, null as notes,
   null as location, all_day, starts_at, ends_at, to_char(start_date, 'YYYY-MM-DD') as start_date,

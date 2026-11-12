@@ -1,7 +1,10 @@
 "use client";
 
-// Add or edit a calendar event: yours or joint, all day or with times,
-// a place, a reminder, a repeat. Repeating events change as a whole series.
+// Add or edit a calendar event. Two questions decide where it lives: which
+// calendar (Work, Personal, Joint, Wedding) and who can see it (only you, or
+// the other person too). Then: all day or with times, a place, a reminder, a
+// repeat. Repeating events change as a whole series. An entry the other
+// person shared with you opens to read, not to change.
 import { useEffect, useState } from "react";
 import { REPEAT_LABEL, REPEATS, ymd, type Repeat } from "@/lib/parse";
 import { colorOf, nameOf, type Assignee, type CalEvent, type EventPatch, type Me, type Person, type Space } from "./types";
@@ -18,6 +21,15 @@ const REMINDERS: Array<[number | null, string]> = [
   [2880, "2 days before"],
   [10080, "1 week before"],
 ];
+
+type Cal = "work" | "personal" | "joint" | "wedding";
+const CALS: Array<[Cal, string]> = [
+  ["work", "Work"],
+  ["personal", "Personal"],
+  ["joint", "Joint"],
+  ["wedding", "💍 Wedding"],
+];
+const CAL_NAME: Record<Cal, string> = { work: "Work", personal: "Personal", joint: "Joint", wedding: "Wedding" };
 
 const p2 = (n: number) => String(n).padStart(2, "0");
 const timeOf = (d: Date) => `${p2(d.getHours())}:${p2(d.getMinutes())}`;
@@ -50,10 +62,29 @@ export default function EventSheet({
   const start = event?.starts_at ? new Date(event.starts_at) : null;
   const end = event?.ends_at ? new Date(event.ends_at) : null;
   const [title, setTitle] = useState(event?.title ?? preset?.title ?? "");
-  const [wedding, setWedding] = useState(event ? !!event.wedding : !!preset?.wedding);
-  const [joint, setJoint] = useState(event ? event.owner === "joint" : space === "personal" && ((preset?.joint ?? false) || !!preset?.wedding));
-  const [work, setWork] = useState(event ? !!event.work : space === "work");
+  // which calendar: an existing entry's own; a new one starts on the side you are on
+  const [cal, setCal] = useState<Cal>(
+    event
+      ? event.wedding
+        ? "wedding"
+        : event.owner === "joint"
+          ? "joint"
+          : event.work
+            ? "work"
+            : "personal"
+      : preset?.wedding
+        ? "wedding"
+        : preset?.joint
+          ? "joint"
+          : space
+  );
+  const joint = cal === "joint" || cal === "wedding";
+  const wedding = cal === "wedding";
+  const work = cal === "work";
+  // who can see it: only you, or the other person too (joint entries: always both)
+  const [shared, setShared] = useState(event ? !!event.shared : false);
   const onWork = space === "work";
+  const theirs = !!event && event.owner !== me.id && event.owner !== "joint"; // shared with you: read only
   const [assignee, setAssignee] = useState<Assignee>(event?.assignee ?? "both");
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
   const [date, setDate] = useState(event?.start_date ?? (start ? ymd(start) : day ?? ymd(new Date())));
@@ -86,6 +117,7 @@ export default function EventSheet({
       assignee: joint ? assignee : null,
       wedding: joint && wedding,
       work: !joint && work,
+      shared: !joint && shared,
       all_day: allDay,
       start_date: allDay ? date : null,
       end_date: allDay && endDate && endDate > date ? endDate : null,
@@ -101,10 +133,64 @@ export default function EventSheet({
     const ok = event ? await bs.patchEvent(event.id, body) : !!(await bs.addEvent(body));
     setBusy(false);
     if (ok) {
-      bs.say(event ? "Event saved." : "Event added.");
+      bs.say(event ? "Event saved." : `Added to the ${CAL_NAME[cal]} calendar.`);
       onClose();
     }
   };
+
+  if (theirs && event) {
+    const whose = nameOf(event.owner);
+    const dayFmt = (d: Date) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const when = event.all_day
+      ? `${dayFmt(new Date(`${event.start_date}T00:00:00`))}${event.end_date && event.end_date !== event.start_date ? ` to ${dayFmt(new Date(`${event.end_date}T00:00:00`))}` : ""} · all day`
+      : start
+        ? `${dayFmt(start)} · ${timeOf(start)}${end ? ` to ${timeOf(end)}` : ""}`
+        : "";
+    return (
+      <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="bs-drawer bs-sheet" role="dialog" aria-modal="true" aria-labelledby="ev-h">
+          <div className="bs-grab" aria-hidden="true" />
+          <div className="bs-drawer-head">
+            <h2 id="ev-h">{whose}&rsquo;s event</h2>
+            <button type="button" className="bs-x" onClick={onClose} aria-label="Close">
+              ×
+            </button>
+          </div>
+          <p className="bs-byline">
+            <span className="bs-dot" style={{ background: colorOf(event.owner) }} />
+            On {whose}&rsquo;s calendar, shared with you. Only {whose} can change it.
+          </p>
+          <dl className="bs-ro">
+            <dt>Event</dt>
+            <dd className="big">{event.title}</dd>
+            <dt>When</dt>
+            <dd>
+              {when}
+              {event.repeat ? ` · ${REPEAT_LABEL[event.repeat].toLowerCase()}` : ""}
+            </dd>
+            {event.location && (
+              <>
+                <dt>Where</dt>
+                <dd>{event.location}</dd>
+              </>
+            )}
+            {event.notes && (
+              <>
+                <dt>Notes</dt>
+                <dd className="pre">{event.notes}</dd>
+              </>
+            )}
+          </dl>
+          <div className="bs-drawer-foot">
+            <span />
+            <button type="button" className="btn" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -146,72 +232,63 @@ export default function EventSheet({
         <label htmlFor="ev-title">Event</label>
         <input id="ev-title" value={title} maxLength={300} required autoFocus={!event} onChange={(e) => setTitle(e.target.value)} placeholder={onWork ? "e.g. Site visit, ExCeL" : "e.g. Dinner at Mangal"} />
 
-        {!onWork && <label>Whose</label>}
-        <div className="bs-seg" role="group" aria-label="Whose calendar" hidden={onWork}>
-          <button
-            type="button"
-            aria-pressed={!joint}
-            onClick={() => {
-              setJoint(false);
-              setWedding(false);
-            }}
-          >
-            Mine
-          </button>
-          <button
-            type="button"
-            aria-pressed={joint && !wedding}
-            onClick={() => {
-              setJoint(true);
-              setWedding(false);
-            }}
-          >
-            Joint
-          </button>
-          <button
-            type="button"
-            className="wed"
-            aria-pressed={joint && wedding}
-            onClick={() => {
-              setJoint(true);
-              setWedding(true);
-            }}
-          >
-            💍 Wedding
-          </button>
-        </div>
-        {joint && (
-          <div className="bs-seg small" role="group" aria-label="Who it's for">
-            {(["both", me.id, other?.id].filter(Boolean) as Assignee[]).map((a) => (
-              <button type="button" key={a} aria-pressed={assignee === a} onClick={() => setAssignee(a)}>
-                {a === "both" ? "Both of us" : a === me.id ? "Me" : nameOf(a)}
+        <label htmlFor={onWork ? "ev-cal" : undefined}>Calendar</label>
+        {onWork ? (
+          // on the Work side the other calendars stay tucked inside the list
+          <select id="ev-cal" value={cal} onChange={(e) => setCal(e.target.value as Cal)}>
+            {CALS.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="bs-seg four" role="group" aria-label="Calendar">
+            {CALS.map(([id, name]) => (
+              <button type="button" key={id} className={id === "wedding" ? "wed" : undefined} aria-pressed={cal === id} onClick={() => setCal(id)}>
+                {name}
               </button>
             ))}
           </div>
         )}
-        {!joint && (
+
+        <label>Who can see it</label>
+        {joint ? (
           <>
-            {onWork && <label>Calendar</label>}
-            <div className={`bs-seg${onWork ? "" : " small"}`} role="group" aria-label="Work or Personal">
-              <button type="button" aria-pressed={!work} onClick={() => setWork(false)}>
-                Personal
-              </button>
-              <button type="button" aria-pressed={work} onClick={() => setWork(true)}>
-                Work
+            <div className="bs-seg" role="group" aria-label="Who can see it">
+              <button type="button" aria-pressed="true" disabled>
+                Both of you
               </button>
             </div>
+            <label>Who it&rsquo;s for</label>
+            <div className="bs-seg small" role="group" aria-label="Who it's for">
+              {(["both", me.id, other?.id].filter(Boolean) as Assignee[]).map((a) => (
+                <button type="button" key={a} aria-pressed={assignee === a} onClick={() => setAssignee(a)}>
+                  {a === "both" ? "Both of us" : a === me.id ? "Me" : nameOf(a)}
+                </button>
+              ))}
+            </div>
           </>
+        ) : (
+          <div className="bs-seg" role="group" aria-label="Who can see it">
+            <button type="button" aria-pressed={!shared} onClick={() => setShared(false)}>
+              Only me
+            </button>
+            <button type="button" aria-pressed={shared} onClick={() => setShared(true)}>
+              {onWork || !other ? "Me and my partner" : `Me and ${other.name}`}
+            </button>
+          </div>
         )}
         <p className="bs-hint">
-          {!joint
-            ? work
-              ? "Your work calendar: only you see it, and it is the only calendar the Work side shows."
-              : onWork
-                ? "Your personal calendar: this won’t show on the Work side."
-                : `Your own calendar: only you can see this${other ? `, ${other.name} can’t` : ""}.`
-            : wedding
-              ? "A wedding date: on the joint calendar, in the wedding colour."
-              : "The joint calendar: you both see it and can both change it."}
+          {wedding
+            ? "A wedding date: on the joint calendar, in the wedding colour. You both see it and can both change it."
+            : joint
+              ? "The joint calendar: you both see it and can both change it."
+              : `Your ${work ? "work" : "personal"} calendar. ${
+                  shared
+                    ? `${onWork || !other ? "Your partner" : other.name} can see it too, but only you can change it.`
+                    : "Only you can see it."
+                }${work && !onWork ? " It shows on the Work side." : !work && onWork ? " It won’t show on the Work side." : ""}`}
         </p>
 
         <label className="bs-switch">

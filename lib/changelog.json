@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-12",
+    "title": "Events: choose the calendar and who can see it",
+    "items": [
+      "Every event now asks which calendar it goes on: Work, Personal, Joint or Wedding",
+      "And who can see it: only you, or the other person too",
+      "An event you share shows on the other person’s calendar in your colour. They can read it but not change it",
+      "Events only you can see are still never sent to the other person"
+    ]
+  },
+  {
+    "date": "2026-11-12",
     "title": "Two sides: Work and Personal",
     "items": [
       "A switch at the top: Work or Personal. Each side has its own Today page, tasks, projects and calendar",

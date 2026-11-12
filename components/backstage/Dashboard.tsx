@@ -144,9 +144,14 @@ export default function Dashboard({
                       <time>{it.start ? hhmm(it.start) : "All day"}</time>
                       <span>
                         <strong>{it.title}</strong>
-                        {(it.event!.location || it.event!.owner === "joint") && (
+                        {(it.event!.location || it.event!.owner !== me.id || it.event!.shared) && (
                           <small>
-                            {[it.event!.location, it.event!.owner === "joint" ? "Joint" : null].filter(Boolean).join(" · ")}
+                            {[
+                              it.event!.location,
+                              it.event!.owner === "joint" ? "Joint" : it.event!.owner !== me.id ? `${nameOf(it.event!.owner)}’s` : it.event!.shared ? "Shared" : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </small>
                         )}
                       </span>
