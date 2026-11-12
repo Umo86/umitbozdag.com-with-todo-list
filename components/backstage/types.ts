@@ -224,6 +224,9 @@ export type WeddingPlan = {
 export type WeddingArea = { id: string; name: string; emoji: string | null; position: number; budget: number | null; spent: number | null; added_by?: UserId | null };
 /** One line of a guest list: a guest, or a couple or family (`people` says how many). */
 export type WeddingGuest = { id: string; side: UserId; name: string; people: number; added_by: UserId; created_at: string };
+/** The Guests area holds guest names, not to-dos. */
+export const isGuestsArea = (a: { name: string } | undefined | null) => !!a && /guest/i.test(a.name);
+export type WeddingTab = "todos" | "calendar" | "guests";
 export type Wedding = { plan: WeddingPlan; areas: WeddingArea[]; guests: WeddingGuest[] };
 export const NO_WEDDING: Wedding = { plan: { wedding_date: null, venue: null, capacity: null, guests_umit: null, guests_dilfiraz: null, budget: null }, areas: [], guests: [] };
 

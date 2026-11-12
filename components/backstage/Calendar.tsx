@@ -36,7 +36,9 @@ export default function Calendar({
   onOpenEvent,
   onOpenTask,
   onNewEvent,
+  wedding = false,
 }: {
+  wedding?: boolean; // the Wedding section's own calendar: appointments and wedding to-dos only
   space: Space;
   me: Me;
   users: Person[];
@@ -73,7 +75,7 @@ export default function Calendar({
   const visible = useMemo(
     () =>
       events.filter((e) =>
-        space === "work" ? true : e.wedding ? show.wedding : e.owner === "joint" ? show.joint : e.owner === me.id ? show.mine : show.theirs
+        space === "work" || wedding ? true : e.wedding ? show.wedding : e.owner === "joint" ? show.joint : e.owner === me.id ? show.mine : show.theirs
       ),
     [events, show, space, me.id]
   );
@@ -116,7 +118,7 @@ export default function Calendar({
           </button>
         </div>
         <div className="bs-cal-show" role="group" aria-label="Show">
-          {space === "personal" && (
+          {space === "personal" && !wedding && (
             <>
               <Chip on={show.mine} color={colorOf(me.id)} onClick={() => setShow({ ...show, mine: !show.mine })}>
                 Mine
@@ -185,7 +187,7 @@ export default function Calendar({
           <div className="bs-agenda-head">
             <h3>{parseDay(selected).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</h3>
             <button className="btn small" onClick={() => onNewEvent(selected)}>
-              + Event
+              {wedding ? "+ Appointment" : "+ Event"}
             </button>
           </div>
           {agenda.length ? (
@@ -235,7 +237,11 @@ export default function Calendar({
               ))}
             </ul>
           ) : (
-            <p className="bs-empty small">Nothing on this day. Double-click a day (or tap + Event) to add one.</p>
+            <p className="bs-empty small">
+              {wedding
+                ? "Nothing for the wedding on this day. Tap + Appointment to add a viewing, tasting, fitting or anything else."
+                : "Nothing on this day. Double-click a day (or tap + Event) to add one."}
+            </p>
           )}
         </section>
       </div>

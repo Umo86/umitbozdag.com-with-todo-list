@@ -25,7 +25,7 @@ import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
 import { enablePush, pushState } from "./push";
 import { BUZZ, buzz, isApp, listen, prepareNotifications, registerPush, syncReminders, type Extra, type NotificationAction } from "./native";
-import { forMe, nameOf, type Assignee, type ChatMessage, type ListName, type Space } from "./types";
+import { forMe, nameOf, type WeddingTab, type Assignee, type ChatMessage, type ListName, type Space } from "./types";
 import { useBackstage } from "./useBackstage";
 
 type View = "today" | "mine" | "joint" | "wedding" | "calendar" | "us" | "messages";
@@ -89,7 +89,7 @@ export default function BackstageApp() {
   const view: View = space === "work" && !WORK_VIEWS.includes(viewState) ? "today" : viewState;
   const [project, setProject] = useState<string | null>(null);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
-  const [wedTab, setWedTab] = useState<"plan" | "guests">("plan"); // Wedding: to-dos and areas, or the guest lists
+  const [wedTab, setWedTab] = useState<WeddingTab>("todos"); // Wedding: to-dos, its calendar, or the guest names
   const [wedArea, setWedArea] = useState<string | null>(null); // the wedding area being looked at
   const [jointTab, setJointTab] = useState<"todos" | "shopping">("todos");
   const [usSection, setUsSection] = useState<UsSection>("chat");
@@ -668,8 +668,10 @@ export default function BackstageApp() {
       ? "Event"
       : view === "wedding"
         ? wedTab === "guests"
-          ? "Guest"
-          : wedAreaNow
+          ? "Guest names"
+          : wedTab === "calendar"
+            ? "Appointment"
+            : wedAreaNow
             ? `${wedAreaNow.name} to-do`
             : "Wedding to-do"
         : view === "joint"
@@ -678,13 +680,17 @@ export default function BackstageApp() {
             ? personal
               ? "Personal task"
               : "Work task"
-            : "New";
+            : "Task";
   const addHere = () => {
     if (view === "wedding" && wedTab === "guests") {
       // the guest lists have their own box: go to it
       const box = document.querySelector<HTMLInputElement>(".bs-guestlist .add input");
       box?.scrollIntoView({ block: "center", behavior: "smooth" });
       box?.focus({ preventScroll: true });
+      return;
+    }
+    if (view === "wedding" && wedTab === "calendar") {
+      setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } });
       return;
     }
     setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" });
@@ -995,7 +1001,7 @@ export default function BackstageApp() {
             onOpen={(id) => setSheet({ kind: "task", id })}
             onOpenEvent={(id) => setSheet({ kind: "event", id })}
             onAdd={(t, areaId, forWho) => addTyped(t, "wedding", areaId, forWho)}
-            onNewDate={() => setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}
+            onNewDate={(day) => setSheet({ kind: "event", day: day ?? ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}
           />
         )}
 

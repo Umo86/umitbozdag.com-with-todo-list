@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-11-12",
+    "title": "Wedding: To-dos, Calendar and Guests",
+    "items": [
+      "Wedding now has three tabs: To-dos (the general list, by area), Calendar (wedding appointments only) and Guests",
+      "The Guests area adds guest names, not to-dos: “Add guest names”",
+      "To-dos and appointments can be for your partner, for you, or for both of you",
+      "The + button says what it adds on each tab: Wedding to-do, Appointment, Guest names"
+    ]
+  },
+  {
+    "date": "2026-11-12",
     "title": "Add buttons that say what they add",
     "items": [
       "Every add box and button now names what it adds: “Add a Rings to-do”, “Add a joint to-do”, “+ Guest”, “Add to Work calendar”",

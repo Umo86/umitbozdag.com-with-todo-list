@@ -232,19 +232,19 @@ function GuestList({
             e.preventDefault();
             onAdd(pasted);
           }}
-          placeholder="Add a guest and press Enter"
+          placeholder="Add guest names"
           aria-label={`Add a guest to ${title.toLowerCase()}`}
           enterKeyHint="done"
           autoComplete="off"
         />
         <button type="submit" className="btn wed" disabled={!text.trim()}>
-          Add
+          Add guest
         </button>
       </form>
       <p className="bs-hint">
         {typed && typed.people > 1
           ? `Adds “${typed.name}” as ${typed.people} people.`
-          : "One line per guest. “Ali Demir +1” counts as 2, “Kaya family x4” as 4. Paste a whole list to add it in one go."}
+          : "Type a name and press Enter. “Ali Demir +1” counts as 2, “Kaya family x4” as 4. Paste a list of names to add them all at once."}
       </p>
 
       {shown.length > 0 ? (

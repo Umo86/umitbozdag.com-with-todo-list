@@ -15,7 +15,8 @@ import Board from "./Board";
 import TaskList from "./TaskList";
 import type { Backstage } from "./useBackstage";
 import WeddingGuests, { headcount } from "./WeddingGuests";
-import { colorOf, fmtDay, money, nameOf, type Assignee, type CalEvent, type Me, type Person, type Project, type Task, type WeddingArea } from "./types";
+import Calendar from "./Calendar";
+import { colorOf, fmtDay, money, nameOf, type Assignee, type CalEvent, type Me, type Person, type Project, type Task, type WeddingArea, type WeddingTab, isGuestsArea } from "./types";
 
 const FOR_KEY = "backstage:wedding-for";
 
@@ -48,12 +49,12 @@ export default function WeddingView({
   narrow: boolean;
   area: string | null; // the area being looked at ("none" = to-dos without one)
   setArea: (id: string | null) => void;
-  tab: "plan" | "guests";
-  setTab: (t: "plan" | "guests") => void;
+  tab: WeddingTab;
+  setTab: (t: WeddingTab) => void;
   onOpen: (id: string) => void;
   onOpenEvent: (id: string) => void;
   onAdd: (text: string, areaId: string | null, forWho: Assignee | null) => void;
-  onNewDate: () => void;
+  onNewDate: (day?: string) => void;
 }) {
   const other = users.find((u) => u.id !== me.id);
   const { plan, areas, guests: guestList } = bs.wedding;
@@ -128,7 +129,7 @@ export default function WeddingView({
     return items.sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? "").localeCompare(b.time ?? "")).slice(0, 5);
   }, [events, tasks, today, plan.event_id]);
   // an area that is about the guests or the venue shows those details with it
-  const aboutGuests = !!current && /guest/i.test(current.name);
+  const aboutGuests = isGuestsArea(current);
   const aboutVenue = !!current && /venue/i.test(current.name);
   const addWhat = current ? `a ${current.name} to-do` : "a wedding to-do";
 
@@ -239,24 +240,27 @@ export default function WeddingView({
       </section>
 
       <div className="bs-seg bs-wedtabs" role="tablist" aria-label="Wedding">
-        <button role="tab" aria-selected={tab === "plan"} aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>
-          Planning
+        <button role="tab" aria-selected={tab === "todos"} aria-pressed={tab === "todos"} onClick={() => setTab("todos")}>
+          To-dos
           <span className="n">{open.length}</span>
         </button>
+        <button role="tab" aria-selected={tab === "calendar"} aria-pressed={tab === "calendar"} onClick={() => setTab("calendar")}>
+          Calendar
+        </button>
         <button role="tab" aria-selected={tab === "guests"} aria-pressed={tab === "guests"} onClick={() => setTab("guests")}>
-          Guest list
+          Guests
           <span className="n">{guests}</span>
         </button>
       </div>
 
       {tab === "guests" && <WeddingGuests bs={bs} me={me} users={users} narrow={narrow} onDetails={() => setSheet({ kind: "details" })} />}
 
-      {tab === "plan" && (
+      {tab === "calendar" && (
         <>
       <section className="bs-wedsoon" aria-label="Coming up">
         <div className="bs-wedareas-head">
           <h3>Coming up</h3>
-          <button className="bs-link" onClick={onNewDate}>
+          <button className="bs-link" onClick={() => onNewDate()}>
             + Add an appointment
           </button>
         </div>
@@ -276,10 +280,26 @@ export default function WeddingView({
             ))}
           </ul>
         ) : (
-          <p className="quiet small">Viewings, tastings and fittings you add, and to-dos with a date, show here.</p>
+          <p className="quiet small">Viewings, tastings and fittings you add, and wedding to-dos with a date, show here.</p>
         )}
       </section>
+      <Calendar
+        wedding
+        space="personal"
+        me={me}
+        users={users}
+        events={events}
+        tasks={tasks}
+        projects={[]}
+        onOpenEvent={onOpenEvent}
+        onOpenTask={onOpen}
+        onNewEvent={(day) => onNewDate(day)}
+      />
+        </>
+      )}
 
+      {tab === "todos" && (
+        <>
       <div className="bs-wedareas-head">
         <h3>Areas</h3>
       </div>
@@ -287,7 +307,7 @@ export default function WeddingView({
         <li>
           <button className={`area all${area === null ? " on" : ""}`} aria-pressed={area === null} onClick={() => setArea(null)}>
             <span className="e">💍</span>
-            <strong>Everything</strong>
+            <strong>All to-dos</strong>
             <small>
               {open.length} to do · {tasks.length - open.length} done
             </small>
@@ -295,12 +315,17 @@ export default function WeddingView({
         </li>
         {areas.map((a) => {
           const c = count(a.id);
+          const g = isGuestsArea(a);
           return (
             <li key={a.id}>
-              <button className={`area${area === a.id ? " on" : ""}`} aria-pressed={area === a.id} onClick={() => setArea(area === a.id ? null : a.id)}>
+              <button
+                className={`area${area === a.id ? " on" : ""}${g ? " guests" : ""}`}
+                aria-pressed={area === a.id}
+                onClick={() => (g ? setTab("guests") : setArea(area === a.id ? null : a.id))}
+              >
                 <span className="e">{a.emoji ?? "•"}</span>
                 <strong>{a.name}</strong>
-                <small>{c.all ? `${c.left} to do · ${c.all - c.left} done` : "Nothing yet"}</small>
+                <small>{g ? `${guests} ${guests === 1 ? "guest" : "guests"} · add names →` : c.all ? `${c.left} to do · ${c.all - c.left} done` : "Nothing yet"}</small>
                 {(a.budget != null || a.spent != null) && (
                   <small className={`m${a.budget != null && (a.spent ?? 0) > a.budget ? " over" : ""}`}>
                     {money(a.spent ?? 0)}

@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
 import { STARTER } from "@/lib/wedding-starter";
-import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, FILE_MAX_MB, type Priority, type Project, type Space } from "./types";
+import { allAreas, isGuestsArea, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, FILE_MAX_MB, type Priority, type Project, type Space } from "./types";
 import type { Backstage } from "./useBackstage";
 import { ClipIcon, fileSize, KindBadge } from "./TaskFiles";
 
@@ -203,7 +203,9 @@ export default function NewTask({
               <label htmlFor="nt-area">Area</label>
               <select id="nt-area" name="area" value={areaId} onChange={(e) => setAreaId(e.target.value)}>
                 <option value="">No area</option>
-                {allAreas().map((a) => (
+                {allAreas()
+                  .filter((a) => !isGuestsArea(a) || a.id === areaId) // guests go on the guest lists, not here
+                  .map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.emoji ? `${a.emoji} ` : ""}
                     {a.name}
