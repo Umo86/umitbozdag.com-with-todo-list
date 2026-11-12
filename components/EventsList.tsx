@@ -79,6 +79,7 @@ export default function EventsList({ shows, employers }: { shows: Show[]; employ
                 <span className="evt__title">
                   <strong>{s.name}</strong>
                   <em className={`evt__side evt__side--${s.side}`}>{SIDE[s.side] ?? s.side}</em>
+                  {s.status === "planning" && <em className="evt__wip">Under construction</em>}
                   {s.press.length > 0 && <em className="evt__tag">In the press</em>}
                 </span>
                 <span className="evt__role">

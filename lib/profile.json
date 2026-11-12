@@ -176,33 +176,27 @@
       "name": "UK Construction Week London",
       "organiser": "media10",
       "role": "Senior Operations Manager",
-      "years": "2026",
-      "dates": "12 – 14 May 2026",
+      "years": "2027",
+      "dates": "11 – 13 May 2027",
       "venue": "ExCeL London",
       "city": "London",
       "country": "United Kingdom",
       "url": "https://www.ukconstructionweek.com/",
       "image": "/img/scenes/canary.webp",
       "logo": "/img/logos/ukcw.webp",
-      "summary": "The UK’s largest built-environment event. The 2026 London edition is co-located with Futurebuild at ExCeL, bringing the two shows together as one built-environment super-event for around 25,000 professionals and 600+ exhibitors.",
+      "summary": "Under construction, which is fitting for a show called UK Construction Week. The 2027 London edition is the one I’m building now: the UK’s largest built-environment event, back at ExCeL London on 11 – 13 May 2027.",
       "responsibilities": [
-        "Senior operational lead from venue contracting through build-up, live days and breakdown",
-        "Operational budget, supplier strategy and contracting",
-        "Onsite health & safety ownership",
-        "Catering, cleaning, signage, security, staffing, internet and power"
+        "Planning the show as senior operational lead: venue, floorplan, contractors and suppliers",
+        "Building the operational budget and the supplier plan",
+        "Health & safety planning, well before the first truck arrives",
+        "Lining up catering, cleaning, signage, security, staffing, internet and power for May 2027"
       ],
       "highlights": [],
       "press": [],
       "side": "organiser",
       "gallery": [],
-      "videos": [
-        {
-          "id": "oSSIckJJbvA",
-          "title": "UKCW26 London: day 1 highlights",
-          "channel": "UK Construction Week",
-          "published": "May 2026"
-        }
-      ]
+      "videos": [],
+      "status": "planning"
     },
     {
       "id": "uk-construction-week-birmingham",
@@ -210,7 +204,7 @@
       "organiser": "media10",
       "role": "Senior Operations Manager",
       "years": "2026",
-      "dates": "",
+      "dates": "29 September – 1 October 2026",
       "venue": "NEC Birmingham",
       "city": "Birmingham",
       "country": "United Kingdom",
@@ -235,7 +229,8 @@
           "channel": "UK Construction Week",
           "published": "September 2026"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "futurebuild",
@@ -268,7 +263,8 @@
           "channel": "Futurebuild",
           "published": "August 2026"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "stone-and-surfaces-show",
@@ -294,7 +290,8 @@
       "press": [],
       "side": "organiser",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "gastech-2026-bangkok",
@@ -325,7 +322,8 @@
           "channel": "Gastech",
           "published": "September 2026"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "gastech-2025",
@@ -368,7 +366,8 @@
           "channel": "Gastech",
           "published": "September 2025"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "world-lng-summit-2025",
@@ -431,7 +430,8 @@
           "channel": "World LNG Summit & Awards",
           "published": "December 2025"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "bharat-electricity-summit-2025",
@@ -455,7 +455,8 @@
       "press": [],
       "side": "organiser",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "breakbulk-europe",
@@ -499,7 +500,8 @@
           "channel": "Breakbulk Events & Media",
           "published": "May 2024"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "breakbulk-americas",
@@ -540,7 +542,8 @@
           "channel": "Breakbulk Events & Media",
           "published": "September 2023"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "pure-london",
@@ -572,7 +575,8 @@
           "channel": "Pure London x JATC",
           "published": "July 2023"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "source-fashion",
@@ -610,7 +614,8 @@
           "channel": "Source Fashion",
           "published": "April 2024"
         }
-      ]
+      ],
+      "status": ""
     },
     {
       "id": "world-travel-market-london",
@@ -672,7 +677,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "wtm-africa",
@@ -733,7 +739,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "holiday-world-show-dublin",
@@ -758,7 +765,8 @@
       "press": [],
       "side": "exhibitor",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "destinations-show",
@@ -790,7 +798,8 @@
       ],
       "side": "exhibitor",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "international-confex",
@@ -822,7 +831,8 @@
       ],
       "side": "exhibitor",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "the-meetings-show",
@@ -866,7 +876,8 @@
       ],
       "side": "exhibitor",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "london-boat-show",
@@ -930,7 +941,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "london-book-fair",
@@ -1028,7 +1040,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "london-fashion-week",
@@ -1090,7 +1103,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "taste-of-london",
@@ -1183,7 +1197,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "liverpool-food-and-drink-festival",
@@ -1257,7 +1272,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "rhs-hampton-court-2015",
@@ -1354,7 +1370,8 @@
           "licenceUrl": "https://creativecommons.org/licenses/by-sa/2.0/"
         }
       ],
-      "videos": []
+      "videos": [],
+      "status": ""
     },
     {
       "id": "turkiye-roadshows",
@@ -1386,7 +1403,8 @@
       ],
       "side": "organiser",
       "gallery": [],
-      "videos": []
+      "videos": [],
+      "status": ""
     }
   ],
   "experience": [

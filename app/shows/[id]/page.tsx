@@ -92,6 +92,7 @@ export default async function ShowPage({ params }: Params) {
   const show = p.shows[i];
   const gallery = show.gallery as GalleryPhoto[];
   const videos = show.videos as GalleryVideo[];
+  const building = show.status === "planning"; // a show still being planned
   const employer = p.employers.find((e) => e.id === show.organiser);
   const exp = p.experience.find((x) => employer && x.company.startsWith(employer.name));
   const prev = p.shows[i - 1];
@@ -122,6 +123,7 @@ export default async function ShowPage({ params }: Params) {
               <div>
                 <span className="kicker showhero__kicker">
                   <em className={`evt__side evt__side--${show.side}`}>{SIDE[show.side] ?? show.side}</em>
+                  {building && <em className="evt__wip">Under construction</em>}
                   {employer ? `${employer.name}, ` : ""}
                   {show.role}
                 </span>
@@ -153,7 +155,28 @@ export default async function ShowPage({ params }: Params) {
         <section className="showbody">
           <div className="wrap">
             <div>
-              {gallery.length || videos.length ? (
+              {building ? (
+                <div className="wip" role="img" aria-label="Under construction: this show is being built now">
+                  <div className="wip__tape" aria-hidden="true" />
+                  <div className="wip__body">
+                    <span className="wip__sign" aria-hidden="true">
+                      🚧
+                    </span>
+                    <div>
+                      <strong>Under construction</strong>
+                      <p>
+                        This show is being built right now. Doors open {show.dates.replace(/^(\d+)\s*–\s*\d+\s+/, "$1 ")}.
+                      </p>
+                    </div>
+                  </div>
+                  <ol className="wip__steps" aria-hidden="true">
+                    {["Floorplan", "Contractors", "Exhibitor manual", "Safety plan", "Build-up", "Doors open"].map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ol>
+                  <div className="wip__tape" aria-hidden="true" />
+                </div>
+              ) : gallery.length || videos.length ? (
                 <ShowGallery name={show.name} photos={gallery} videos={videos} />
               ) : (
                 show.image && (
@@ -173,7 +196,7 @@ export default async function ShowPage({ params }: Params) {
               )}
               {show.responsibilities.length > 0 && (
                 <>
-                  <h2>What I did</h2>
+                  <h2>{building ? "What I’m building" : "What I did"}</h2>
                   <ul className="points">
                     {show.responsibilities.map((r) => (
                       <li key={r}>{r}</li>
