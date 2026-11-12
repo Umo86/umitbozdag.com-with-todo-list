@@ -983,3 +983,37 @@
 .bs-guestlist .head{margin:0}
 /* on the guest lists the round + (new task) would sit on top of the Add button */
 .bs-app:has(.bs-guests) .bs-fabs{display:none}
+
+/* ——— wedding: what's coming up, and the area you are in ——— */
+.bs-wedsoon{display:grid;gap:8px}
+.bs-wedsoon ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.bs-wedsoon li button{display:grid;gap:2px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);min-width:0}
+.bs-wedsoon li button:hover{border-color:var(--wed-bright)}
+.bs-wedsoon .when{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--wed)}
+.bs-wedsoon .when.late{color:var(--bad)}
+.bs-wedsoon b{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bs-wedsoon small{font-size:12.5px;color:var(--muted)}
+.bs-wedarea-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:16px;border:1px solid #f0dfae;background:var(--wed-soft)}
+.bs-wedarea-strip .e{font-size:26px;line-height:1}
+.bs-wedarea-strip .t{flex:1;min-width:180px;display:grid;gap:1px}
+.bs-wedarea-strip .t strong{font-size:16.5px;letter-spacing:-.01em;color:#5c3d04}
+.bs-wedarea-strip .t span{font-size:13.5px;color:#7a5a12}
+.bs-wedarea-strip .btn{padding:8px 14px;font-size:14px}
+.bs-add{white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+/* the + button now names what it adds, so it is wider: the wordmark makes room on laptop widths */
+@media (min-width:901px) and (max-width:1400px){
+  .bs-head h1{display:none}
+}
+.bs-wed>*{min-width:0}
+.bs-wedtabs{max-width:100%}
+.bs-wedsoon li{min-width:0}
+@media (max-width:900px){
+  /* on a phone, what's coming up is one row to swipe through, like the areas */
+  .bs-wedsoon ul{display:flex;overflow-x:auto;scroll-snap-type:x proximity;margin:0 -14px;padding:0 14px 4px;scrollbar-width:none}
+  .bs-wedsoon ul::-webkit-scrollbar{display:none}
+  .bs-wedsoon li{flex:0 0 210px;scroll-snap-align:start}
+  .bs-wedarea-strip .t{min-width:0;flex-basis:60%}
+}
+@media (max-width:900px){
+  .bs-wedareas{margin:0 -14px;padding:2px 14px 6px}
+}

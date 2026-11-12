@@ -85,6 +85,8 @@ export default function EventSheet({
   const [shared, setShared] = useState(event ? !!event.shared : false);
   const onWork = space === "work";
   const theirs = !!event && event.owner !== me.id && event.owner !== "joint"; // shared with you: read only
+  // the wedding day's own entry: it stays where it is, and its day is the wedding date
+  const theDay = !!event && !!bs.wedding.plan.event_id && event.id === bs.wedding.plan.event_id;
   const [assignee, setAssignee] = useState<Assignee>(event?.assignee ?? "both");
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
   const [date, setDate] = useState(event?.start_date ?? (start ? ymd(start) : day ?? ymd(new Date())));
@@ -133,7 +135,7 @@ export default function EventSheet({
     const ok = event ? await bs.patchEvent(event.id, body) : !!(await bs.addEvent(body));
     setBusy(false);
     if (ok) {
-      bs.say(event ? "Event saved." : `Added to the ${CAL_NAME[cal]} calendar.`);
+      bs.say(event ? "Event saved." : wedding ? "Wedding appointment added." : `Added to the ${CAL_NAME[cal]} calendar.`);
       onClose();
     }
   };
@@ -206,7 +208,7 @@ export default function EventSheet({
       >
         <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
-          <h2 id="ev-h">{event ? "Event" : "New event"}</h2>
+          <h2 id="ev-h">{theDay ? "Your wedding day" : event ? (wedding ? "Wedding appointment" : "Event") : wedding ? "New wedding appointment" : joint ? "New joint event" : work ? "New work event" : "New event"}</h2>
           <button type="button" className="bs-x" onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -229,9 +231,17 @@ export default function EventSheet({
           </p>
         )}
 
-        <label htmlFor="ev-title">Event</label>
-        <input id="ev-title" value={title} maxLength={300} required autoFocus={!event} onChange={(e) => setTitle(e.target.value)} placeholder={onWork ? "e.g. Site visit, ExCeL" : "e.g. Dinner at Mangal"} />
+        {theDay && (
+          <p className="bs-hint">
+            This is your wedding day. Changing the day here changes the wedding date and the countdown too. To take it off the calendar, clear the date in
+            Wedding › Edit details.
+          </p>
+        )}
+        <label htmlFor="ev-title">{theDay ? "Title" : wedding ? "Appointment" : "Event"}</label>
+        <input id="ev-title" value={title} maxLength={300} required autoFocus={!event} onChange={(e) => setTitle(e.target.value)} placeholder={wedding ? "e.g. Cake tasting" : work ? "e.g. Site visit, ExCeL" : joint ? "e.g. Dinner at Mangal" : "e.g. Dentist"} />
 
+        {!theDay && (
+          <>
         <label htmlFor={onWork ? "ev-cal" : undefined}>Calendar</label>
         {onWork ? (
           // on the Work side the other calendars stay tucked inside the list
@@ -281,7 +291,7 @@ export default function EventSheet({
         )}
         <p className="bs-hint">
           {wedding
-            ? "A wedding date: on the joint calendar, in the wedding colour. You both see it and can both change it."
+            ? "A wedding appointment (a viewing, tasting, fitting…): on the joint calendar in the wedding colour, and listed in the Wedding section. You both see it and can both change it."
             : joint
               ? "The joint calendar: you both see it and can both change it."
               : `Your ${work ? "work" : "personal"} calendar. ${
@@ -290,6 +300,8 @@ export default function EventSheet({
                     : "Only you can see it."
                 }${work && !onWork ? " It shows on the Work side." : !work && onWork ? " It won’t show on the Work side." : ""}`}
         </p>
+          </>
+        )}
 
         <label className="bs-switch">
           <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
@@ -360,7 +372,11 @@ export default function EventSheet({
           {err}
         </p>
         <div className="bs-drawer-foot">
-          {event ? (
+          {theDay ? (
+            <button type="button" className="btn ghost" onClick={onClose}>
+              Cancel
+            </button>
+          ) : event ? (
             confirm ? (
               <span className="bs-confirm">
                 <button
@@ -388,7 +404,7 @@ export default function EventSheet({
             </button>
           )}
           <button type="submit" className="btn" disabled={busy}>
-            {busy ? "Saving…" : event ? "Save" : "Add event"}
+            {busy ? "Saving…" : event ? "Save" : wedding ? "Add wedding appointment" : `Add to ${CAL_NAME[cal]} calendar`}
           </button>
         </div>
       </form>

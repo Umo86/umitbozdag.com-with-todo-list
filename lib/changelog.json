@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-11-12",
+    "title": "Add buttons that say what they add",
+    "items": [
+      "Every add box and button now names what it adds: “Add a Rings to-do”, “Add a joint to-do”, “+ Guest”, “Add to Work calendar”",
+      "Wedding: pick an area to see its budget and add to it. The Guests area has an Add guests button; Venue shows the venue",
+      "Wedding: a Coming up strip with the next appointments (viewings, tastings, fittings) and dated to-dos",
+      "The wedding day in the calendar and the wedding date now always match: move one and the other follows",
+      "Notifications about wedding to-dos say so and open the Wedding section"
+    ]
+  },
+  {
+    "date": "2026-11-12",
     "title": "Wedding: guest lists, and who added what",
     "items": [
       "Guest list tab: a list of names for each of you. Type a name and press Enter, or paste a whole list",

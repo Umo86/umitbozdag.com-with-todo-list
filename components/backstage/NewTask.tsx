@@ -3,6 +3,7 @@
 // Add one task by hand: every field as an ordinary control, nothing guessed.
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
+import { STARTER } from "@/lib/wedding-starter";
 import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, FILE_MAX_MB, type Priority, type Project, type Space } from "./types";
 import type { Backstage } from "./useBackstage";
 import { ClipIcon, fileSize, KindBadge } from "./TaskFiles";
@@ -36,6 +37,7 @@ export default function NewTask({
   const [wedding, setWedding] = useState(!work && !!defaultWedding);
   const [joint, setJoint] = useState(!work && (defaultOwner === "joint" || !!defaultWedding));
   const [list, setList] = useState<ListName>(space);
+  const [areaId, setAreaId] = useState(defaultArea ?? "");
   // only projects from the same side as the task (joint to-dos sit on Personal)
   const options = projects.filter((p) => p.list === (joint ? "personal" : list));
   // joint to-dos are for both by default; a wedding to-do can be left with no one yet
@@ -46,6 +48,18 @@ export default function NewTask({
   const [picked, setPicked] = useState<File[]>([]);
   const [sending, setSending] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  // what is being added, in words: the heading, the example and the button all say it
+  const area = joint && wedding ? allAreas().find((a) => a.id === areaId) : undefined;
+  const what = area ? `${area.name} to-do` : joint && wedding ? "wedding to-do" : joint ? "joint to-do" : list === "work" ? "work task" : "personal task";
+  const example = area
+    ? STARTER[area.name]?.[0] ?? `Something to sort out for ${area.name}`
+    : joint && wedding
+      ? "Book the photographer"
+      : joint
+        ? "Renew the home insurance"
+        : list === "work"
+          ? "Chase the signage quote"
+          : "Book the dentist";
   const [more, setMore] = useState(!!defaultProject); // open when a project is already chosen
   const [err, setErr] = useState("");
   const title = useRef<HTMLTextAreaElement>(null);
@@ -68,7 +82,7 @@ export default function NewTask({
           e.preventDefault();
           const f = new FormData(e.currentTarget);
           const name = String(f.get("title") ?? "").trim();
-          if (!name) return setErr("Give the task a name.");
+          if (!name) return setErr(`Say what the ${what} is.`);
           setBusy(true);
           const t = await bs.addTask({
             title: name,
@@ -77,7 +91,7 @@ export default function NewTask({
             owner: joint ? "joint" : me.id,
             assignee: joint ? assignee : null,
             wedding: joint && wedding,
-            area_id: joint && wedding ? String(f.get("area") ?? "") || null : null,
+            area_id: joint && wedding ? areaId || null : null,
             project_id: String(f.get("project") ?? "") || null,
             priority: (String(f.get("priority")) as Priority) || "normal",
             due_date: String(f.get("due") ?? "") || null,
@@ -92,14 +106,15 @@ export default function NewTask({
             }
             setBusy(false);
             // (a file that didn't go up has already said why; the task is there, and it can be attached again)
-            if (up === picked.length) bs.say(up ? `Task added, with ${up} file${up === 1 ? "" : "s"}.` : "Task added.");
+            const added = area ? `Added to ${area.name}` : joint && wedding ? "Wedding to-do added" : joint ? "Joint to-do added" : "Task added";
+            if (up === picked.length) bs.say(up ? `${added}, with ${up} file${up === 1 ? "" : "s"}.` : `${added}.`);
             onClose();
           } else setBusy(false);
         }}
       >
         <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
-          <h2 id="nt-h">New task</h2>
+          <h2 id="nt-h">New {what}</h2>
           <button type="button" className="bs-x" onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -115,7 +130,7 @@ export default function NewTask({
             </button>
           </div>
         )}
-        <label htmlFor="nt-title">Task</label>
+        <label htmlFor="nt-title">{joint ? "To-do" : "Task"}</label>
         <textarea
           id="nt-title"
           name="title"
@@ -123,7 +138,7 @@ export default function NewTask({
           rows={2}
           maxLength={500}
           required
-          placeholder={work ? "e.g. Chase the signage quote" : "e.g. Book the dentist"}
+          placeholder={`e.g. ${example}`}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -186,7 +201,7 @@ export default function NewTask({
           {joint && wedding && allAreas().length > 0 && (
             <div>
               <label htmlFor="nt-area">Area</label>
-              <select id="nt-area" name="area" defaultValue={defaultArea ?? ""}>
+              <select id="nt-area" name="area" value={areaId} onChange={(e) => setAreaId(e.target.value)}>
                 <option value="">No area</option>
                 {allAreas().map((a) => (
                   <option key={a.id} value={a.id}>
@@ -307,7 +322,7 @@ export default function NewTask({
             Cancel
           </button>
           <button type="submit" className="btn" disabled={busy}>
-            {busy ? sending || "Adding…" : "Add task"}
+            {busy ? sending || "Adding…" : area ? `Add to ${area.name}` : `Add ${what}`}
           </button>
         </div>
       </form>

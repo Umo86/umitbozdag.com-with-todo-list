@@ -169,10 +169,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (row.owner === JOINT && before?.rows[0]) {
       const was = before.rows[0];
       const other = otherOf(me!.id);
+      const there = `/backstage?view=${row.wedding ? "wedding" : "joint"}`; // a wedding to-do opens the Wedding section
       if (was.status !== "done" && row.status === "done") {
-        await notify(other, { title: `✓ ${me!.name} ticked off a joint to-do`, body: row.title, url: "/backstage?view=joint", tag: `task-${id}` });
+        await notify(other, { title: row.wedding ? `✓ ${me!.name} ticked off a wedding to-do` : `✓ ${me!.name} ticked off a joint to-do`, body: row.title, url: there, tag: `task-${id}` });
       } else if (body.assignee !== undefined && row.assignee === other && was.assignee !== other && row.status !== "done") {
-        await notify(other, { title: `${me!.name} gave you a to-do`, body: row.title, url: "/backstage?view=joint", tag: `task-${id}` });
+        await notify(other, { title: row.wedding ? `💍 ${me!.name} gave you a wedding to-do` : `${me!.name} gave you a to-do`, body: row.title, url: there, tag: `task-${id}` });
       }
     }
     return NextResponse.json(spawned ? { ...row, spawned } : row);

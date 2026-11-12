@@ -661,10 +661,14 @@ export function useBackstage() {
   );
   const deleteEvent = useCallback(
     (id: string) => {
+      const before = events;
       setEvents((prev) => prev.filter((e) => e.id !== id));
-      api(`/events/${id}`, { method: "DELETE" }).catch(fail);
+      api(`/events/${id}`, { method: "DELETE" }).catch((e) => {
+        setEvents(before); // it wasn't removed (the wedding day itself can't be): put it back
+        fail(e);
+      });
     },
-    [api, fail]
+    [api, fail, events]
   );
 
   const patchTask = useCallback(

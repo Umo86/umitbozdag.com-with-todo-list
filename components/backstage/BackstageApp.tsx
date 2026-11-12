@@ -89,6 +89,7 @@ export default function BackstageApp() {
   const view: View = space === "work" && !WORK_VIEWS.includes(viewState) ? "today" : viewState;
   const [project, setProject] = useState<string | null>(null);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
+  const [wedTab, setWedTab] = useState<"plan" | "guests">("plan"); // Wedding: to-dos and areas, or the guest lists
   const [wedArea, setWedArea] = useState<string | null>(null); // the wedding area being looked at
   const [jointTab, setJointTab] = useState<"todos" | "shopping">("todos");
   const [usSection, setUsSection] = useState<UsSection>("chat");
@@ -660,6 +661,35 @@ export default function BackstageApp() {
     );
   };
 
+  // The + button says what it adds where you are, and adds that.
+  const wedAreaNow = view === "wedding" && wedArea && wedArea !== "none" ? bs.wedding.areas.find((a) => a.id === wedArea) : undefined;
+  const addWord =
+    view === "calendar"
+      ? "Event"
+      : view === "wedding"
+        ? wedTab === "guests"
+          ? "Guest"
+          : wedAreaNow
+            ? `${wedAreaNow.name} to-do`
+            : "Wedding to-do"
+        : view === "joint"
+          ? "Joint to-do"
+          : view === "mine"
+            ? personal
+              ? "Personal task"
+              : "Work task"
+            : "New";
+  const addHere = () => {
+    if (view === "wedding" && wedTab === "guests") {
+      // the guest lists have their own box: go to it
+      const box = document.querySelector<HTMLInputElement>(".bs-guestlist .add input");
+      box?.scrollIntoView({ block: "center", behavior: "smooth" });
+      box?.focus({ preventScroll: true });
+      return;
+    }
+    setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" });
+  };
+
   const NAV: Array<{ id: View; label: string; n?: number; icon: React.ReactNode }> = personal
     ? [
         { id: "today", label: "Today", icon: <IconToday /> },
@@ -698,8 +728,8 @@ export default function BackstageApp() {
           ))}
         </nav>
         <div className="who">
-          <button className="bs-add" onClick={() => setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" })}>
-            + New
+          <button className="bs-add" onClick={addHere}>
+            + {addWord}
           </button>
           {me.admin && personal && (
             <button className="bs-iconbtn bs-mail" aria-current={view === "messages" ? "page" : undefined} title="Messages from the website" aria-label={`Messages${unread ? `, ${unread} unread` : ""}`} onClick={() => setView("messages")}>
@@ -875,6 +905,7 @@ export default function BackstageApp() {
             ) : (
               <Board
                 key={list}
+                addWhat={personal ? "a personal task" : "a work task"}
                 tasks={mineShown}
                 projects={projects}
                 canEdit
@@ -930,11 +961,12 @@ export default function BackstageApp() {
                 onPatch={bs.patchTask}
                 onDelete={bs.deleteTask}
                 onAdd={(t) => addTyped(t, "joint")}
-                placeholder="Add to the joint list…"
+                placeholder="Add a joint to-do…"
               />
             ) : (
               <Board
                 key="joint"
+                addWhat="a joint to-do"
                 tasks={jointShown}
                 projects={projects}
                 canEdit
@@ -953,11 +985,15 @@ export default function BackstageApp() {
             me={me}
             users={users}
             tasks={wedding}
+            events={events.filter((e) => e.wedding)}
             projects={projects}
             narrow={narrow}
             area={wedArea}
             setArea={setWedArea}
+            tab={wedTab}
+            setTab={setWedTab}
             onOpen={(id) => setSheet({ kind: "task", id })}
+            onOpenEvent={(id) => setSheet({ kind: "event", id })}
             onAdd={(t, areaId, forWho) => addTyped(t, "wedding", areaId, forWho)}
             onNewDate={() => setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}
           />
@@ -1007,8 +1043,8 @@ export default function BackstageApp() {
         <div className="bs-fabs">
           <button
             className="bs-fab plus"
-            onClick={() => setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" })}
-            aria-label={view === "calendar" ? "Add an event" : "Add a task"}
+            onClick={addHere}
+            aria-label={`Add: ${addWord}`}
           >
             <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />

@@ -219,6 +219,7 @@ export type WeddingPlan = {
   guests_umit: number | null; // how many of the places are Umit's side's
   guests_dilfiraz: number | null; // …and Dilfiraz's
   budget: number | null;
+  event_id?: string | null; // the wedding day's own entry on the joint calendar
 };
 export type WeddingArea = { id: string; name: string; emoji: string | null; position: number; budget: number | null; spent: number | null; added_by?: UserId | null };
 /** One line of a guest list: a guest, or a couple or family (`people` says how many). */

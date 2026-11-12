@@ -110,7 +110,9 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "A to-do can be left with no one yet, given to one of you, or be for both of you. The picker above the list sets who the to-dos you type there are for.",
       "Guest list tab: a list for each of you. Type a name and press Enter; “Ali Demir +1” counts as 2 and “Kaya family x4” as 4. You can paste a whole list at once. Tap a name to change it, use − and + for how many people the line stands for, ⇄ to move it to the other list.",
       "The total is counted against the places each of you has and what the venue holds (Edit details sets those).",
-      "Areas (Venue, Catering, Decor…) each hold their own to-dos, budget and spend. Setting the date starts the countdown and puts the day on the joint calendar.",
+      "Areas (Venue, Catering, Decor…) each hold their own to-dos, budget and spend. Pick an area and everything you add says so: “Add a Rings to-do”. The Guests area has an Add guests button, and Venue shows the venue.",
+      "Coming up lists the next wedding appointments (viewings, tastings, fittings) and to-dos with a date. Add an appointment there; it also goes on the joint calendar.",
+      "Setting the date starts the countdown and puts the day on the joint calendar. Moving that entry in the calendar moves the wedding date too.",
     ],
   },
   {

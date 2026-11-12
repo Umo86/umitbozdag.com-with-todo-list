@@ -15,7 +15,7 @@ import Board from "./Board";
 import TaskList from "./TaskList";
 import type { Backstage } from "./useBackstage";
 import WeddingGuests, { headcount } from "./WeddingGuests";
-import { colorOf, money, nameOf, type Assignee, type Me, type Person, type Project, type Task, type WeddingArea } from "./types";
+import { colorOf, fmtDay, money, nameOf, type Assignee, type CalEvent, type Me, type Person, type Project, type Task, type WeddingArea } from "./types";
 
 const FOR_KEY = "backstage:wedding-for";
 
@@ -27,11 +27,15 @@ export default function WeddingView({
   me,
   users,
   tasks,
+  events,
   projects,
   narrow,
   area,
   setArea,
+  tab,
+  setTab,
   onOpen,
+  onOpenEvent,
   onAdd,
   onNewDate,
 }: {
@@ -39,18 +43,21 @@ export default function WeddingView({
   me: Me;
   users: Person[];
   tasks: Task[]; // the wedding to-dos
+  events: CalEvent[]; // the wedding's calendar entries (appointments, and the day itself)
   projects: Project[];
   narrow: boolean;
   area: string | null; // the area being looked at ("none" = to-dos without one)
   setArea: (id: string | null) => void;
+  tab: "plan" | "guests";
+  setTab: (t: "plan" | "guests") => void;
   onOpen: (id: string) => void;
+  onOpenEvent: (id: string) => void;
   onAdd: (text: string, areaId: string | null, forWho: Assignee | null) => void;
   onNewDate: () => void;
 }) {
   const other = users.find((u) => u.id !== me.id);
   const { plan, areas, guests: guestList } = bs.wedding;
   const [who, setWho] = useState<For>("all");
-  const [tab, setTab] = useState<"plan" | "guests">("plan");
   // who a to-do typed here is for: no one yet, one of you, or both
   const [newFor, setNewForState] = useState<Assignee | null>(null);
   useEffect(() => {
@@ -105,6 +112,25 @@ export default function WeddingView({
   const anyMoney = plan.budget != null || planned > 0 || spent > 0;
   const cap = plan.budget ?? planned;
   const overBudget = plan.budget != null && (planned > plan.budget || spent > plan.budget);
+
+  // what's next: wedding appointments and dated to-dos, soonest first
+  const soon = useMemo(() => {
+    const items: Array<{ key: string; day: string; time: string | null; title: string; kind: "event" | "task"; id: string; late: boolean }> = [];
+    for (const e of events) {
+      const day = e.all_day ? e.start_date : e.starts_at ? ymd(new Date(e.starts_at)) : null;
+      if (!day || day < today || e.id === plan.event_id) continue; // (the day itself is the countdown above)
+      items.push({ key: `e${e.id}`, day, time: e.all_day || !e.starts_at ? null : new Date(e.starts_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }), title: e.title, kind: "event", id: e.id, late: false });
+    }
+    for (const t of tasks) {
+      if (t.status === "done" || !t.due_date) continue;
+      items.push({ key: `t${t.id}`, day: t.due_date, time: null, title: t.title, kind: "task", id: t.id, late: t.due_date < today });
+    }
+    return items.sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? "").localeCompare(b.time ?? "")).slice(0, 5);
+  }, [events, tasks, today, plan.event_id]);
+  // an area that is about the guests or the venue shows those details with it
+  const aboutGuests = !!current && /guest/i.test(current.name);
+  const aboutVenue = !!current && /venue/i.test(current.name);
+  const addWhat = current ? `a ${current.name} to-do` : "a wedding to-do";
 
   const count = (id: string | "none") => {
     const list = id === "none" ? tasks.filter((t) => !t.area_id || !areas.some((a) => a.id === t.area_id)) : tasks.filter((t) => t.area_id === id);
@@ -214,7 +240,7 @@ export default function WeddingView({
 
       <div className="bs-seg bs-wedtabs" role="tablist" aria-label="Wedding">
         <button role="tab" aria-selected={tab === "plan"} aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>
-          To-dos and areas
+          Planning
           <span className="n">{open.length}</span>
         </button>
         <button role="tab" aria-selected={tab === "guests"} aria-pressed={tab === "guests"} onClick={() => setTab("guests")}>
@@ -227,11 +253,35 @@ export default function WeddingView({
 
       {tab === "plan" && (
         <>
+      <section className="bs-wedsoon" aria-label="Coming up">
+        <div className="bs-wedareas-head">
+          <h3>Coming up</h3>
+          <button className="bs-link" onClick={onNewDate}>
+            + Add an appointment
+          </button>
+        </div>
+        {soon.length ? (
+          <ul>
+            {soon.map((it) => (
+              <li key={it.key}>
+                <button onClick={() => (it.kind === "event" ? onOpenEvent(it.id) : onOpen(it.id))}>
+                  <span className={`when${it.late ? " late" : ""}`}>
+                    {it.day === today ? "Today" : fmtDay(it.day)}
+                    {it.time ? ` · ${it.time}` : ""}
+                  </span>
+                  <b>{it.title}</b>
+                  <small>{it.kind === "event" ? "Appointment" : it.late ? "To-do · overdue" : "To-do"}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="quiet small">Viewings, tastings and fittings you add, and to-dos with a date, show here.</p>
+        )}
+      </section>
+
       <div className="bs-wedareas-head">
         <h3>Areas</h3>
-        <button className="bs-link" onClick={onNewDate}>
-          + Wedding date in the calendar
-        </button>
       </div>
       <ul className="bs-wedareas">
         <li>
@@ -284,9 +334,40 @@ export default function WeddingView({
         </li>
       </ul>
 
+      {current && (
+        <div className="bs-wedarea-strip">
+          <span className="e" aria-hidden="true">
+            {current.emoji ?? "•"}
+          </span>
+          <div className="t">
+            <strong>{current.name}</strong>
+            <span>
+              {current.budget != null || current.spent != null
+                ? `${money(current.spent ?? 0)} spent${current.budget != null ? ` of ${money(current.budget)}` : ""}`
+                : "No budget set for this area yet"}
+              {aboutGuests ? ` · ${guests} ${guests === 1 ? "guest" : "guests"} on the lists${room != null ? ` of ${room} places` : ""}` : ""}
+              {aboutVenue ? ` · ${plan.venue ?? "No venue chosen yet"}${plan.capacity != null ? `, holds ${plan.capacity}` : ""}` : ""}
+            </span>
+          </div>
+          {aboutGuests && (
+            <button className="btn wed" onClick={() => setTab("guests")}>
+              Add guests
+            </button>
+          )}
+          {aboutVenue && (
+            <button className="btn wed" onClick={() => setSheet({ kind: "details" })}>
+              {plan.venue ? "Venue details" : "Add the venue"}
+            </button>
+          )}
+          <button className="btn ghost" onClick={() => setSheet({ kind: "area", area: current })}>
+            Budget &amp; name
+          </button>
+        </div>
+      )}
+
       <div className="bs-bar bs-wedbar">
         <h3 className="bs-wedlist-h">
-          {current ? `${current.emoji ?? ""} ${current.name}` : area === "none" ? "To-dos with no area" : "All wedding to-dos"}
+          {current ? `${current.name} to-dos` : area === "none" ? "To-dos with no area" : "All wedding to-dos"}
           <span className="n">{shown.filter((t) => t.status !== "done").length}</span>
         </h3>
         <div className="bs-seg small" role="group" aria-label="Show">
@@ -323,7 +404,7 @@ export default function WeddingView({
         </p>
       )}
       <div className="bs-wedfor">
-        <span>A to-do you add here is for</span>
+        <span>{current ? `A ${current.name} to-do you add here is for` : "A to-do you add here is for"}</span>
         <div className="bs-seg small" role="group" aria-label="Who a new to-do is for">
           <button aria-pressed={newFor === null} onClick={() => setNewFor(null)}>
             No one yet
@@ -350,10 +431,10 @@ export default function WeddingView({
           onPatch={bs.patchTask}
           onDelete={bs.deleteTask}
           onAdd={(t) => onAdd(t, current?.id ?? null, newFor)}
-          placeholder={current ? `Add a to-do to ${current.name}…` : "Add a wedding to-do…"}
+          placeholder={`Add ${addWhat}…`}
         />
       ) : (
-        <Board key={`wedding-${area ?? "all"}`} tasks={shown} projects={projects} canEdit onAdd={(t) => onAdd(t, current?.id ?? null, newFor)} onPatch={bs.patchTask} onDelete={bs.deleteTask} onOpen={onOpen} />
+        <Board key={`wedding-${area ?? "all"}`} addWhat={addWhat} tasks={shown} projects={projects} canEdit onAdd={(t) => onAdd(t, current?.id ?? null, newFor)} onPatch={bs.patchTask} onDelete={bs.deleteTask} onOpen={onOpen} />
       )}
         </>
       )}

@@ -166,7 +166,7 @@ export default function TaskList({
           input.value = "";
         }}
       >
-        <input name="t" placeholder={placeholder} maxLength={500} aria-label="Add a task" enterKeyHint="done" />
+        <input name="t" placeholder={placeholder} maxLength={500} aria-label={placeholder?.replace(/…$/, "") || "Add a task"} enterKeyHint="done" />
       </form>
 
       {doing.length > 0 && (

@@ -63,11 +63,13 @@ export default function Board({
   tasks,
   projects,
   canEdit,
+  addWhat,
   onAdd,
   onPatch,
   onOpen,
   onDelete,
 }: {
+  addWhat?: string; // what the add box adds here: "a work task", "a Rings to-do"…
   tasks: Task[]; // already filtered to the list (and project) on show
   projects: Project[];
   canEdit: boolean;
@@ -186,7 +188,7 @@ export default function Board({
             status === "done" && !allDone ? ids.slice(0, DONE_SHOWN) : ids;
           return (
             <Column key={status} status={status} label={label} count={ids.length}>
-              {status === "todo" && <QuickAdd onAdd={onAdd} />}
+              {status === "todo" && <QuickAdd onAdd={onAdd} what={addWhat} />}
               <SortableContext items={shown} strategy={verticalListSortingStrategy}>
                 {shown.map((id) => (
                   <SortableCard
@@ -247,7 +249,7 @@ function Column({
   );
 }
 
-function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
+function QuickAdd({ onAdd, what = "a task" }: { onAdd: (title: string) => void; what?: string }) {
   return (
     <form
       className="bs-quick"
@@ -260,7 +262,7 @@ function QuickAdd({ onAdd }: { onAdd: (title: string) => void }) {
         input.value = "";
       }}
     >
-      <input name="title" placeholder="Add a task and press Enter" maxLength={500} aria-label="New task" />
+      <input name="title" placeholder={`Add ${what} and press Enter`} maxLength={500} aria-label={`Add ${what}`} />
     </form>
   );
 }

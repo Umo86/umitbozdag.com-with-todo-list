@@ -17,11 +17,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!UUID.test(id)) return NextResponse.json({ error: "Unknown task." }, { status: 400 });
   try {
     const r = await db().query(
-      `update tasks set nudges = nudges + 1 where id = $1 and owner = 'joint' and status <> 'done' returning title, nudges`,
+      `update tasks set nudges = nudges + 1 where id = $1 and owner = 'joint' and status <> 'done' returning title, nudges, wedding`,
       [id]
     );
     if (!r.rows.length) return NextResponse.json({ error: "Only open joint to-dos can be nudged." }, { status: 404 });
-    const { title, nudges } = r.rows[0];
+    const { title, nudges, wedding } = r.rows[0];
     await db().query(`insert into chat_messages (sender, body, kind) values ($1, $2, 'nudge')`, [
       auth.me.id,
       `👉 Nudge about “${title}”${nth(nudges)}`,
@@ -29,7 +29,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     await notify(otherOf(auth.me.id), {
       title: `👉 ${auth.me.name} nudged you`,
       body: `“${title}”${nudges > 1 ? ` (${nudges} times now)` : ""}`,
-      url: "/backstage?view=joint",
+      url: `/backstage?view=${wedding ? "wedding" : "joint"}`,
       tag: `nudge-${id}`,
     });
     return NextResponse.json({ ok: true, nudges });
