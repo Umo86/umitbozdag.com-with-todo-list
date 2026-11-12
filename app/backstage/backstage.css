@@ -789,3 +789,61 @@
   .bs-wedhead{flex-wrap:wrap;padding:14px}
   .bs-wedhead .btn.wed{width:100%;justify-content:center}
 }
+
+/* ——— wedding planning: the day, guests, budget, areas ——— */
+.bs-wed{display:grid;gap:14px;padding-top:16px}
+.bs-wedhero{border-radius:20px;border:1px solid #f0dfae;background:linear-gradient(125deg,var(--wed-soft),#fff8e6 55%,#fff);padding:18px;display:grid;gap:16px}
+.bs-wedhero .day{display:flex;align-items:center;gap:14px}
+.bs-wedhero .day>div{flex:1;min-width:0}
+.bs-wedhero .ring{font-size:40px;line-height:1}
+.bs-wedhero h2{margin:0;font-size:22px;letter-spacing:-.02em;color:#5c3d04;font-weight:650}
+.bs-wedhero h2 b{font-size:38px;letter-spacing:-.03em;color:var(--wed);font-variant-numeric:tabular-nums;margin-right:4px}
+.bs-wedhero .day p{margin:2px 0 0;font-size:14px;color:#7a5a12}
+.bs-wedstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bs-wedstats .stat{display:grid;gap:5px;align-content:start;text-align:left;background:rgba(255,255,255,.82);border:1px solid #f0e3bd;border-radius:14px;padding:12px 14px;min-width:0;font:inherit;color:inherit}
+.bs-wedstats button.stat{cursor:pointer}
+.bs-wedstats button.stat:hover{border-color:var(--wed-bright)}
+.bs-wedstats .k{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:#8a6a1c}
+.bs-wedstats strong{font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.bs-wedstats strong small{font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0}
+.bs-wedstats strong.over{color:var(--bad,#d92d20)}
+.bs-wedstats .v{font-size:12.5px;color:var(--muted);line-height:1.35}
+.bs-wedstats .split{display:flex;height:7px;border-radius:999px;background:#f3ead0;overflow:hidden}
+.bs-wedstats .split i{display:block;height:100%}
+.bs-wedstats .split .a{background:#1a47ff}
+.bs-wedstats .split .b{background:#e0457b}
+.bs-wedstats .split .c{background:var(--wed-bright)}
+.bs-wedareas-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:4px}
+.bs-wedareas-head h3,.bs-wedlist-h{margin:0;font-size:16px;letter-spacing:-.01em}
+.bs-wedlist-h{flex:1;display:flex;align-items:center;gap:8px}
+.bs-wedlist-h .n{font-size:12.5px;font-weight:600;color:var(--wed);background:var(--wed-soft);border-radius:999px;padding:1px 9px}
+.bs-wedareas{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.bs-wedareas li{position:relative;min-width:0}
+.bs-wedareas .area{width:100%;height:100%;display:grid;gap:2px;align-content:start;text-align:left;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 34px 11px 12px;cursor:pointer;font:inherit;color:inherit;transition:border-color .15s,box-shadow .15s}
+.bs-wedareas .area:hover{border-color:var(--wed-bright)}
+.bs-wedareas .area.on{border-color:var(--wed-bright);background:var(--wed-soft);box-shadow:0 0 0 1px var(--wed-bright) inset}
+.bs-wedareas .area .e{font-size:20px;line-height:1.1}
+.bs-wedareas .area strong{font-size:14.5px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bs-wedareas .area small{font-size:12px;color:var(--muted)}
+.bs-wedareas .area small.m{color:var(--wed);font-weight:600}
+.bs-wedareas .area small.m.over{color:var(--bad,#d92d20)}
+.bs-wedareas .area.add{border-style:dashed;background:transparent}
+.bs-wedareas .area.add .e{color:var(--wed)}
+.bs-wedareas .edit{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:15px}
+.bs-wedareas .edit:hover{background:rgba(0,0,0,.06);color:var(--ink)}
+.bs-wed .bs-wedbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0 0}
+.bs-wedstart{margin:0;font-size:14px;color:var(--muted)}
+.bs-fields.three{grid-template-columns:repeat(3,1fr)}
+.bs-fields.emoji-name{grid-template-columns:84px 1fr}
+.bs-hint.bad{color:var(--bad,#d92d20)}
+@media (max-width:900px){
+  .bs-wedstats{display:flex;overflow-x:auto;scroll-snap-type:x proximity;margin:0 -18px;padding:0 18px 2px;scrollbar-width:none}
+  .bs-wedstats::-webkit-scrollbar{display:none}
+  .bs-wedstats .stat{flex:0 0 72%;scroll-snap-align:start}
+  .bs-wedhero .day{flex-wrap:wrap}
+  .bs-wedhero .day .btn.wed{width:100%;justify-content:center}
+  .bs-wedareas{display:flex;overflow-x:auto;scroll-snap-type:x proximity;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}
+  .bs-wedareas::-webkit-scrollbar{display:none}
+  .bs-wedareas li{flex:0 0 150px;scroll-snap-align:start}
+  .bs-fields.three{grid-template-columns:repeat(3,1fr)}
+}

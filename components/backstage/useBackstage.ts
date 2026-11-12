@@ -4,6 +4,7 @@
 // the /api/backstage calls, and the data (tasks, projects, events) with
 // optimistic updates.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { NO_WEDDING, setAreas, type Wedding } from "./types";
 import type {
   Assignee,
   ChatMessage,
@@ -31,6 +32,7 @@ export type NewTask = {
   owner?: Owner;
   assignee?: Assignee | null;
   wedding?: boolean;
+  area_id?: string | null;
   project_id?: string | null;
   notes?: string | null;
   priority?: Priority;
@@ -64,6 +66,7 @@ export function useBackstage() {
   const deleting = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const [messages, setMessages] = useState<Message[]>([]);
   const [events, setEvents] = useState<CalEvent[]>([]);
+  const [wedding, setWedding] = useState<Wedding>(NO_WEDDING);
   const [me, setMe] = useState<Me | null>(null);
   const [users, setUsers] = useState<Person[]>([]);
   const [notice, setNotice] = useState<{ text: string; tone: "info" | "error"; action?: { label: string; run: () => void } } | null>(null);
@@ -138,6 +141,7 @@ export function useBackstage() {
         projects: Project[];
         tasks: Task[];
         events: CalEvent[];
+        wedding?: Wedding;
         messages?: Message[];
         chat_unread?: number;
         us?: UsItem[];
@@ -151,6 +155,10 @@ export function useBackstage() {
       setProjects(data.projects ?? []);
       setTasks((data.tasks ?? []).filter((t) => !deleting.current.has(t.id)));
       setEvents(data.events ?? []);
+      if (data.wedding) {
+        setAreas(data.wedding.areas);
+        setWedding(data.wedding);
+      }
       setMessages(data.messages ?? []);
       setUsers(data.users ?? []);
       setMe(data.me);
@@ -293,6 +301,7 @@ export function useBackstage() {
               owner: d.joint || d.wedding ? "joint" : me?.id,
               assignee: d.wedding ? d.assignee : d.joint ? d.assignee ?? "both" : null,
               wedding: !!d.wedding,
+              area_id: d.wedding ? d.area_id ?? null : null,
               list: d.list ?? fallbackList,
               project_id: d.project_id,
               priority: d.priority,
@@ -484,6 +493,23 @@ export function useBackstage() {
     },
     [api, fail, me]
   );
+  // Wedding planning: every change comes back as the whole plan and its areas.
+  const weddingCall = useCallback(
+    async (path: string, method: string, body?: unknown): Promise<boolean> => {
+      try {
+        const w = await api<Wedding | { added: number }>(`/wedding${path}`, { method, body: body ?? {} });
+        if ("plan" in w) {
+          setAreas(w.areas);
+          setWedding(w);
+        }
+        return true;
+      } catch (e) {
+        fail(e);
+        return false;
+      }
+    },
+    [api, fail]
+  );
   // Start one swipe game again: clears your own votes in it (not the other game's).
   const clearVotes = useCallback(
     async (game: "dinner" | "date") => {
@@ -670,6 +696,8 @@ export function useBackstage() {
     projects,
     tasks,
     events,
+    wedding,
+    weddingCall,
     users,
     messages,
     addEvent,

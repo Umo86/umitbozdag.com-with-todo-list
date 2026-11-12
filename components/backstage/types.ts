@@ -39,6 +39,7 @@ export type Task = {
   love_note: string | null;
   completed_by: UserId | null;
   wedding: boolean; // part of the wedding planning (always joint)
+  area_id?: string | null; // wedding to-dos: which area (Venue, Catering…)
   updated_by?: UserId | null; // who last changed it
   nudges: number;
 };
@@ -82,7 +83,7 @@ export type Message = {
 export type TaskPatch = Partial<
   Pick<
     Task,
-    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee" | "love_note" | "wedding"
+    "title" | "notes" | "status" | "priority" | "due_date" | "remind_at" | "project_id" | "list" | "position" | "repeat" | "owner" | "assignee" | "love_note" | "wedding" | "area_id"
   >
 >;
 
@@ -182,3 +183,22 @@ export type Score = { who: UserId; this_week: number; last_week: number };
 
 // Wedding planning has its own colour, different from both people's and from everything else.
 export const WEDDING = { color: "#a16207", soft: "#fdf3d6", bright: "#d4a017" };
+
+export type WeddingPlan = {
+  wedding_date: string | null;
+  venue: string | null;
+  capacity: number | null;
+  guests_umit: number | null;
+  guests_dilfiraz: number | null;
+  budget: number | null;
+};
+export type WeddingArea = { id: string; name: string; emoji: string | null; position: number; budget: number | null; spent: number | null };
+export type Wedding = { plan: WeddingPlan; areas: WeddingArea[] };
+export const NO_WEDDING: Wedding = { plan: { wedding_date: null, venue: null, capacity: null, guests_umit: null, guests_dilfiraz: null, budget: null }, areas: [] };
+
+// The wedding areas, kept where any task row can look one up by id.
+let AREAS: WeddingArea[] = [];
+export const setAreas = (list: WeddingArea[]) => void (AREAS = list);
+export const allAreas = () => AREAS;
+export const areaOf = (id: string | null | undefined) => (id ? AREAS.find((a) => a.id === id) : undefined);
+export const money = (n: number | null | undefined) => (n == null ? "–" : `£${n.toLocaleString("en-GB", { maximumFractionDigits: n % 1 ? 2 : 0 })}`);

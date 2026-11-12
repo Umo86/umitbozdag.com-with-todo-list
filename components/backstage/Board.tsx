@@ -28,7 +28,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskActions } from "./TaskList";
-import { WEDDING,
+import { WEDDING, areaOf,
   STATUSES,
   colorOf,
   nameOf,
@@ -371,7 +371,7 @@ function Card({
             {t.priority === "high" && <span className="high">High</span>}
             {t.priority === "low" && <span>Low priority</span>}
             {t.notes && <span>Has notes</span>}
-            {t.wedding && <span className="wed">💍 Wedding</span>}
+            {t.wedding && <span className="wed">{areaOf(t.area_id) ? `${areaOf(t.area_id)!.emoji ?? "💍"} ${areaOf(t.area_id)!.name}` : "💍 Wedding"}</span>}
             {t.wedding && !t.assignee && !done && <span className="who none">No one yet</span>}
             {t.owner === "joint" && t.assignee && (
               <span className="who" style={{ color: t.assignee === "both" ? undefined : colorOf(t.assignee) }}>

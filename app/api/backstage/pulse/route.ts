@@ -23,6 +23,8 @@ export async function GET(req: Request) {
       `select ${sum("tasks", "t", "t.owner in ($1, 'joint')")} as t,
               ${sum("projects", "p", "p.owner in ($1, 'joint')")} as p,
               ${sum("events", "e", "true")} as e,
+              ${sum("wedding_plan", "wp", "true")} as wp,
+              ${sum("wedding_areas", "wa", "true")} as wa,
               ${sum("us_items", "u", "u.owner = 'joint' or u.owner = $1")} as u,
               ${sum("chat_messages", "m", "m.created_at > now() - interval '3 days' or m.read_at is null")} as c,
               ${sum("videos", "w", "true")} as x`,
@@ -30,7 +32,7 @@ export async function GET(req: Request) {
     );
     const s = r.rows[0];
     return NextResponse.json(
-      { v: `${s.t}|${s.p}|${s.e}`, u: s.u, c: s.c, x: s.x },
+      { v: `${s.t}|${s.p}|${s.e}|${s.wp}|${s.wa}`, u: s.u, c: s.c, x: s.x },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {

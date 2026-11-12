@@ -9,6 +9,7 @@ import { parseTask, ymd } from "@/lib/parse";
 import Board, { dragState } from "./Board";
 import Calendar from "./Calendar";
 import UsHub, { nextSaturday, type UsSection } from "./UsHub";
+import WeddingView from "./Wedding";
 import Shopping from "./Shopping";
 import { MatchAlert, lastWeekChampion, MOODS, nextYearly, type GameMatch } from "./Fun";
 import { VideoGift, VideoSender, VideoWaiting, type VideoIn, type VideoOut } from "./OneTimeVideo";
@@ -78,7 +79,7 @@ export default function BackstageApp() {
   const [list, setList] = useState<ListName>("work");
   const [project, setProject] = useState<string | null>(null);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
-  const [wedFor, setWedFor] = useState<"all" | "none" | "me" | "other">("all");
+  const [wedArea, setWedArea] = useState<string | null>(null); // the wedding area being looked at
   const [jointTab, setJointTab] = useState<"todos" | "shopping">("todos");
   const [usSection, setUsSection] = useState<UsSection>("chat");
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -522,19 +523,6 @@ export default function BackstageApp() {
   );
   // Wedding planning is its own joint section; the everyday joint list is everything else.
   const wedding = useMemo(() => tasks.filter((t) => t.wedding), [tasks]);
-  const weddingShown = useMemo(
-    () =>
-      wedding.filter((t) =>
-        wedFor === "all"
-          ? true
-          : wedFor === "none"
-            ? !t.assignee
-            : wedFor === "me"
-              ? t.assignee === "both" || t.assignee === me?.id
-              : t.assignee === "both" || (!!t.assignee && t.assignee !== me?.id)
-      ),
-    [wedding, wedFor, me]
-  );
   const weddingOpen = wedding.filter((t) => t.status !== "done").length;
   const joint = useMemo(() => tasks.filter((t) => t.owner === "joint" && !t.wedding), [tasks]);
   const jointShown = useMemo(
@@ -564,7 +552,7 @@ export default function BackstageApp() {
   const openEvent = sheet?.kind === "event" && sheet.id ? events.find((e) => e.id === sheet.id) : undefined;
 
   // Whatever is typed into an "Add…" box is one task, however long it is.
-  const addTyped = (text: string, owner: "mine" | "joint" | "wedding") => {
+  const addTyped = (text: string, owner: "mine" | "joint" | "wedding", areaId: string | null = null) => {
     const d = parseTask(text, { projects, others: users.filter((u) => u.id !== me.id) });
     if (!d) return;
     void bs.addDrafts(
@@ -574,6 +562,7 @@ export default function BackstageApp() {
           kind: "task" as const,
           joint: owner !== "mine" || d.joint,
           wedding: owner === "wedding",
+          area_id: owner === "wedding" ? areaId : null,
           // a wedding to-do starts with no one on it, unless the text names someone
           assignee: owner === "wedding" ? d.assignee : owner === "joint" || d.joint ? d.assignee ?? "both" : null,
           project_id: d.project_id ?? (owner === "mine" ? project : null),
@@ -876,69 +865,19 @@ export default function BackstageApp() {
         )}
 
         {view === "wedding" && (
-          <>
-            <div className="bs-bar bs-wedbar">
-              <div className="bs-wedhead">
-                <span className="ring" aria-hidden="true">
-                  💍
-                </span>
-                <div>
-                  <h2>Wedding planning</h2>
-                  <p>
-                    Shared with {other?.name ?? "each other"}: you both see and change everything here.{" "}
-                    {wedding.length ? `${wedding.length - weddingOpen} of ${wedding.length} done.` : "Nothing on the list yet."}
-                  </p>
-                </div>
-                <button className="btn wed" onClick={() => setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}>
-                  + Wedding date
-                </button>
-              </div>
-              {wedding.length > 0 && (
-                <div className="bs-wedprog" role="img" aria-label={`${wedding.length - weddingOpen} of ${wedding.length} done`}>
-                  <span style={{ width: `${((wedding.length - weddingOpen) / wedding.length) * 100}%` }} />
-                </div>
-              )}
-              <div className="bs-seg small" role="group" aria-label="Show">
-                <button aria-pressed={wedFor === "all"} onClick={() => setWedFor("all")}>
-                  Everything
-                </button>
-                <button aria-pressed={wedFor === "none"} onClick={() => setWedFor("none")}>
-                  No one yet <span className="n">{wedding.filter((t) => !t.assignee && t.status !== "done").length}</span>
-                </button>
-                <button aria-pressed={wedFor === "me"} onClick={() => setWedFor("me")}>
-                  For me
-                </button>
-                {other && (
-                  <button aria-pressed={wedFor === "other"} onClick={() => setWedFor("other")}>
-                    For {other.name}
-                  </button>
-                )}
-              </div>
-            </div>
-            {narrow ? (
-              <TaskList
-                tasks={weddingShown}
-                projects={projects}
-                me={me.id}
-                onOpen={(id) => setSheet({ kind: "task", id })}
-                onPatch={bs.patchTask}
-                onDelete={bs.deleteTask}
-                onAdd={(t) => addTyped(t, "wedding")}
-                placeholder="Add a wedding to-do…"
-              />
-            ) : (
-              <Board
-                key="wedding"
-                tasks={weddingShown}
-                projects={projects}
-                canEdit
-                onAdd={(t) => addTyped(t, "wedding")}
-                onPatch={bs.patchTask}
-                onDelete={bs.deleteTask}
-                onOpen={(id) => setSheet({ kind: "task", id })}
-              />
-            )}
-          </>
+          <WeddingView
+            bs={bs}
+            me={me}
+            users={users}
+            tasks={wedding}
+            projects={projects}
+            narrow={narrow}
+            area={wedArea}
+            setArea={setWedArea}
+            onOpen={(id) => setSheet({ kind: "task", id })}
+            onAdd={(t, areaId) => addTyped(t, "wedding", areaId)}
+            onNewDate={() => setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}
+          />
         )}
 
         {view === "calendar" && (
@@ -1030,6 +969,7 @@ export default function BackstageApp() {
           defaultProject={view === "mine" ? project : null}
           defaultOwner={view === "joint" || view === "wedding" ? "joint" : me.id}
           defaultWedding={view === "wedding"}
+          defaultArea={view === "wedding" && wedArea !== "none" ? wedArea : null}
           onClose={() => setSheet(null)}
           onSwitchToEvent={() => setSheet({ kind: "event", day: ymd(new Date()) })}
         />

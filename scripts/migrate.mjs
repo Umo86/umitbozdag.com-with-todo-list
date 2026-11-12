@@ -68,6 +68,20 @@ alter table tasks add column if not exists updated_at   timestamptz not null def
 -- Wedding planning: a to-do or event marked for the wedding is always joint
 alter table tasks  add column if not exists wedding boolean not null default false;
 alter table events add column if not exists wedding boolean not null default false;
+-- the wedding's details, and the areas the planning is split into
+create table if not exists wedding_plan (
+  id int primary key default 1 check (id = 1),
+  wedding_date date, venue text, capacity int, guests_umit int, guests_dilfiraz int,
+  budget numeric(12,2), event_id uuid, seeded boolean not null default false,
+  updated_at timestamptz not null default now(), updated_by text
+);
+create table if not exists wedding_areas (
+  id uuid primary key default gen_random_uuid(),
+  name text not null, emoji text, position int not null default 0,
+  budget numeric(12,2), spent numeric(12,2),
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+alter table tasks add column if not exists area_id uuid;
 -- who last changed it, so the other person's app can say "Dilfiraz ticked off …"
 alter table tasks add column if not exists updated_by   text;
 

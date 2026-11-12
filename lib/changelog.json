@@ -1,6 +1,18 @@
 [
   {
     "date": "2026-11-12",
+    "title": "Wedding planner: countdown, guests, budget and areas",
+    "items": [
+      "Set the wedding date and venue: a countdown appears, and the day goes on the joint calendar",
+      "Guests: the venue’s capacity against how many each of you is inviting, with places left",
+      "Areas: Venue, Catering, Decor and ten more to start with. Add your own, rename or remove any",
+      "Tap an area to see just its to-dos; new to-dos go into the area you are looking at",
+      "Budget: an overall figure, a share for each area, and what has been spent so far",
+      "Not sure where to begin? One tap adds the usual to-dos for each area"
+    ]
+  },
+  {
+    "date": "2026-11-12",
     "title": "Wedding planning, and calendars that are really yours",
     "items": [
       "New Wedding section: one shared list of everything to do for the wedding. You both see and change all of it",

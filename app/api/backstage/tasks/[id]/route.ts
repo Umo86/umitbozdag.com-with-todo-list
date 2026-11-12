@@ -119,7 +119,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
       if (body.owner === undefined) sets.push(`owner = '${JOINT}'`, "list = 'personal'");
       else if (body.owner !== JOINT) return NextResponse.json({ error: "Wedding to-dos are always joint." }, { status: 400 });
     } else if (body.wedding === false || (body.owner !== undefined && body.owner !== JOINT)) {
-      sets.push("wedding = false");
+      sets.push("wedding = false", "area_id = null");
+    }
+    if (body.area_id !== undefined && body.wedding !== false) {
+      add("area_id = ?", typeof body.area_id === "string" && UUID.test(body.area_id) ? body.area_id : null);
     }
     if (body.love_note !== undefined) {
       add("love_note = ?", typeof body.love_note === "string" && body.love_note.trim() ? body.love_note.trim().slice(0, 1000) : null);

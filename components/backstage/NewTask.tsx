@@ -3,7 +3,7 @@
 // Add one task by hand: every field as an ordinary control, nothing guessed.
 import { useEffect, useRef, useState } from "react";
 import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
-import { fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, type Priority, type Project } from "./types";
+import { allAreas, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, type Priority, type Project } from "./types";
 import type { Backstage } from "./useBackstage";
 
 export default function NewTask({
@@ -15,6 +15,7 @@ export default function NewTask({
   defaultProject,
   defaultOwner,
   defaultWedding,
+  defaultArea,
   onClose,
   onSwitchToEvent,
 }: {
@@ -26,6 +27,7 @@ export default function NewTask({
   defaultProject: string | null;
   defaultOwner: Owner;
   defaultWedding?: boolean; // opened from the Wedding section
+  defaultArea?: string | null; // …with this area picked
   onClose: () => void;
   onSwitchToEvent?: () => void;
 }) {
@@ -66,6 +68,7 @@ export default function NewTask({
             owner: joint ? "joint" : me.id,
             assignee: joint ? assignee : null,
             wedding: joint && wedding,
+            area_id: joint && wedding ? String(f.get("area") ?? "") || null : null,
             project_id: String(f.get("project") ?? "") || null,
             priority: (String(f.get("priority")) as Priority) || "normal",
             due_date: String(f.get("due") ?? "") || null,
@@ -165,6 +168,20 @@ export default function NewTask({
         )}
 
         <div className="bs-fields">
+          {joint && wedding && allAreas().length > 0 && (
+            <div>
+              <label htmlFor="nt-area">Area</label>
+              <select id="nt-area" name="area" defaultValue={defaultArea ?? ""}>
+                <option value="">No area</option>
+                {allAreas().map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.emoji ? `${a.emoji} ` : ""}
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {!joint && (
             <div>
               <label htmlFor="nt-list">List</label>

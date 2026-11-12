@@ -9,6 +9,7 @@ import { isApp } from "./native";
 import { BinIcon } from "./TaskList";
 import {
   STATUSES,
+  allAreas,
   fromLocalInput,
   toLocalInput,
   colorOf,
@@ -199,6 +200,20 @@ export default function TaskDrawer({
               <option value="wedding">💍 Wedding (joint)</option>
             </select>
           </div>
+          {task.wedding && (
+            <div>
+              <label htmlFor="d-area">Area</label>
+              <select id="d-area" value={task.area_id ?? ""} onChange={(e) => patch({ area_id: e.target.value || null })}>
+                <option value="">No area</option>
+                {allAreas().map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.emoji ? `${a.emoji} ` : ""}
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {task.owner === "joint" && (
             <div>
               <label htmlFor="d-for">For</label>

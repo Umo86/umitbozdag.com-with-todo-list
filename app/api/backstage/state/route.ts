@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readWedding } from "@/lib/wedding";
 import { db } from "@/lib/db";
 import { requireUser, USERS } from "@/lib/auth";
 import { loadUs } from "@/lib/us";
@@ -51,6 +52,7 @@ export async function GET(req: Request) {
       projects: projects.rows,
       tasks: tasks.rows,
       events: [...events.rows, ...busy.rows],
+      wedding: await readWedding(),
       messages: messages.rows,
       chat_unread: chat.rows[0]?.n ?? 0,
       ...fun,
