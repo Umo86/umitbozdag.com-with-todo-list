@@ -25,7 +25,7 @@ import TaskDrawer from "./TaskDrawer";
 import TaskList from "./TaskList";
 import { enablePush, pushState } from "./push";
 import { BUZZ, buzz, isApp, listen, prepareNotifications, registerPush, syncReminders, type Extra, type NotificationAction } from "./native";
-import { forMe, nameOf, type ChatMessage, type ListName, type Space } from "./types";
+import { forMe, nameOf, type Assignee, type ChatMessage, type ListName, type Space } from "./types";
 import { useBackstage } from "./useBackstage";
 
 type View = "today" | "mine" | "joint" | "wedding" | "calendar" | "us" | "messages";
@@ -638,7 +638,7 @@ export default function BackstageApp() {
   const openEvent = sheet?.kind === "event" && sheet.id ? events.find((e) => e.id === sheet.id) : undefined;
 
   // Whatever is typed into an "Add…" box is one task, however long it is.
-  const addTyped = (text: string, owner: "mine" | "joint" | "wedding", areaId: string | null = null) => {
+  const addTyped = (text: string, owner: "mine" | "joint" | "wedding", areaId: string | null = null, forWho: Assignee | null = null) => {
     const d = parseTask(text, { projects: spaceProjects, others: personal ? users.filter((u) => u.id !== me.id) : [] });
     if (!d) return;
     void bs.addDrafts(
@@ -650,8 +650,9 @@ export default function BackstageApp() {
           joint: personal && (owner !== "mine" || d.joint),
           wedding: owner === "wedding",
           area_id: owner === "wedding" ? areaId : null,
-          // a wedding to-do starts with no one on it, unless the text names someone
-          assignee: owner === "wedding" ? d.assignee : owner === "joint" || d.joint ? d.assignee ?? "both" : null,
+          // a wedding to-do is for whoever the Wedding section's picker says
+          // (no one yet, one of you, or both), unless the text names someone
+          assignee: owner === "wedding" ? d.assignee ?? forWho : owner === "joint" || d.joint ? d.assignee ?? "both" : null,
           project_id: d.project_id ?? (owner === "mine" ? project : null),
         },
       ],
@@ -675,7 +676,7 @@ export default function BackstageApp() {
       ];
 
   return (
-    <div className="bs-app" data-view={view} data-space={space}>
+    <div className="bs-app" data-view={view} data-space={space} data-me={me.id}>
       <header className="bs-head">
         <div className="bs-title">
           <h1>Backstage</h1>
@@ -827,6 +828,7 @@ export default function BackstageApp() {
             side={personal && me.admin && other ? <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} /> : null}
             bs={bs}
             users={users}
+            onWedding={() => setView("wedding")}
             onUs={(sec) => {
               setUsSection(sec);
               setView("us");
@@ -956,7 +958,7 @@ export default function BackstageApp() {
             area={wedArea}
             setArea={setWedArea}
             onOpen={(id) => setSheet({ kind: "task", id })}
-            onAdd={(t, areaId) => addTyped(t, "wedding", areaId)}
+            onAdd={(t, areaId, forWho) => addTyped(t, "wedding", areaId, forWho)}
             onNewDate={() => setSheet({ kind: "event", day: ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}
           />
         )}

@@ -2,17 +2,22 @@
 
 // Wedding planning: one shared place for both of you.
 // - the day: date and a countdown, the venue
-// - guests: the venue's capacity against how many each side is bringing
+// - guests: a list of names for each of you, counted against the places
+//   each side has and the venue's capacity (the Guest list tab)
 // - money: the overall budget against what the areas plan and have spent
 // - areas (Venue, Catering, Decor… and any you add), each with its own
 //   to-dos, budget and spend; pick one to see just its to-dos
-// - the to-dos themselves: left with no one, or given to either or both
+// - the to-dos themselves: left with no one, or given to either or both;
+//   every one says who added it
 import { useEffect, useMemo, useState } from "react";
 import { ymd } from "@/lib/parse";
 import Board from "./Board";
 import TaskList from "./TaskList";
 import type { Backstage } from "./useBackstage";
-import { money, nameOf, type Me, type Person, type Project, type Task, type WeddingArea } from "./types";
+import WeddingGuests, { headcount } from "./WeddingGuests";
+import { colorOf, money, nameOf, type Assignee, type Me, type Person, type Project, type Task, type WeddingArea } from "./types";
+
+const FOR_KEY = "backstage:wedding-for";
 
 const DAY = 86_400_000;
 type For = "all" | "none" | "me" | "other";
@@ -39,12 +44,32 @@ export default function WeddingView({
   area: string | null; // the area being looked at ("none" = to-dos without one)
   setArea: (id: string | null) => void;
   onOpen: (id: string) => void;
-  onAdd: (text: string, areaId: string | null) => void;
+  onAdd: (text: string, areaId: string | null, forWho: Assignee | null) => void;
   onNewDate: () => void;
 }) {
   const other = users.find((u) => u.id !== me.id);
-  const { plan, areas } = bs.wedding;
+  const { plan, areas, guests: guestList } = bs.wedding;
   const [who, setWho] = useState<For>("all");
+  const [tab, setTab] = useState<"plan" | "guests">("plan");
+  // who a to-do typed here is for: no one yet, one of you, or both
+  const [newFor, setNewForState] = useState<Assignee | null>(null);
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(FOR_KEY);
+      if (v === "both" || v === "umit" || v === "dilfiraz") setNewForState(v);
+    } catch {
+      /* fine */
+    }
+  }, []);
+  const setNewFor = (v: Assignee | null) => {
+    setNewForState(v);
+    try {
+      if (v) window.localStorage.setItem(FOR_KEY, v);
+      else window.localStorage.removeItem(FOR_KEY);
+    } catch {
+      /* fine */
+    }
+  };
   const [sheet, setSheet] = useState<null | { kind: "details" } | { kind: "area"; area: WeddingArea | null }>(null);
 
   const open = tasks.filter((t) => t.status !== "done");
@@ -64,13 +89,15 @@ export default function WeddingView({
   const days = plan.wedding_date ? Math.round((new Date(`${plan.wedding_date}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / DAY) : null;
   const dateText = plan.wedding_date ? new Date(`${plan.wedding_date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : null;
 
-  // guests
-  const mine = me.id === "umit" ? plan.guests_umit : plan.guests_dilfiraz;
-  const theirs = me.id === "umit" ? plan.guests_dilfiraz : plan.guests_umit;
-  const guests = (plan.guests_umit ?? 0) + (plan.guests_dilfiraz ?? 0);
-  const anyGuests = plan.guests_umit != null || plan.guests_dilfiraz != null;
-  const over = plan.capacity != null && guests > plan.capacity;
-  const scale = Math.max(plan.capacity ?? 0, guests, 1);
+  // guests: the names on each list, against the places each side has
+  const mine = headcount(guestList.filter((g) => g.side === me.id));
+  const theirs = headcount(guestList.filter((g) => g.side !== me.id));
+  const guests = mine + theirs;
+  const minePlaces = me.id === "umit" ? plan.guests_umit : plan.guests_dilfiraz;
+  const theirPlaces = me.id === "umit" ? plan.guests_dilfiraz : plan.guests_umit;
+  const room = plan.capacity ?? (minePlaces != null || theirPlaces != null ? (minePlaces ?? 0) + (theirPlaces ?? 0) : null);
+  const over = room != null && guests > room;
+  const scale = Math.max(room ?? 0, guests, 1);
 
   // money
   const planned = areas.reduce((s, a) => s + (a.budget ?? 0), 0);
@@ -125,25 +152,27 @@ export default function WeddingView({
         </div>
 
         <div className="bs-wedstats">
-          <button className="stat" onClick={() => setSheet({ kind: "details" })}>
+          <button className="stat" onClick={() => setTab("guests")}>
             <span className="k">Guests</span>
-            {anyGuests || plan.capacity != null ? (
+            {guests > 0 || room != null ? (
               <>
                 <strong className={over ? "over" : undefined}>
                   {guests}
-                  {plan.capacity != null && <small> of {plan.capacity}</small>}
+                  <small>{room != null ? ` of ${room} on the lists` : " on the lists"}</small>
                 </strong>
                 <span className="split" aria-hidden="true">
-                  <i className="a" style={{ width: `${((mine ?? 0) / scale) * 100}%` }} />
-                  <i className="b" style={{ width: `${((theirs ?? 0) / scale) * 100}%` }} />
+                  <i className="a" style={{ width: `${(mine / scale) * 100}%`, background: colorOf(me.id) }} />
+                  <i className="b" style={{ width: `${(theirs / scale) * 100}%`, background: other ? colorOf(other.id) : undefined }} />
                 </span>
                 <span className="v">
-                  You {mine ?? 0} · {other?.name ?? "Them"} {theirs ?? 0}
-                  {plan.capacity != null && (over ? ` · ${guests - plan.capacity} over` : ` · ${plan.capacity - guests} places left`)}
+                  You {mine}
+                  {minePlaces != null ? ` of ${minePlaces}` : ""} · {other?.name ?? "Them"} {theirs}
+                  {theirPlaces != null ? ` of ${theirPlaces}` : ""}
+                  {room != null && over ? ` · ${guests - room} over` : ""}
                 </span>
               </>
             ) : (
-              <span className="v">Add the capacity and each side&rsquo;s guests</span>
+              <span className="v">Write the guest list for each of you</span>
             )}
           </button>
           <button className="stat" onClick={() => setSheet({ kind: "details" })}>
@@ -183,6 +212,21 @@ export default function WeddingView({
         </div>
       </section>
 
+      <div className="bs-seg bs-wedtabs" role="tablist" aria-label="Wedding">
+        <button role="tab" aria-selected={tab === "plan"} aria-pressed={tab === "plan"} onClick={() => setTab("plan")}>
+          To-dos and areas
+          <span className="n">{open.length}</span>
+        </button>
+        <button role="tab" aria-selected={tab === "guests"} aria-pressed={tab === "guests"} onClick={() => setTab("guests")}>
+          Guest list
+          <span className="n">{guests}</span>
+        </button>
+      </div>
+
+      {tab === "guests" && <WeddingGuests bs={bs} me={me} users={users} narrow={narrow} onDetails={() => setSheet({ kind: "details" })} />}
+
+      {tab === "plan" && (
+        <>
       <div className="bs-wedareas-head">
         <h3>Areas</h3>
         <button className="bs-link" onClick={onNewDate}>
@@ -278,6 +322,25 @@ export default function WeddingView({
           </button>
         </p>
       )}
+      <div className="bs-wedfor">
+        <span>A to-do you add here is for</span>
+        <div className="bs-seg small" role="group" aria-label="Who a new to-do is for">
+          <button aria-pressed={newFor === null} onClick={() => setNewFor(null)}>
+            No one yet
+          </button>
+          <button aria-pressed={newFor === me.id} onClick={() => setNewFor(me.id)}>
+            Me
+          </button>
+          {other && (
+            <button aria-pressed={newFor === other.id} onClick={() => setNewFor(other.id)}>
+              {other.name}
+            </button>
+          )}
+          <button aria-pressed={newFor === "both"} onClick={() => setNewFor("both")}>
+            Both of us
+          </button>
+        </div>
+      </div>
       {narrow ? (
         <TaskList
           tasks={shown}
@@ -286,11 +349,13 @@ export default function WeddingView({
           onOpen={onOpen}
           onPatch={bs.patchTask}
           onDelete={bs.deleteTask}
-          onAdd={(t) => onAdd(t, current?.id ?? null)}
+          onAdd={(t) => onAdd(t, current?.id ?? null, newFor)}
           placeholder={current ? `Add a to-do to ${current.name}…` : "Add a wedding to-do…"}
         />
       ) : (
-        <Board key={`wedding-${area ?? "all"}`} tasks={shown} projects={projects} canEdit onAdd={(t) => onAdd(t, current?.id ?? null)} onPatch={bs.patchTask} onDelete={bs.deleteTask} onOpen={onOpen} />
+        <Board key={`wedding-${area ?? "all"}`} tasks={shown} projects={projects} canEdit onAdd={(t) => onAdd(t, current?.id ?? null, newFor)} onPatch={bs.patchTask} onDelete={bs.deleteTask} onOpen={onOpen} />
+      )}
+        </>
       )}
 
       {sheet?.kind === "details" && <DetailsSheet bs={bs} me={me} otherName={other?.name ?? nameOf(me.id === "umit" ? "dilfiraz" : "umit")} onClose={() => setSheet(null)} />}
@@ -329,7 +394,8 @@ function DetailsSheet({ bs, me, otherName, onClose }: { bs: Backstage; me: Me; o
   const [gd, setGd] = useState(plan.guests_dilfiraz?.toString() ?? "");
   const total = (Number(gu) || 0) + (Number(gd) || 0);
   const left = cap.trim() === "" ? null : Number(cap) - total;
-  const label = (id: "umit" | "dilfiraz") => (me.id === id ? "Your guests" : `${otherName}'s guests`);
+  const label = (id: "umit" | "dilfiraz") => (me.id === id ? "Places for you" : `Places for ${otherName}`);
+  const named = headcount(bs.wedding.guests);
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <form
@@ -376,10 +442,10 @@ function DetailsSheet({ bs, me, otherName, onClose }: { bs: Backstage; me: Me; o
         </div>
         <p className="bs-hint">The date starts the countdown and puts &ldquo;Our wedding&rdquo; on the joint calendar.</p>
 
-        <h3 className="bs-sub">Guests</h3>
+        <h3 className="bs-sub">Capacity</h3>
         <div className="bs-fields three">
           <div>
-            <label htmlFor="w-cap">Capacity</label>
+            <label htmlFor="w-cap">Venue holds</label>
             <input id="w-cap" name="capacity" type="number" inputMode="numeric" min={0} step={1} value={cap} onChange={(e) => setCap(e.target.value)} placeholder="e.g. 150" />
           </div>
           <div>
@@ -392,8 +458,9 @@ function DetailsSheet({ bs, me, otherName, onClose }: { bs: Backstage; me: Me; o
           </div>
         </div>
         <p className={`bs-hint${left !== null && left < 0 ? " bad" : ""}`}>
-          {total} guests in total.{" "}
-          {left === null ? "Add the venue's capacity to see how many places are left." : left < 0 ? `${-left} more than the venue holds.` : `${left} places left.`}
+          {total} places shared out.{" "}
+          {left === null ? "Add the venue's capacity to see how many are left to share." : left < 0 ? `${-left} more than the venue holds.` : left === 0 ? "That is every place in the venue." : `${left} not given to either side yet.`}{" "}
+          {named} {named === 1 ? "guest is" : "guests are"} on the lists so far (the Guest list tab).
         </p>
 
         <h3 className="bs-sub">Budget</h3>
@@ -444,6 +511,12 @@ function AreaSheet({ bs, area, tasks, onClose, onGone }: { bs: Backstage; area: 
             ×
           </button>
         </div>
+        {area?.added_by && (
+          <p className="bs-byline">
+            <span className="bs-dot" style={{ background: colorOf(area.added_by) }} />
+            Added by {nameOf(area.added_by)}
+          </p>
+        )}
         <div className="bs-fields emoji-name">
           <div>
             <label htmlFor="a-emoji">Icon</label>

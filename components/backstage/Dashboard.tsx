@@ -49,6 +49,7 @@ export default function Dashboard({
   bs,
   users,
   onUs,
+  onWedding,
   top,
   side,
 }: {
@@ -67,6 +68,7 @@ export default function Dashboard({
   bs: Backstage;
   users: Person[];
   onUs: (section: "gifts" | "memories") => void;
+  onWedding: () => void;
   top?: React.ReactNode; // a card that needs attention now (a video waiting to be watched)
   side?: React.ReactNode; // extra cards for the side column (send a video)
 }) {
@@ -105,6 +107,10 @@ export default function Dashboard({
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const personal = space === "personal";
+  // the wedding, counted down on the Personal side
+  const wedDate = bs.wedding.plan.wedding_date;
+  const wedDays = wedDate ? Math.round((new Date(`${wedDate}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / 86_400_000) : null;
+  const wedOpen = tasks.filter((t) => t.wedding && t.status !== "done").length;
   const nothing = !overdue.length && !dueToday.length && !week.length && !urgentUndated.length;
 
   return (
@@ -187,6 +193,21 @@ export default function Dashboard({
 
         <aside className="bs-dash-side">
           {side}
+          {personal && wedDays !== null && wedDays >= 0 && (
+            <button className="bs-wedcount" onClick={onWedding}>
+              <span className="ring" aria-hidden="true">
+                💍
+              </span>
+              <span>
+                <b>{wedDays === 0 ? "Today is the day" : wedDays === 1 ? "Tomorrow" : `${wedDays} days`}</b>
+                {wedDays > 1 ? " to the wedding" : ""}
+                <small>
+                  {new Date(`${bs.wedding.plan.wedding_date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                  {wedOpen ? ` · ${wedOpen} to-do${wedOpen === 1 ? "" : "s"} left` : ""}
+                </small>
+              </span>
+            </button>
+          )}
           {personal && (
             <>
               <Countdowns bs={bs} />

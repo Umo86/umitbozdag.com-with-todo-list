@@ -70,9 +70,9 @@ export async function POST(req: Request) {
     );
     if (owner === JOINT && assignee !== me.id) {
       await notify(otherOf(me.id), {
-        title: `${me.name} added a joint to-do`,
+        title: wedding ? `💍 ${me.name} added a wedding to-do` : `${me.name} added a joint to-do`,
         body: title,
-        url: "/backstage?view=joint",
+        url: `/backstage?view=${wedding ? "wedding" : "joint"}`,
         tag: `task-${r.rows[0].id}`,
       });
     }

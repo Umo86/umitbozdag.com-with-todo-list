@@ -25,6 +25,7 @@ export async function GET(req: Request) {
               ${sum("events", "e", "true")} as e,
               ${sum("wedding_plan", "wp", "true")} as wp,
               ${sum("wedding_areas", "wa", "true")} as wa,
+              ${sum("wedding_guests", "wg", "true")} as wg,
               ${sum("task_files", "f", "f.ready")} as f,
               ${sum("us_items", "u", "u.owner = 'joint' or u.owner = $1")} as u,
               ${sum("chat_messages", "m", "m.created_at > now() - interval '3 days' or m.read_at is null")} as c,
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
     );
     const s = r.rows[0];
     return NextResponse.json(
-      { v: `${s.t}|${s.p}|${s.e}|${s.wp}|${s.wa}|${s.f}`, u: s.u, c: s.c, x: s.x },
+      { v: `${s.t}|${s.p}|${s.e}|${s.wp}|${s.wa}|${s.wg}|${s.f}`, u: s.u, c: s.c, x: s.x },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (err) {

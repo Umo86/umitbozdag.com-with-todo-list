@@ -104,6 +104,16 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
     ],
   },
   {
+    q: "The wedding section",
+    a: [
+      "Wedding is for the two of you: you both see and can change all of it. Every to-do says who added it.",
+      "A to-do can be left with no one yet, given to one of you, or be for both of you. The picker above the list sets who the to-dos you type there are for.",
+      "Guest list tab: a list for each of you. Type a name and press Enter; “Ali Demir +1” counts as 2 and “Kaya family x4” as 4. You can paste a whole list at once. Tap a name to change it, use − and + for how many people the line stands for, ⇄ to move it to the other list.",
+      "The total is counted against the places each of you has and what the venue holds (Edit details sets those).",
+      "Areas (Venue, Catering, Decor…) each hold their own to-dos, budget and spend. Setting the date starts the countdown and puts the day on the joint calendar.",
+    ],
+  },
+  {
     q: "Files on a task",
     a: [
       "Open a task and tap Attach to add files: PDF, Word, Excel, photos or anything else, up to 25 MB each. You can also attach them while creating a task, or drop them onto the list on a computer.",

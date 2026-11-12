@@ -82,6 +82,21 @@ create table if not exists wedding_areas (
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 alter table tasks add column if not exists area_id uuid;
+-- who added an area (the ones every plan starts with have no one)
+alter table wedding_areas add column if not exists added_by text;
+-- The guest lists: one line per guest (or per couple / family, with how many
+-- people the line stands for), on one person's side or the other's.
+create table if not exists wedding_guests (
+  id         uuid primary key default gen_random_uuid(),
+  seq        bigint generated always as identity,
+  side       text not null check (side in ('umit','dilfiraz')),
+  name       text not null,
+  people     int not null default 1 check (people between 1 and 50),
+  added_by   text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists wedding_guests_side on wedding_guests (side, seq);
 -- who last changed it, so the other person's app can say "Dilfiraz ticked off …"
 alter table tasks add column if not exists updated_by   text;
 

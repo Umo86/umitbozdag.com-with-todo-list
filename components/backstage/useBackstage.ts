@@ -161,7 +161,7 @@ export function useBackstage() {
       setFiles(data.files ?? []);
       if (data.wedding) {
         setAreas(data.wedding.areas);
-        setWedding(data.wedding);
+        setWedding({ ...data.wedding, guests: data.wedding.guests ?? [] });
       }
       setMessages(data.messages ?? []);
       setUsers(data.users ?? []);
@@ -581,7 +581,7 @@ export function useBackstage() {
         const w = await api<Wedding | { added: number }>(`/wedding${path}`, { method, body: body ?? {} });
         if ("plan" in w) {
           setAreas(w.areas);
-          setWedding(w);
+          setWedding({ ...w, guests: w.guests ?? [] });
         }
         return true;
       } catch (e) {

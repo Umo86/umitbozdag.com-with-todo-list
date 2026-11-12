@@ -18,8 +18,8 @@ export async function POST(req: Request) {
   try {
     await readWedding();
     await db().query(
-      `insert into wedding_areas (name, emoji, budget, position) values ($1, $2, $3, (select coalesce(max(position), -1) + 1 from wedding_areas))`,
-      [name, emoji, budget]
+      `insert into wedding_areas (name, emoji, budget, added_by, position) values ($1, $2, $3, $4, (select coalesce(max(position), -1) + 1 from wedding_areas))`,
+      [name, emoji, budget, auth.me.id]
     );
     return NextResponse.json(await readWedding(), { status: 201 });
   } catch (err) {

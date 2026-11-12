@@ -100,6 +100,11 @@ export function TaskRow({
         {t.love_note && t.added_by !== me && <span title="There's a note for you">💌</span>}
         {t.nudges > 0 && !done && <span title="Nudges">👉 {t.nudges}</span>}
         {t.wedding && <span className="wed">{areaOf(t.area_id) ? `${areaOf(t.area_id)!.emoji ?? "💍"} ${areaOf(t.area_id)!.name}` : "💍 Wedding"}</span>}
+        {t.wedding && (
+          <span className="by" style={{ color: colorOf(t.added_by) }}>
+            Added by {t.added_by === me ? "you" : nameOf(t.added_by)}
+          </span>
+        )}
         {t.owner === "joint" && t.assignee && t.assignee !== "both" && (
           <span className="who" style={{ color: colorOf(t.assignee) }}>
             For {t.assignee === me ? "you" : nameOf(t.assignee)}

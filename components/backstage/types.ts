@@ -216,13 +216,15 @@ export type WeddingPlan = {
   wedding_date: string | null;
   venue: string | null;
   capacity: number | null;
-  guests_umit: number | null;
-  guests_dilfiraz: number | null;
+  guests_umit: number | null; // how many of the places are Umit's side's
+  guests_dilfiraz: number | null; // …and Dilfiraz's
   budget: number | null;
 };
-export type WeddingArea = { id: string; name: string; emoji: string | null; position: number; budget: number | null; spent: number | null };
-export type Wedding = { plan: WeddingPlan; areas: WeddingArea[] };
-export const NO_WEDDING: Wedding = { plan: { wedding_date: null, venue: null, capacity: null, guests_umit: null, guests_dilfiraz: null, budget: null }, areas: [] };
+export type WeddingArea = { id: string; name: string; emoji: string | null; position: number; budget: number | null; spent: number | null; added_by?: UserId | null };
+/** One line of a guest list: a guest, or a couple or family (`people` says how many). */
+export type WeddingGuest = { id: string; side: UserId; name: string; people: number; added_by: UserId; created_at: string };
+export type Wedding = { plan: WeddingPlan; areas: WeddingArea[]; guests: WeddingGuest[] };
+export const NO_WEDDING: Wedding = { plan: { wedding_date: null, venue: null, capacity: null, guests_umit: null, guests_dilfiraz: null, budget: null }, areas: [], guests: [] };
 
 // The wedding areas, kept where any task row can look one up by id.
 let AREAS: WeddingArea[] = [];

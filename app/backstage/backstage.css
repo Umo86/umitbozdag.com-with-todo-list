@@ -925,3 +925,61 @@
 .bs-lightbox .bar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bs-lightbox .bar button{padding:9px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font:inherit;font-weight:600;cursor:pointer}
 .bs-lightbox .bar button:last-child{background:#fff;color:#0b0d12;border-color:#fff}
+
+/* ——— wedding: who added it, who a new to-do is for, the guest lists ——— */
+.bs-row .meta .by,.bs-cardlet .meta .by{font-weight:600;white-space:nowrap}
+.bs-wedtabs{align-self:start;justify-self:start}
+.bs-wedfor{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.bs-guests{display:grid;gap:14px}
+.bs-guests-sum{display:flex;align-items:center;justify-content:space-between;gap:10px 18px;flex-wrap:wrap}
+.bs-guests-sum .tot{margin:0;display:flex;align-items:baseline;gap:10px;color:var(--muted);font-size:14.5px}
+.bs-guests-sum .tot strong{font-family:var(--display);font-size:34px;line-height:1;letter-spacing:-.03em;color:var(--ink)}
+.bs-guests-sum .tot strong.over,.bs-guestlist .head p.over{color:var(--bad)}
+.bs-guests-sum .tools{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bs-guests-sum input[type=search]{width:170px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;font:inherit;font-size:14px}
+.bs-guestcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.bs-guestlist{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--who);border-radius:16px;padding:14px 14px 10px;min-width:0}
+.bs-guestlist .head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bs-guestlist .head h3{margin:0;font-size:16px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.bs-guestlist .head p{margin:0;font-size:13.5px;color:var(--muted)}
+.bs-guestlist .head p b{font-size:16px;color:var(--ink)}
+.bs-guestlist .head p.over b{color:var(--bad)}
+.bs-guestlist .meter{display:block;height:5px;border-radius:5px;background:#eceef4;margin-top:8px;overflow:hidden}
+.bs-guestlist .meter i{display:block;height:100%;background:var(--who);border-radius:5px;transition:width .25s}
+.bs-guestlist .meter i.over{background:var(--bad)}
+.bs-guestlist .add{display:flex;gap:8px;margin-top:12px}
+.bs-guestlist .add input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-size:15px}
+.bs-guestlist .add input:focus{outline:2px solid var(--who);outline-offset:1px;border-color:transparent}
+.bs-guestlist .add .btn{padding:8px 16px}
+.bs-guestlist .bs-hint{margin:6px 2px 0;font-size:12.5px}
+.bs-guestlist .rows{list-style:none;margin:10px 0 0;padding:0}
+.bs-guestlist .rows li{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid var(--line);min-width:0}
+.bs-guestlist .no{flex:none;width:26px;font-size:12.5px;color:var(--muted);text-align:right;padding-right:4px;font-variant-numeric:tabular-nums}
+.bs-guestlist .nm{flex:1;min-width:0;display:grid;text-align:left;padding:2px 4px;border-radius:8px}
+.bs-guestlist .nm:hover{background:#f3f4f8}
+.bs-guestlist .nm b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bs-guestlist .nm small{font-size:12px;font-weight:500}
+.bs-guestlist .nm-edit{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:15px}
+.bs-guestlist .ppl{flex:none;display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:#fff}
+.bs-guestlist .ppl button{width:28px;height:30px;font-size:17px;line-height:1;color:var(--ink);border-radius:999px}
+.bs-guestlist .ppl button:disabled{color:#c5c8d3}
+.bs-guestlist .ppl b{min-width:18px;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
+.bs-guestlist .mv,.bs-guestlist .rm{flex:none;width:30px;height:30px;border-radius:8px;color:var(--muted);font-size:18px;line-height:1}
+.bs-guestlist .mv{font-size:15px}
+.bs-guestlist .mv:hover,.bs-guestlist .rm:hover{background:#f1f2f7;color:var(--ink)}
+.bs-wedcount{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;border-radius:16px;border:1px solid #f0dfae;background:linear-gradient(125deg,var(--wed-soft),#fff8e6 60%,#fff);color:#5c3d04;font-size:15px}
+.bs-wedcount .ring{font-size:28px;line-height:1}
+.bs-wedcount b{font-family:var(--display);font-size:19px;letter-spacing:-.02em}
+.bs-wedcount small{display:block;font-size:12.5px;color:#8a6a1e;margin-top:2px}
+.bs-wedcount:hover{border-color:var(--wed)}
+
+/* The Personal side wears your own colour: blue for Umit, pink for Dilfiraz. */
+.bs-app[data-me="umit"] .bs-space button[aria-pressed="true"][data-space="personal"]{background:#1a47ff}
+.bs-app[data-me="umit"] .bs-sidetag.personal{background:#e8edff;color:#1a47ff}
+.bs:has(.bs-app[data-me="umit"][data-space="personal"]){--bg:#f2f5ff}
+@media (max-width:900px){
+  .bs-app[data-me="umit"][data-space="personal"] .bs-head{background:rgba(242,245,255,.92)}
+}
+.bs-guestlist .head{margin:0}
+/* on the guest lists the round + (new task) would sit on top of the Add button */
+.bs-app:has(.bs-guests) .bs-fabs{display:none}

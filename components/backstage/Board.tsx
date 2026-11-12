@@ -373,6 +373,11 @@ function Card({
             {t.notes && <span>Has notes</span>}
             {filesOn(t.id) > 0 && <span>📎 {filesOn(t.id)} file{filesOn(t.id) === 1 ? "" : "s"}</span>}
             {t.wedding && <span className="wed">{areaOf(t.area_id) ? `${areaOf(t.area_id)!.emoji ?? "💍"} ${areaOf(t.area_id)!.name}` : "💍 Wedding"}</span>}
+            {t.wedding && (
+              <span className="by" style={{ color: colorOf(t.added_by) }}>
+                Added by {nameOf(t.added_by)}
+              </span>
+            )}
             {t.wedding && !t.assignee && !done && <span className="who none">No one yet</span>}
             {t.owner === "joint" && t.assignee && (
               <span className="who" style={{ color: t.assignee === "both" ? undefined : colorOf(t.assignee) }}>
