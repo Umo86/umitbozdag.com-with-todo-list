@@ -10,7 +10,9 @@ import { visibleTasks } from "@/lib/task-view";
 import QuickCapture from "./QuickCapture";
 import TaskToolbar, { DEFAULT_FILTERS, type TaskFilters } from "./TaskToolbar";
 import { resetPreview } from "./previewStore";
-import { useDialogFocus } from "./useDialogFocus";
+import { dismissTopDialog, useDialogFocus } from "./useDialogFocus";
+import { useMobileViewport } from "./useMobileViewport";
+import { mobileNavigation } from "@/lib/mobile-layout";
 import { useAppUpdates } from "./useAppUpdates";
 import Board, { dragState } from "./Board";
 import Calendar from "./Calendar";
@@ -43,6 +45,7 @@ type Sheet =
   | { kind: "projects" }
   | { kind: "settings" }
   | { kind: "help" }
+  | { kind: "navigation" }
   | { kind: "welcome" }
   | { kind: "whatsnew" };
 
@@ -86,6 +89,7 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
   const bs = useBackstage(preview);
   const { phase, me, tasks, projects, events, users } = bs;
   const narrow = useNarrow();
+  const keyboard = useMobileViewport();
   const [viewState, setViewState] = useState<View>("today");
   // Two sides: Work and Personal. It starts on Work, so nothing personal can
   // flash up on an office screen before this device's own choice is read.
@@ -239,6 +243,8 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
         window.dispatchEvent(new Event("backstage:resume"));
       },
       onBack: () => {
+        if (bs.isSaving()) return true;
+        if (dismissTopDialog()) return true;
         if (live.current.sheet) {
           setSheet(null);
           return true;
@@ -702,9 +708,11 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
         { id: "mine", label: "Tasks", n: openCount("work"), icon: <IconCheck /> },
         { id: "calendar", label: "Calendar", icon: <IconCal /> },
       ];
+  const mobileNav = mobileNavigation(NAV);
+  const moreSelected = mobileNav.more.some(item => item.id === view);
 
   return (
-    <div className="bs-app" data-view={view} data-space={space} data-me={me.id} data-preview={preview || undefined}>
+    <div className="bs-app" data-view={view} data-space={space} data-me={me.id} data-preview={preview || undefined} data-keyboard={keyboard || undefined}>
       {preview && <div className="bs-preview-banner"><span><strong>Test version</strong> · Sample data saved in this browser. Your real data stays separate.</span><div className="bs-preview-actions"><label>Preview user<select aria-label="Preview user" value={me.id} onChange={e => { setSheet(null); void bs.signIn(e.target.value, "preview"); }}><option value="umit">Umit</option><option value="dilfiraz">Dilfiraz</option></select></label><a href="/backstage/preview/mobile" target="_top">Phone view</a><button onClick={() => { if (window.confirm("Reset the sample tasks and preview changes?")) { resetPreview(); window.location.reload(); } }}>Reset preview</button></div></div>}
       <header className="bs-head">
         <div className="bs-title">
@@ -1052,8 +1060,8 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
       </main>
       </div>
 
-      <nav className="bs-bottom" aria-label="Sections" style={{ ["--cols" as string]: NAV.length }}>
-        {NAV.map((n) => (
+      <nav className="bs-bottom" aria-label="Sections" style={{ ["--cols" as string]: mobileNav.primary.length + (mobileNav.more.length ? 1 : 0) }}>
+        {mobileNav.primary.map((n) => (
           <button key={n.id} data-nav={n.id} aria-current={view === n.id ? "page" : undefined} onClick={() => setView(n.id)}>
             <span className="ico">
               {n.icon}
@@ -1062,9 +1070,12 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
             <span className="lbl">{n.label}</span>
           </button>
         ))}
+        {!!mobileNav.more.length && <button data-nav="more" aria-label="More sections" aria-current={moreSelected ? "page" : undefined} aria-expanded={sheet?.kind === "navigation"} aria-haspopup="dialog" onClick={() => setSheet({ kind: "navigation" })}><span className="ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></span><span className="lbl">More</span></button>}
       </nav>
 
-      {!sheet && !showCapture && !(view === "wedding" && wedTab === "todos") && view !== "finance" && view !== "messages" && !(view === "us" && usSection === "chat") && (
+      {sheet?.kind === "navigation" && <div className="bs-scrim" onMouseDown={event => { if (event.target === event.currentTarget) setSheet(null); }}><section className="bs-drawer bs-sheet bs-mobile-menu" role="dialog" aria-modal="true" aria-labelledby="bs-more-heading" tabIndex={-1}><div className="bs-grab" aria-hidden="true"/><div className="bs-drawer-head"><h2 id="bs-more-heading">More</h2><button className="bs-x" aria-label="Close" onClick={() => setSheet(null)}>×</button></div><nav aria-label="More sections">{mobileNav.more.map(item => <button key={item.id} aria-current={view === item.id ? "page" : undefined} onClick={() => { setSheet(null); setView(item.id); }}><span className="bs-menu-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span>{!!item.n && <small>{item.n}</small>}<span aria-hidden="true">›</span></button>)}</nav><div className="bs-menu-tools"><button onClick={() => setSheet({ kind: "projects" })}>Projects</button><button onClick={() => setSheet({ kind: "help" })}>Help</button><button onClick={() => setSheet({ kind: "settings" })}>Settings</button></div></section></div>}
+
+      {!sheet && (narrow || !showCapture) && !(view === "wedding" && wedTab === "todos") && view !== "finance" && view !== "messages" && !(view === "us" && usSection === "chat") && (
         <div className="bs-fabs">
           <button
             className="bs-fab plus"

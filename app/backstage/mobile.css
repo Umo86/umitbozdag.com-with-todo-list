@@ -1,0 +1,70 @@
+/* Phone and Android WebView layout. Desktop keeps the full workspace. */
+.bs .bs-task-check { display:grid; place-items:start center; margin:0; }
+@media (max-width:900px) {
+  .bs { min-height:100dvh; }
+  .bs .bs-app { width:100%; max-width:100%; padding:0 16px calc(110px + env(safe-area-inset-bottom,0px)); }
+  .bs .bs-app:has(.bs-main>.bs-capture),.bs .bs-app:has(.bs-wed .bs-capture) { padding-bottom:calc(110px + env(safe-area-inset-bottom,0px)); }
+  .bs .bs-head,.bs .bs-app[data-space=personal] .bs-head,.bs .bs-app[data-me=umit][data-space=personal] .bs-head { flex-wrap:nowrap; gap:8px; padding:calc(8px + env(safe-area-inset-top,0px)) 16px 8px; margin:0 -16px 18px; }
+  .bs .bs-head h1 { display:none!important; }
+  .bs .bs-head .bs-title { flex-direction:row; align-items:center; gap:0; }
+  .bs .bs-head .who { align-self:center; gap:4px; }
+  .bs .bs-space button { min-height:44px; padding:8px 14px; font-size:13px; }
+  .bs .bs-head .bs-mail,.bs .bs-head .bs-avatar-btn { min-width:44px; min-height:44px; }
+  .bs .bs-main { min-height:0; }
+  .bs .bs-main>.bs-capture,.bs .bs-wed .bs-capture { position:relative; inset:auto; z-index:auto; width:100%; max-height:none; overflow:visible; margin:0 0 20px; padding:10px 12px; box-shadow:none; }
+  .bs .bs-capture-context { margin-bottom:2px; }
+  .bs .bs-capture-context button { min-height:36px; }
+  .bs .bs-capture-entry { align-items:flex-end; }
+  .bs .bs-capture-entry textarea { min-height:48px; max-height:180px; overflow-y:auto; }
+  .bs .bs-capture-submit { min-height:48px; }
+  .bs .bs-capture:not(:focus-within):not([data-expanded=true]) .bs-capture-tools,
+  .bs .bs-capture:not(:focus-within):not([data-expanded=true]) .bs-capture-hint { display:none; }
+  .bs .bs-capture-tools { gap:6px; }
+  .bs .bs-capture-tools button { min-height:44px; font-size:12px; padding:6px 9px; }
+  .bs .bs-capture-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .bs .bs-bottom { grid-template-columns:repeat(var(--cols,5),minmax(0,1fr)); padding:5px max(6px,env(safe-area-inset-right,0px)) calc(7px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px)); }
+  .bs .bs-bottom button { min-width:0; min-height:60px; gap:3px; }
+  .bs .bs-bottom .ico { width:48px; height:30px; }
+  .bs .bs-bottom .lbl { font-size:11px; white-space:nowrap; }
+  .bs .bs-fabs { right:16px; bottom:calc(92px + env(safe-area-inset-bottom,0px)); }
+  .bs .bs-fab.plus { width:56px; height:56px; border-radius:17px; }
+  .bs .bs-scrim { padding:0; align-items:flex-end; }
+  .bs .bs-drawer.bs-sheet { max-height:calc(100dvh - 12px); overscroll-behavior:contain; scroll-padding:20px 0 100px; padding:14px 18px calc(20px + env(safe-area-inset-bottom,0px)); }
+  .bs .bs-drawer-head { position:sticky; top:-14px; z-index:4; background:var(--panel); padding:8px 0; }
+  .bs .bs-drawer-foot { bottom:calc(-20px - env(safe-area-inset-bottom,0px)); padding:14px 0 calc(8px + env(safe-area-inset-bottom,0px)); }
+  .bs .bs-drawer-foot .btn { min-height:48px; }
+  .bs .bs-mobile-menu { padding-bottom:calc(24px + env(safe-area-inset-bottom,0px)); }
+  .bs-mobile-menu nav { display:grid; gap:8px; }
+  .bs-mobile-menu nav button { display:flex; gap:16px; align-items:center; min-height:64px; border:1px solid var(--line); border-radius:12px; padding:12px 16px; text-align:left; font-size:16px; }
+  .bs-mobile-menu nav button[aria-current=page] { color:var(--accent); background:var(--accent-soft); border-color:transparent; }
+  .bs-menu-icon { display:grid; place-items:center; width:28px; height:28px; color:var(--accent); }
+  .bs-menu-icon svg { width:24px; height:24px; }
+  .bs-mobile-menu nav button>span:nth-child(2) { flex:1; }
+  .bs-mobile-menu nav small { font-size:13px; color:var(--muted); }
+  .bs-menu-tools { display:flex; flex-wrap:wrap; gap:8px; border-top:1px solid var(--line); margin-top:20px; padding-top:12px; }
+  .bs-menu-tools button { flex:1; min-height:48px; border-radius:10px; background:var(--bg); font-size:13px; }
+  .bs .bs-task-toolbar input[type=search] { flex:1 1 100%; min-height:48px; }
+  .bs .bs-task-toolbar select { font-size:13px; min-height:44px; }
+  .bs .bs-acts button { min-width:44px; min-height:44px; }
+  .bs .bs-task-check { width:44px; min-height:44px; place-items:center; cursor:pointer; margin:-7px 0 0 -8px; }
+  .bs .bs-task-check input { margin:0; }
+  .bs .bs-toast { bottom:calc(92px + env(safe-area-inset-bottom,0px)); }
+  .bs .bs-due { flex-wrap:wrap; font-size:13px; }
+  .bs .bs-due .btn { min-height:44px; }
+  .bs .bs-finance .fn-heading { gap:12px; }
+  .bs .bs-finance h2 { font-size:24px; }
+  .bs .fn-period { gap:12px; }
+  .bs .bs-row .title { overflow-wrap:anywhere; }
+  .bs .bs-app[data-keyboard=true] .bs-bottom,.bs .bs-app[data-keyboard=true] .bs-fabs { display:none; }
+  .bs .bs-app[data-keyboard=true] { padding-bottom:24px; }
+  .bs .bs-app[data-keyboard=true] .bs-scrim { top:var(--bs-visible-top,0px); bottom:auto; height:var(--bs-visible-height,100dvh); }
+  .bs .bs-app[data-keyboard=true] .bs-drawer.bs-sheet { max-height:calc(var(--bs-visible-height,100dvh) - 8px); }
+  .bs .bs-app[data-keyboard=true] .bs-toast { bottom:12px; }
+  .bs .bs-app[data-keyboard=true] .bs-us .bs-chat { height:calc(var(--bs-visible-height,100dvh) - 170px); min-height:220px; }
+}
+@media (max-width:360px) {
+  .bs .bs-space button { padding-inline:10px; }
+  .bs .bs-head { padding-inline:12px; }
+  .bs .bs-capture-options { grid-template-columns:minmax(0,1fr); }
+  .bs .bs-fields { grid-template-columns:minmax(0,1fr); }
+}

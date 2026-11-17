@@ -95,7 +95,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
   {
     q: "Adding, changing and deleting",
     a: [
-      "Use the task entry box on Today, your tasks, Joint or Wedding. On a phone it sits above the bottom navigation. Type a name and tap Add task or press Enter; Shift+Enter adds a line break.",
+      "Use the task entry box on Today, your tasks, Joint or Wedding. On a phone it stays with the page so it doesn’t cover your list. Tap + to add a task while you scroll. Type a name and tap Add task or press Enter; Shift+Enter adds a line break.",
       "Dates and details are shown before saving: “call the venue tomorrow at 10”, “pay council tax Friday”, “every Monday”. Today, Tomorrow, and Date & project let you choose explicitly. All details opens reminders, notes, repeat and attachments.",
       "Add several accepts one task per line. Check the preview, then add them together. If a save fails, the unsaved tasks stay in the box so you can retry.",
       "Search your task names and notes, filter by date or priority, and choose a sort order. On a computer, switch between List and Board; dragging uses manual order.",
@@ -179,7 +179,7 @@ const TOPICS: Array<{ q: string; a: string[] }> = [
       "Signed out unexpectedly: sessions last 30 days, and changing a password signs that person out everywhere. Sign in again.",
       "No reminders on the phone: Settings › Apps › Backstage › Notifications on; also allow “Alarms & reminders”. Samsung/Xiaomi: Battery › Unrestricted.",
       "“Too many wrong passwords”: wait 15 minutes. Forgotten a password? Umit can set a new one.",
-      "New features arrive by themselves: close and reopen the app. You only download the app again for a new phone.",
+      "New screens arrive from the live website: close and reopen the app. On a phone, More opens Finance, Joint and Wedding. If an Android package update is offered, download it and approve the update without uninstalling Backstage.",
     ],
   },
 ];

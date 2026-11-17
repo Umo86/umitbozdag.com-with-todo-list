@@ -58,7 +58,7 @@ export default function QuickCapture({ context, storageKey, projects, users, def
   }
 
   return (
-    <section className={`bs-capture${batch ? " batch" : ""}`} aria-label={`Add to ${context}`}>
+    <section className={`bs-capture${batch ? " batch" : ""}`} data-expanded={!!text || more || batch || undefined} aria-label={`Add to ${context}`}>
       <form onSubmit={e => { e.preventDefault(); void submit(); }}>
         <div className="bs-capture-context"><span>Add to {context}</span><button type="button" disabled={busy || (batch && text.includes("\n"))} aria-pressed={batch} onClick={() => { setBatch(!batch); input.current?.focus(); }}>{batch ? "One task" : "Add several"}</button></div>
         <div className="bs-capture-entry">

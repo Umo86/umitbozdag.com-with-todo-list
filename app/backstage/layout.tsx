@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./backstage.css";
 import "./refresh.css";
 import "./finance.css";
+import "./mobile.css";
 
 export const metadata: Metadata = {
   title: "Backstage",
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Backstage", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = { themeColor: "#f5f6fb", viewportFit: "cover" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f5f6fb", viewportFit: "cover", interactiveWidget: "resizes-content" };
 
 export default function BackstageLayout({
   children,

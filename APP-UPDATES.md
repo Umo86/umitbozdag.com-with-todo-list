@@ -12,6 +12,12 @@ Before publication, `scripts/verify-android-update.sh` verifies the APK signatur
 
 If older installs were signed with different temporary debug keys, matching the latest published APK alone cannot guarantee compatibility with those older installs. Recover the key for each installed version. Do not recommend uninstalling: that removes local app data and scheduled reminders.
 
+## Android layout checks
+
+Phone navigation uses Today, Tasks, Calendar, Us and More. Finance, Joint and Wedding remain available in More. Work keeps only its three work sections. The task entry box is part of the page, so it cannot cover the list; the + button opens the full task form while scrolling. Keyboard viewport changes hide the bottom navigation and resize sheets while their actions remain reachable. Touch targets and safe-area padding are applied through `mobile.css`; desktop keeps the full workspace.
+
+Task forms receive initial focus once, rather than refocusing on each background refresh. Android Back and Escape share the top-dialog close path, wait during saves, and flush the active task field before closing the task editor. The browser checks cover 320 px and 393 px widths and a reduced keyboard-sized viewport. Actual Android keyboard, installer and notification behaviour still need a physical-device check.
+
 ## Data and deployment
 
 These update changes do not migrate, reset or overwrite the database. Finance setup is a separate additive migration described in `FINANCE.md`; it has not been run against production by this change. Deploy the web changes through the existing hosting connection. Verify `/api/backstage/version` reports the deployed build, then open an existing installation and check tasks, reminders and private Finance. A physical-device installation test is still required; browser previews cannot verify Android's installer or phone notifications.

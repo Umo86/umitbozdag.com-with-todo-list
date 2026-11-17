@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-11-17",
+    "title": "A layout that fits the Android app",
+    "items": [
+      "Five comfortable bottom navigation buttons, with Finance, Joint and Wedding in More",
+      "A compact task entry box that no longer covers the task list, plus a reachable + button",
+      "Forms adapt when the keyboard opens and keep their Save buttons reachable",
+      "Android Back closes the top form before leaving the section, including Finance forms",
+      "Larger touch targets and a single-row phone header"
+    ]
+  },
+  {
+    "date": "2026-11-17",
     "title": "Simpler tasks, personal Finance and safer app updates",
     "items": [
       "Quick task capture with dates, priorities, projects and a preview before adding several tasks",

@@ -73,10 +73,9 @@ export default function NewTask({
 
   useEffect(() => {
     title.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    // Focus once. Parent data refreshes must not pull focus from another field.
+    // Escape and Android Back are handled by the shared dialog controller.
+  }, []);
 
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>

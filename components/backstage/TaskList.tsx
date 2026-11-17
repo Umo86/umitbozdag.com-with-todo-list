@@ -72,12 +72,14 @@ export function TaskRow({
   const p = projects.find((x) => x.id === t.project_id);
   return (
     <li className={`bs-row${done ? " done" : ""}${t.wedding ? " wedding" : ""}`} style={{ ["--who" as string]: t.wedding ? WEDDING.bright : colorOf(t.added_by) }}>
+      <label className="bs-task-check">
       <input
         type="checkbox"
         aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
         checked={done}
         onChange={() => onPatch(t.id, { status: done ? "todo" : "done" })}
       />
+      </label>
       <button className="title" onClick={() => onOpen(t.id)}>
         {t.title}
       </button>

@@ -83,14 +83,26 @@ export default function TaskDrawer({
   }, [task.notes]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
     panel.current?.focus();
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [task.id]);
+
+  const closeAndSave = async (notify = false) => {
+    if (saving) return;
+    // Programmatic clicks from Android Back do not blur the active field.
+    // Leave it explicitly so the same autosave runs as for a touch on Save.
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setSaving(true);
+    try {
+      const saved = await Promise.all([...pending.current]);
+      if (saved.some(ok => !ok)) return;
+      if (notify) say("Saved.");
+      onClose();
+    } catch { say("Changes couldn’t save. Keep this task open and try again."); }
+    finally { setSaving(false); }
+  };
 
   return (
-    <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="bs-scrim" onMouseDown={(e) => { if (e.target === e.currentTarget) void closeAndSave(); }}>
       <div
         className="bs-drawer bs-sheet"
         role="dialog"
@@ -103,7 +115,7 @@ export default function TaskDrawer({
         <div className="bs-grab" aria-hidden="true" />
         <div className="bs-drawer-head">
           <h2>Edit task</h2>
-          <button className="bs-x" onClick={onClose} aria-label="Close">
+          <button className="bs-x" disabled={saving} onClick={() => void closeAndSave()} aria-label="Close">
             ×
           </button>
         </div>
@@ -336,6 +348,7 @@ export default function TaskDrawer({
         <div className="bs-drawer-foot bs-edit-foot">
           <button
             className="btn danger-o"
+            disabled={saving}
             onClick={() => {
               onDelete(task.id);
               onClose();
@@ -346,16 +359,7 @@ export default function TaskDrawer({
           <button
             className="btn"
             disabled={saving}
-            onClick={async () => {
-              // leave the field being typed in, so it saves, then close
-              (document.activeElement as HTMLElement | null)?.blur?.();
-              setSaving(true);
-              const saved = await Promise.all([...pending.current]);
-              setSaving(false);
-              if (saved.some(ok => !ok)) return;
-              say("Saved.");
-              onClose();
-            }}
+            onClick={() => void closeAndSave(true)}
           >
             {saving ? "Saving…" : "Save"}
           </button>
