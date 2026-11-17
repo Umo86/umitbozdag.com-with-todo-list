@@ -46,18 +46,21 @@ jobs:
           node prepare.mjs
           npx cap sync android
 
-      - name: Load the signing key (if set up)
+      - name: Load the existing app signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/backstage.jks"
             echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/backstage.jks" >> "$GITHUB_ENV"
             echo "::add-mask::$KEYSTORE_PASSWORD"
             echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "ANDROID_KEY_ALIAS=${KEY_ALIAS:-backstage}" >> "$GITHUB_ENV"
           else
-            echo "No signing key set: using a debug key (each new APK must replace the old one by uninstalling first)."
+            echo "::error::The existing app signing key is required. Keeping the published app unchanged. Do not uninstall the installed app."
+            exit 1
           fi
 
       - name: Build the APK
@@ -67,20 +70,31 @@ jobs:
           set -o pipefail
           ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
 
+      - name: Verify compatibility with the published app
+        run: bash scripts/verify-android-update.sh
+
       - name: Publish the APK
         run: |
           cp mobile/android/app/build/outputs/apk/release/app-release.apk Backstage.apk
-          gh release delete android-latest --yes --cleanup-tag || true
-          gh release delete android-build-log --yes --cleanup-tag || true
           node -e '
             const c = require("./lib/changelog.json")[0] || { title: "Update", items: [] };
             const lines = [`Build ${process.env.VERSION_CODE} · ${c.title}`, "", ...c.items.map((i) => "- " + i), "", `From ${process.env.GITHUB_SHA.slice(0, 7)}. Download Backstage.apk on your phone and open it to install.`];
             require("fs").writeFileSync("notes.md", lines.join("\n"));
           '
-          gh release create android-latest Backstage.apk \
+          # Upload an immutable build first. Never delete the working download.
+          gh release create "android-build-${VERSION_CODE}" Backstage.apk \
+            --title "Backstage for Android · build ${VERSION_CODE}" \
+            --notes-file notes.md --prerelease --target "$GITHUB_SHA"
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release upload android-latest Backstage.apk --clobber
+            gh release edit android-latest \
+              --title "Backstage for Android · build ${VERSION_CODE}" --notes-file notes.md
+          else
+            gh release create android-latest Backstage.apk \
             --title "Backstage for Android · build ${VERSION_CODE}" \
             --notes-file notes.md \
             --prerelease --target "$GITHUB_SHA"
+          fi
 
       - name: Publish the build log (failed builds only)
         if: failure()

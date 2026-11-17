@@ -56,16 +56,20 @@ export default function UsHub({
 
 function IdeaAdder({ bs, list, placeholder }: { bs: Backstage; list: "date" | "dinner"; placeholder: string }) {
   const [v, setV] = useState("");
+  const [adding, setAdding] = useState(false);
   return (
     <form
       className="bs-quickline"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!v.trim()) return;
+        if (!v.trim() || adding) return;
+        setAdding(true);
         if (await bs.addUs({ kind: "idea", list, title: v.trim() })) setV("");
+        setAdding(false);
       }}
     >
-      <input value={v} onChange={(e) => setV(e.target.value)} placeholder={placeholder} maxLength={120} aria-label="New idea" />
+      <input value={v} disabled={adding} onChange={(e) => setV(e.target.value)} placeholder={placeholder} maxLength={120} aria-label="New idea" />
+      <button type="submit" disabled={adding || !v.trim()}>{adding ? "Adding…" : "Add idea"}</button>
     </form>
   );
 }

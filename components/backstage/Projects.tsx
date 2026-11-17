@@ -23,6 +23,7 @@ export default function Projects({
   const here = projects.filter((p) => p.list === space);
   const word = space === "work" ? "Work" : "Personal";
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   return (
     <div className="bs-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bs-drawer bs-sheet" role="dialog" aria-modal="true" aria-label={`${word} projects`}>
@@ -119,21 +120,21 @@ export default function Projects({
 
         <form
           className="bs-newproj"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             const input = e.currentTarget.elements.namedItem("pname") as HTMLInputElement;
             const name = input.value.trim();
-            if (!name) return;
+            if (!name || adding) return;
             const due = e.currentTarget.elements.namedItem("pdue") as HTMLInputElement;
             const own = e.currentTarget.elements.namedItem("powner") as HTMLSelectElement | null;
-            void bs.addProject(name, color, due.value || null, own?.value === "joint" ? "joint" : null, kind);
-            if (kind !== space) bs.say(`${name} added to ${kind === "work" ? "Work" : "Personal"}.`);
-            input.value = "";
-            due.value = "";
+            setAdding(true);
+            const created = await bs.addProject(name, color, due.value || null, own?.value === "joint" ? "joint" : null, kind);
+            setAdding(false);
+            if (created) { bs.say(`${name} added to ${kind === "work" ? "Work" : "Personal"}.`); input.value = ""; due.value = ""; }
           }}
         >
           <label htmlFor="p-new">New project</label>
-          <input id="p-new" name="pname" maxLength={120} placeholder={space === "work" ? "Project name, e.g. UKCW London 2027" : "Project name, e.g. Flat move"} />
+          <input id="p-new" name="pname" required disabled={adding} maxLength={120} placeholder={space === "work" ? "Project name, e.g. UKCW London 2027" : "Project name, e.g. Flat move"} />
           <label>Work or personal</label>
           <div className="bs-seg" role="group" aria-label="Work or personal">
             <button type="button" aria-pressed={kind === "work"} onClick={() => setKind("work")}>
@@ -167,8 +168,8 @@ export default function Projects({
               />
             ))}
           </div>
-          <button className="btn" type="submit">
-            Add project
+          <button className="btn" type="submit" disabled={adding}>
+            {adding ? "Adding…" : "Add project"}
           </button>
         </form>
       </div>

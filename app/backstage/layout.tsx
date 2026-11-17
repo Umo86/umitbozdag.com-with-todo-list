@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./backstage.css";
+import "./refresh.css";
+import "./finance.css";
 
 export const metadata: Metadata = {
   title: "Backstage",

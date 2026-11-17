@@ -2,7 +2,7 @@
 
 // Add one task by hand: every field as an ordinary control, nothing guessed.
 import { useEffect, useRef, useState } from "react";
-import { REPEAT_LABEL, REPEATS, type Repeat } from "@/lib/parse";
+import { REPEAT_LABEL, REPEATS, ymd, type Draft, type Repeat } from "@/lib/parse";
 import { STARTER } from "@/lib/wedding-starter";
 import { allAreas, isGuestsArea, fromLocalInput, nameOf, type Assignee, type ListName, type Me, type Owner, type Person, FILE_MAX_MB, type Priority, type Project, type Space } from "./types";
 import type { Backstage } from "./useBackstage";
@@ -20,6 +20,9 @@ export default function NewTask({
   defaultArea,
   onClose,
   onSwitchToEvent,
+  initialDraft,
+  initialTitle,
+  onCreated,
 }: {
   bs: Backstage;
   me: Me;
@@ -32,16 +35,19 @@ export default function NewTask({
   defaultArea?: string | null; // …with this area picked
   onClose: () => void;
   onSwitchToEvent?: () => void;
+  initialDraft?: Draft;
+  initialTitle?: string;
+  onCreated?: () => void;
 }) {
   const work = space === "work";
   const [wedding, setWedding] = useState(!work && !!defaultWedding);
-  const [joint, setJoint] = useState(!work && (defaultOwner === "joint" || !!defaultWedding));
+  const [joint, setJoint] = useState(!work && (defaultOwner === "joint" || !!defaultWedding || !!initialDraft?.joint));
   const [list, setList] = useState<ListName>(space);
   const [areaId, setAreaId] = useState(defaultArea ?? "");
   // only projects from the same side as the task (joint to-dos sit on Personal)
   const options = projects.filter((p) => p.list === (joint ? "personal" : list));
   // joint to-dos are for both by default; a wedding to-do can be left with no one yet
-  const [assignee, setAssignee] = useState<Assignee | null>(defaultWedding ? null : "both");
+  const [assignee, setAssignee] = useState<Assignee | null>(initialDraft?.assignee ?? (defaultWedding ? null : "both"));
   const other = users.find((u) => u.id !== me.id);
   const [busy, setBusy] = useState(false);
   // files chosen here go up once the task exists
@@ -60,7 +66,8 @@ export default function NewTask({
         : list === "work"
           ? "Chase the signage quote"
           : "Book the dentist";
-  const [more, setMore] = useState(!!defaultProject); // open when a project is already chosen
+  const [more, setMore] = useState(false);
+  const [dueDate, setDueDate] = useState(initialDraft?.due_date ?? "");
   const [err, setErr] = useState("");
   const title = useRef<HTMLTextAreaElement>(null);
 
@@ -80,6 +87,7 @@ export default function NewTask({
         aria-labelledby="nt-h"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (busy) return;
           const f = new FormData(e.currentTarget);
           const name = String(f.get("title") ?? "").trim();
           if (!name) return setErr(`Say what the ${what} is.`);
@@ -94,7 +102,7 @@ export default function NewTask({
             area_id: joint && wedding ? areaId || null : null,
             project_id: String(f.get("project") ?? "") || null,
             priority: (String(f.get("priority")) as Priority) || "normal",
-            due_date: String(f.get("due") ?? "") || null,
+            due_date: dueDate || null,
             remind_at: fromLocalInput(String(f.get("remind") ?? "")),
             repeat: (String(f.get("repeat") ?? "") || null) as Repeat | null,
           });
@@ -108,6 +116,7 @@ export default function NewTask({
             // (a file that didn't go up has already said why; the task is there, and it can be attached again)
             const added = area ? `Added to ${area.name}` : joint && wedding ? "Wedding to-do added" : joint ? "Joint to-do added" : "Task added";
             if (up === picked.length) bs.say(up ? `${added}, with ${up} file${up === 1 ? "" : "s"}.` : `${added}.`);
+            onCreated?.();
             onClose();
           } else setBusy(false);
         }}
@@ -119,6 +128,7 @@ export default function NewTask({
             ×
           </button>
         </div>
+        <p className="bs-form-context">{work ? "Work · Only you" : joint ? wedding ? "Personal · Wedding" : "Personal · Joint" : "Personal · Only you"}</p>
 
         {onSwitchToEvent && (
           <div className="bs-seg wide" role="group" aria-label="Add">
@@ -138,6 +148,7 @@ export default function NewTask({
           rows={2}
           maxLength={500}
           required
+          defaultValue={initialDraft?.title ?? initialTitle ?? ""}
           placeholder={`e.g. ${example}`}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -225,11 +236,12 @@ export default function NewTask({
           )}
           <div>
             <label htmlFor="nt-due">Due date</label>
-            <input id="nt-due" name="due" type="date" />
+            <input id="nt-due" name="due" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
           </div>
         </div>
+        <div className="bs-date-shortcuts"><button type="button" aria-pressed={dueDate === ymd(new Date())} onClick={() => setDueDate(ymd(new Date()))}>Today</button><button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 1); setDueDate(ymd(d)); }}>Tomorrow</button>{dueDate && <button type="button" onClick={() => setDueDate("")}>Clear date</button>}</div>
 
-        <div className="bs-files new">
+        <div className="bs-files new" hidden={!more}>
           <div className="bs-files-head">
             <label>Files{picked.length ? ` (${picked.length})` : ""}</label>
             <button type="button" className="bs-attach" onClick={() => fileInput.current?.click()}>
@@ -273,18 +285,18 @@ export default function NewTask({
         </div>
 
         <button type="button" className="bs-more" aria-expanded={more} onClick={() => setMore((v) => !v)}>
-          {more ? "Fewer options" : "More options"} <span className="quiet">{more ? "" : "reminder, project, notes, repeat"}</span>
+          {more ? "Fewer options" : "All details"} <span className="quiet">{more ? "" : "reminder, project, notes, repeat, files"}</span>
           <span aria-hidden="true">{more ? "▴" : "▾"}</span>
         </button>
         <div hidden={!more}>
           <div className="bs-fields">
             <div>
               <label htmlFor="nt-remind">Reminder</label>
-              <input id="nt-remind" name="remind" type="datetime-local" />
+              <input id="nt-remind" name="remind" type="datetime-local" defaultValue={initialDraft?.remind_local ?? ""} />
             </div>
             <div>
               <label htmlFor="nt-project">Project</label>
-              <select id="nt-project" name="project" defaultValue={defaultProject ?? ""}>
+              <select id="nt-project" name="project" defaultValue={initialDraft?.project_id ?? defaultProject ?? ""}>
                 <option value="">No project</option>
                 {options.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -295,7 +307,7 @@ export default function NewTask({
             </div>
             <div>
               <label htmlFor="nt-priority">Priority</label>
-              <select id="nt-priority" name="priority" defaultValue="normal">
+              <select id="nt-priority" name="priority" defaultValue={initialDraft?.priority ?? "normal"}>
                 <option value="high">High</option>
                 <option value="normal">Normal</option>
                 <option value="low">Low</option>
@@ -303,7 +315,7 @@ export default function NewTask({
             </div>
             <div>
               <label htmlFor="nt-repeat">Repeat</label>
-              <select id="nt-repeat" name="repeat" defaultValue="">
+              <select id="nt-repeat" name="repeat" defaultValue={initialDraft?.repeat ?? ""}>
                 <option value="">Doesn&rsquo;t repeat</option>
                 {REPEATS.map((r) => (
                   <option key={r} value={r}>

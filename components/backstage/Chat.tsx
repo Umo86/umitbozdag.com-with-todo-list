@@ -21,6 +21,7 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: 
 export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: Person[] }) {
   const other = users.find((u) => u.id !== me.id);
   const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadErr, setLoadErr] = useState("");
@@ -55,10 +56,12 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
   }, [text]);
 
   const send = async (body: string, kind: "text" | "heart" = "text") => {
-    if (!body.trim()) return;
+    if (!body.trim() || sending) return;
+    setSending(true);
     if (kind === "text") setText("");
     const ok = await bs.sendChat(body.trim(), kind);
     if (!ok && kind === "text") setText(body);
+    setSending(false);
   };
 
   const myLast = [...msgs].reverse().find((m) => m.sender === me.id && !m.pending && !m.failed);
@@ -191,13 +194,14 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
           void send(text);
         }}
       >
-        <button type="button" className="heart" aria-label="Send a heart" onClick={() => send("❤️", "heart")}>
+        <button type="button" className="heart" disabled={sending} aria-label="Send a heart" onClick={() => send("❤️", "heart")}>
           ❤️
         </button>
         <textarea
           ref={box}
           rows={1}
           value={text}
+          disabled={sending}
           maxLength={4000}
           placeholder={`Message ${other?.name ?? ""}`}
           aria-label="Message"
@@ -209,7 +213,7 @@ export default function Chat({ bs, me, users }: { bs: Backstage; me: Me; users: 
             }
           }}
         />
-        <button type="submit" className="send" disabled={!text.trim()} aria-label="Send" style={{ background: me.color }}>
+        <button type="submit" className="send" disabled={sending || !text.trim()} aria-label={sending ? "Sending" : "Send"} style={{ background: me.color }}>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M4 12l16-8-6 16-2.5-6.5L4 12z" />
           </svg>

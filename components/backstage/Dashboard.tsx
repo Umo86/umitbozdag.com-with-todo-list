@@ -7,7 +7,7 @@
 // each project stands against its deadline.
 import { useMemo } from "react";
 import { ymd } from "@/lib/parse";
-import { hhmm, itemsByDay } from "./calendar";
+import { hhmm, itemsByDay } from "./calendar-utils";
 import { TaskRow } from "./TaskList";
 import { BirthdayNote, Countdowns, MemoryOfTheDay, MoodBar, Scoreboard } from "./Fun";
 import type { Backstage } from "./useBackstage";

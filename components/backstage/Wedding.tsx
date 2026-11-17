@@ -10,7 +10,10 @@
 // - the to-dos themselves: left with no one, or given to either or both;
 //   every one says who added it
 import { useEffect, useMemo, useState } from "react";
-import { ymd } from "@/lib/parse";
+import { localToIso, ymd, type Draft } from "@/lib/parse";
+import { visibleTasks } from "@/lib/task-view";
+import QuickCapture from "./QuickCapture";
+import TaskToolbar, { DEFAULT_FILTERS, type TaskFilters } from "./TaskToolbar";
 import Board from "./Board";
 import TaskList from "./TaskList";
 import type { Backstage } from "./useBackstage";
@@ -39,6 +42,7 @@ export default function WeddingView({
   onOpenEvent,
   onAdd,
   onNewDate,
+  onNewTask,
 }: {
   bs: Backstage;
   me: Me;
@@ -53,12 +57,15 @@ export default function WeddingView({
   setTab: (t: WeddingTab) => void;
   onOpen: (id: string) => void;
   onOpenEvent: (id: string) => void;
-  onAdd: (text: string, areaId: string | null, forWho: Assignee | null) => void;
+  onAdd: (text: string, areaId: string | null, forWho: Assignee | null) => void | Promise<boolean>;
   onNewDate: (day?: string) => void;
+  onNewTask: (draft: Draft | null, title: string, assignee: Assignee | null) => void;
 }) {
   const other = users.find((u) => u.id !== me.id);
   const { plan, areas, guests: guestList } = bs.wedding;
   const [who, setWho] = useState<For>("all");
+  const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
+  const [layout, setLayout] = useState<"list" | "board">("list");
   // who a to-do typed here is for: no one yet, one of you, or both
   const [newFor, setNewForState] = useState<Assignee | null>(null);
   useEffect(() => {
@@ -84,11 +91,11 @@ export default function WeddingView({
   const inArea = (t: Task) => (area === null ? true : area === "none" ? !t.area_id || !areas.some((a) => a.id === t.area_id) : t.area_id === area);
   const shown = useMemo(
     () =>
-      tasks.filter(inArea).filter((t) =>
+      visibleTasks(tasks.filter(inArea).filter((t) =>
         who === "all" ? true : who === "none" ? !t.assignee : who === "me" ? t.assignee === "both" || t.assignee === me.id : t.assignee === "both" || (!!t.assignee && t.assignee !== me.id)
-      ),
+      ), filters, ymd(new Date())),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tasks, area, who, me.id, areas]
+    [tasks, area, who, me.id, areas, filters]
   );
   const current = area && area !== "none" ? areas.find((a) => a.id === area) : undefined;
 
@@ -447,8 +454,12 @@ export default function WeddingView({
           </button>
         </div>
       </div>
-      {narrow ? (
+      <QuickCapture key={`wedding:${area || "all"}`} context={current ? `Wedding · ${current.name}` : "Wedding"} storageKey={`backstage:${bs.preview ? "preview:" : ""}capture:${me.id}:wedding:${area || "all"}`} projects={projects.filter(p => p.list === "personal")} users={users} onDetails={(draft, title) => onNewTask(draft, title, newFor)} onAdd={async d => !!await bs.addTask({ title: d.title, owner: "joint", list: "personal", wedding: true, area_id: current?.id ?? null, assignee: d.assignee ?? newFor, project_id: d.project_id, priority: d.priority, due_date: d.due_date, remind_at: localToIso(d.remind_local), repeat: d.repeat })} />
+      <TaskToolbar value={filters} onChange={setFilters} layout={narrow ? "list" : layout} onLayout={next => { setLayout(next); if (next === "board") setFilters(f => ({ ...f, order: "manual" })); }} count={shown.length} />
+      {narrow || layout === "list" ? (
         <TaskList
+          showAdd={false}
+          preserveOrder
           tasks={shown}
           projects={projects}
           me={me.id}
@@ -459,7 +470,7 @@ export default function WeddingView({
           placeholder={`Add ${addWhat}…`}
         />
       ) : (
-        <Board key={`wedding-${area ?? "all"}`} addWhat={addWhat} tasks={shown} projects={projects} canEdit onAdd={(t) => onAdd(t, current?.id ?? null, newFor)} onPatch={bs.patchTask} onDelete={bs.deleteTask} onOpen={onOpen} />
+        <Board showAdd={false} key={`wedding-${area ?? "all"}`} addWhat={addWhat} tasks={shown} projects={projects} canEdit onAdd={(t) => onAdd(t, current?.id ?? null, newFor)} onPatch={bs.patchTask} onDelete={bs.deleteTask} onOpen={onOpen} />
       )}
         </>
       )}

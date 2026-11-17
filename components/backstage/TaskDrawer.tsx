@@ -14,6 +14,7 @@ import {
   toLocalInput,
   colorOf,
   nameOf,
+  filesOn,
   type Assignee,
   type ListName,
   type Me,
@@ -48,7 +49,7 @@ export default function TaskDrawer({
   projects: Project[];
   me: Me;
   users: Person[];
-  onPatch: (id: string, patch: TaskPatch) => void;
+  onPatch: (id: string, patch: TaskPatch) => Promise<boolean>;
   onDelete: (id: string) => void;
   onClose: () => void;
   say: (msg: string) => void;
@@ -57,7 +58,13 @@ export default function TaskDrawer({
   const other = users.find((u) => u.id !== me.id);
   const iWrote = task.added_by === me.id;
   const panel = useRef<HTMLDivElement>(null);
-  const patch = (p: TaskPatch) => onPatch(task.id, p);
+  const pending = useRef(new Set<Promise<boolean>>());
+  const [saving, setSaving] = useState(false);
+  const patch = (p: TaskPatch) => {
+    const request = onPatch(task.id, p);
+    pending.current.add(request);
+    void request.finally(() => pending.current.delete(request));
+  };
 
   // The other person can change this task while it is open here. The boxes
   // you are not typing in follow along, and leaving a box only saves it if
@@ -127,11 +134,13 @@ export default function TaskDrawer({
           }}
         />
 
+        <details className="bs-detail-section" open={!!task.notes || filesOn(task.id) > 0}>
+        <summary>Notes &amp; attachments{filesOn(task.id) > 0 ? ` (${filesOn(task.id)})` : ""}</summary>
         <label htmlFor="d-notes">Notes</label>
         <textarea
           id="d-notes"
           ref={notesBox}
-          rows={5}
+          rows={2}
           maxLength={4000}
           defaultValue={task.notes ?? ""}
           placeholder="Phone numbers, links, what was agreed…"
@@ -144,6 +153,7 @@ export default function TaskDrawer({
         />
 
         <TaskFiles bs={bs} taskId={task.id} />
+        </details>
 
         {task.owner === "joint" && iWrote && (
           <>
@@ -335,14 +345,19 @@ export default function TaskDrawer({
           </button>
           <button
             className="btn"
-            onClick={() => {
+            disabled={saving}
+            onClick={async () => {
               // leave the field being typed in, so it saves, then close
               (document.activeElement as HTMLElement | null)?.blur?.();
+              setSaving(true);
+              const saved = await Promise.all([...pending.current]);
+              setSaving(false);
+              if (saved.some(ok => !ok)) return;
               say("Saved.");
               onClose();
             }}
           >
-            Save
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>

@@ -25,6 +25,7 @@ import type {
   TaskPatch,
 } from "./types";
 import { localToIso, ymd, type Draft } from "@/lib/parse";
+import { previewRequest, previewUpload } from "./previewStore";
 
 export type NewTask = {
   title: string;
@@ -56,7 +57,7 @@ class ApiError extends Error {
   }
 }
 
-export function useBackstage() {
+export function useBackstage(preview = false) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -93,20 +94,9 @@ export function useBackstage() {
   // change you just made is never briefly undone by an older answer
   const saving = useRef(0);
   const isSaving = useCallback(() => saving.current > 0, []);
-  const api = useCallback(
-    async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
-      const write = !!init?.method && init.method !== "GET";
-      if (write) saving.current++;
-      try {
-        return await send<T>(path, init);
-      } finally {
-        if (write) saving.current--;
-      }
-    },
-    []
-  );
   const send = useCallback(
     async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
+      if (preview) return previewRequest<T>(path, init);
       let res: Response;
       try {
         res = await fetch(`/api/backstage${path}`, {
@@ -131,7 +121,16 @@ export function useBackstage() {
       }
       return data as T;
     },
-    []
+    [preview]
+  );
+  const api = useCallback(
+    async <T,>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
+      const write = !!init?.method && init.method !== "GET";
+      if (write) saving.current++;
+      try { return await send<T>(path, init); }
+      finally { if (write) saving.current--; }
+    },
+    [send]
   );
 
   /** Load everything again. Hands back the tasks it loaded (null if it couldn't). */
@@ -191,6 +190,7 @@ export function useBackstage() {
     let cancelled = false;
     (async () => {
       try {
+        if (preview) { await refresh(); return; }
         const cfg = (await (await fetch("/api/backstage/config")).json()) as {
           password?: string;
           database?: string;
@@ -216,7 +216,7 @@ export function useBackstage() {
     return () => {
       cancelled = true;
     };
-  }, [refresh]);
+  }, [refresh, preview]);
 
   // returns an error message, or "" on success
   const signIn = useCallback(
@@ -345,6 +345,10 @@ export function useBackstage() {
         return null;
       }
       try {
+        if (preview) {
+          const f = await previewUpload(taskId, file);
+          setFiles((prev) => [...prev, f]); onPct?.(100); return f;
+        }
         const start = await send<{ id: string; chunk: number }>(`/tasks/${taskId}/files`, {
           method: "POST",
           body: { name: file.name, mime: file.type, size: file.size },
@@ -376,7 +380,7 @@ export function useBackstage() {
         return null;
       }
     },
-    [send, say]
+    [send, say, preview]
   );
   const deleteFile = useCallback(
     (id: string) => {
@@ -672,9 +676,10 @@ export function useBackstage() {
   );
 
   const patchTask = useCallback(
-    (id: string, patch: TaskPatch) => {
+    async (id: string, patch: TaskPatch): Promise<boolean> => {
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-      api<Task & { spawned?: Task }>(`/tasks/${id}`, { method: "PATCH", body: patch }).then(({ spawned, ...t }) => {
+      try {
+        const { spawned, ...t } = await api<Task & { spawned?: Task }>(`/tasks/${id}`, { method: "PATCH", body: patch });
         setTasks((prev) => {
           const next = prev.map((x) => (x.id === id ? (t as Task) : x));
           return spawned && !next.some((x) => x.id === spawned.id) ? [spawned, ...next] : next;
@@ -682,7 +687,8 @@ export function useBackstage() {
         if (spawned?.due_date) {
           say(`Next one added for ${new Date(spawned.due_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}.`);
         }
-      }, fail);
+        return true;
+      } catch (error) { fail(error); return false; }
     },
     [api, fail, say]
   );
@@ -719,21 +725,24 @@ export function useBackstage() {
     const flush = () => {
       for (const [id, timer] of deleting.current) {
         clearTimeout(timer);
-        void fetch(`/api/backstage/tasks/${id}`, { method: "DELETE", credentials: "same-origin", keepalive: true });
+        if (preview) void previewRequest(`/tasks/${id}`, { method: "DELETE" });
+        else void fetch(`/api/backstage/tasks/${id}`, { method: "DELETE", credentials: "same-origin", keepalive: true });
       }
       deleting.current.clear();
     };
     window.addEventListener("pagehide", flush);
     return () => window.removeEventListener("pagehide", flush);
-  }, []);
+  }, [preview]);
 
   const addProject = useCallback(
     async (name: string, color: string, due_date: string | null = null, owner: Owner | null = null, list: ListName = "work") => {
       try {
         const p = await api<Project>("/projects", { method: "POST", body: { name, color, due_date, owner: owner ?? undefined, list } });
         setProjects((prev) => [...prev, p]);
+        return p;
       } catch (e) {
         fail(e);
+        return null;
       }
     },
     [api, fail]
@@ -778,6 +787,7 @@ export function useBackstage() {
   );
 
   return {
+    preview,
     phase,
     setPhase,
     me,

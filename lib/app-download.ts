@@ -1,5 +1,5 @@
 // Where the Backstage Android app is published (GitHub builds it on every
-// change to mobile/ and replaces this file).
+// push to main, using the same signing key as the published app).
 export const APK_URL =
   "https://github.com/Umo86/umitbozdag.com-with-todo-list/releases/download/android-latest/Backstage.apk";
 
@@ -13,9 +13,11 @@ export async function latestRelease(): Promise<AppRelease> {
       { headers: { Accept: "application/vnd.github+json" }, next: { revalidate: 300 } }
     );
     if (!r.ok) throw new Error(String(r.status));
-    const d = (await r.json()) as { name?: string; body?: string; published_at?: string; assets?: Array<{ size?: number }> };
+    const d = (await r.json()) as { name?: string; body?: string; published_at?: string; assets?: Array<{ name?: string; size?: number; state?: string }> };
+    const apk = d.assets?.find((asset) => asset.name === "Backstage.apk" && asset.state === "uploaded");
+    if (!apk) throw new Error("No published APK");
     const m = /build (\d+)/i.exec(`${d.name ?? ""} ${d.body ?? ""}`);
-    return { build: m ? Number(m[1]) : null, published: d.published_at ?? null, size: d.assets?.[0]?.size ?? null };
+    return { build: m ? Number(m[1]) : null, published: d.published_at ?? null, size: apk.size ?? null };
   } catch {
     return { build: null, published: null, size: null };
   }

@@ -29,8 +29,8 @@ export function Welcome({ me, users, onClose }: { me: Me; users: Person[]; onClo
     },
     {
       icon: "➕",
-      title: "Add things with +",
-      body: "Tap + to add a to-do or an event. Give it a name, pick Mine or Joint, and add a date or a reminder if it needs one. To change or remove something later, use the pencil and bin on its row.",
+      title: "Capture a task in one line",
+      body: "Type in “What needs doing?” and press Enter, or tap Add task. Say “tomorrow” or “Friday” to set a date. Add several lets you review one task per line. All details opens notes, reminders, repeat and files. Tap any task to edit it.",
     },
     {
       icon: "📅",
@@ -83,10 +83,22 @@ export function Welcome({ me, users, onClose }: { me: Me; users: Person[]; onClo
 
 const TOPICS: Array<{ q: string; a: string[] }> = [
   {
+    q: "Personal finance",
+    a: [
+      "Finance lives on Personal and is private to your account. Your partner does not see your transactions or budgets, and Finance never appears in Work.",
+      "Choose a month, then Add transaction to record income or an expense in pounds. Give it a name, amount, date and category; notes are optional. Tap an entry to edit it, or use × to remove it. Undo restores a removed entry.",
+      "Monthly budgets sets limits for each expense category in the selected month. Leave a limit blank for no budget, or enter £0 if you plan not to spend. Copy last month’s limits fills a draft that you review before saving.",
+      "Net this month shows income minus expenses. Budget remaining subtracts all recorded expenses from your total allocated budget, including spending in categories with no limit.",
+      "Use the search and category filters to find entries. Export month downloads all transactions for the selected month as a CSV. Amounts are entered manually; Finance does not connect to bank accounts.",
+    ],
+  },
+  {
     q: "Adding, changing and deleting",
     a: [
-      "Tap + to add a to-do or an event. Only the name is needed; everything else is under “More options”.",
-      "The quick line at the top of a list understands dates: “call the venue tomorrow at 10”, “pay council tax Friday”, “every Monday”.",
+      "Use the task entry box on Today, your tasks, Joint or Wedding. On a phone it sits above the bottom navigation. Type a name and tap Add task or press Enter; Shift+Enter adds a line break.",
+      "Dates and details are shown before saving: “call the venue tomorrow at 10”, “pay council tax Friday”, “every Monday”. Today, Tomorrow, and Date & project let you choose explicitly. All details opens reminders, notes, repeat and attachments.",
+      "Add several accepts one task per line. Check the preview, then add them together. If a save fails, the unsaved tasks stay in the box so you can retry.",
+      "Search your task names and notes, filter by date or priority, and choose a sort order. On a computer, switch between List and Board; dragging uses manual order.",
       "Each to-do has a pencil (edit) and a bin (delete). Tapping the to-do's name opens it too.",
       "Tick the box when it's done. Ticked it by mistake? Untick it under Done.",
       "Deleted something by mistake? Tap Undo in the message that appears.",

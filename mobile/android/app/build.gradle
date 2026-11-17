@@ -18,7 +18,7 @@ android {
     }
     // Signing: the build uses a private key passed in by GitHub (repository
     // secrets ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD) so each new APK
-    // installs over the last. Without it, it falls back to a throwaway debug key.
+    // installs over the last. Release builds require the existing signing key.
     signingConfigs {
         backstage {
             def ks = System.getenv("ANDROID_KEYSTORE_FILE")
@@ -32,7 +32,7 @@ android {
     }
     buildTypes {
         release {
-            signingConfig System.getenv("ANDROID_KEYSTORE_FILE") ? signingConfigs.backstage : signingConfigs.debug
+            signingConfig signingConfigs.backstage
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

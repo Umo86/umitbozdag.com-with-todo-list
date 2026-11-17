@@ -127,6 +127,8 @@ export default function TaskList({
   onDelete,
   onAdd,
   placeholder,
+  showAdd = true,
+  preserveOrder = false,
 }: {
   tasks: Task[];
   projects: Project[];
@@ -134,11 +136,14 @@ export default function TaskList({
   onOpen: (id: string) => void;
   onPatch: (id: string, patch: TaskPatch) => void;
   onDelete?: (id: string) => void;
-  onAdd: (text: string) => void;
+  onAdd: (text: string) => void | Promise<boolean>;
   placeholder: string;
+  showAdd?: boolean;
+  preserveOrder?: boolean;
 }) {
   const [showDone, setShowDone] = useState(false);
-  const sorted = [...tasks].sort((a, b) => a.position - b.position || b.created_at.localeCompare(a.created_at));
+  const [adding, setAdding] = useState(false);
+  const sorted = preserveOrder ? [...tasks] : [...tasks].sort((a, b) => a.position - b.position || b.created_at.localeCompare(a.created_at));
   const doing = sorted.filter((t) => t.status === "doing");
   const todo = sorted.filter((t) => t.status === "todo");
   const done = sorted
@@ -155,19 +160,20 @@ export default function TaskList({
 
   return (
     <div className="bs-tasklist">
-      <form
+      {showAdd && <form
         className="bs-quickline"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           const input = e.currentTarget.elements.namedItem("t") as HTMLInputElement;
           const v = input.value.trim();
-          if (!v) return;
-          onAdd(v);
-          input.value = "";
+          if (!v || adding) return;
+          setAdding(true);
+          try { if (await onAdd(v) !== false) input.value = ""; } finally { setAdding(false); }
         }}
       >
-        <input name="t" placeholder={placeholder} maxLength={500} aria-label={placeholder?.replace(/…$/, "") || "Add a task"} enterKeyHint="done" />
-      </form>
+        <input name="t" disabled={adding} placeholder={placeholder} maxLength={500} aria-label={placeholder?.replace(/…$/, "") || "Add a task"} enterKeyHint="done" />
+        <button type="submit" aria-label="Add task" disabled={adding}>{adding ? "Adding…" : "Add"}</button>
+      </form>}
 
       {doing.length > 0 && (
         <section className="bs-group">

@@ -68,15 +68,17 @@ export default function Board({
   onPatch,
   onOpen,
   onDelete,
+  showAdd = true,
 }: {
   addWhat?: string; // what the add box adds here: "a work task", "a Rings to-do"…
   tasks: Task[]; // already filtered to the list (and project) on show
   projects: Project[];
   canEdit: boolean;
-  onAdd: (title: string) => void;
+  onAdd: (title: string) => void | Promise<boolean>;
   onPatch: (id: string, patch: TaskPatch) => void;
   onOpen: (id: string) => void;
   onDelete?: (id: string) => void;
+  showAdd?: boolean;
 }) {
   const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
   const projectOf = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
@@ -188,7 +190,7 @@ export default function Board({
             status === "done" && !allDone ? ids.slice(0, DONE_SHOWN) : ids;
           return (
             <Column key={status} status={status} label={label} count={ids.length}>
-              {status === "todo" && <QuickAdd onAdd={onAdd} what={addWhat} />}
+              {status === "todo" && showAdd && <QuickAdd onAdd={onAdd} what={addWhat} />}
               <SortableContext items={shown} strategy={verticalListSortingStrategy}>
                 {shown.map((id) => (
                   <SortableCard
@@ -249,20 +251,22 @@ function Column({
   );
 }
 
-function QuickAdd({ onAdd, what = "a task" }: { onAdd: (title: string) => void; what?: string }) {
+function QuickAdd({ onAdd, what = "a task" }: { onAdd: (title: string) => void | Promise<boolean>; what?: string }) {
+  const [adding, setAdding] = useState(false);
   return (
     <form
       className="bs-quick"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         const input = e.currentTarget.elements.namedItem("title") as HTMLInputElement;
         const title = input.value.trim();
-        if (!title) return;
-        onAdd(title);
-        input.value = "";
+        if (!title || adding) return;
+        setAdding(true);
+        try { if (await onAdd(title) !== false) input.value = ""; } finally { setAdding(false); }
       }}
     >
-      <input name="title" placeholder={`Add ${what} and press Enter`} maxLength={500} aria-label={`Add ${what}`} />
+      <input name="title" disabled={adding} placeholder={`Add ${what} and press Enter`} maxLength={500} aria-label={`Add ${what}`} />
+      <button type="submit" disabled={adding} aria-label={`Add ${what}`}>{adding ? "…" : "+"}</button>
     </form>
   );
 }

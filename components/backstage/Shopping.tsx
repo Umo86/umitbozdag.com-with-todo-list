@@ -8,6 +8,7 @@ import type { Backstage } from "./useBackstage";
 
 export default function Shopping({ bs, me }: { bs: Backstage; me: Me }) {
   const [v, setV] = useState("");
+  const [adding, setAdding] = useState(false);
   const items = bs.us.filter((x) => x.kind === "shopping");
   const open = items.filter((x) => !x.done).sort((a, b) => b.created_at.localeCompare(a.created_at));
   const got = items.filter((x) => x.done).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
@@ -22,12 +23,15 @@ export default function Shopping({ bs, me }: { bs: Backstage; me: Me }) {
             .split(/,|\band\b|\n/i)
             .map((x) => x.trim())
             .filter(Boolean);
-          if (!names.length) return;
-          setV("");
-          for (const n of names) await bs.addUs({ kind: "shopping", title: n[0].toUpperCase() + n.slice(1) });
+          if (!names.length || adding) return;
+          setAdding(true);
+          const failed: string[] = [];
+          for (const n of names) if (!await bs.addUs({ kind: "shopping", title: n[0].toUpperCase() + n.slice(1) })) failed.push(n);
+          setV(failed.join(", ")); setAdding(false);
         }}
       >
-        <input value={v} onChange={(e) => setV(e.target.value)} placeholder="Add to the shopping list (milk, bread, eggs…)" maxLength={300} aria-label="Add to shopping" enterKeyHint="done" />
+        <input value={v} disabled={adding} onChange={(e) => setV(e.target.value)} placeholder="Milk, bread, eggs…" maxLength={300} aria-label="Add to shopping" enterKeyHint="done" />
+        <button type="submit" disabled={adding || !v.trim()}>{adding ? "Adding…" : "Add"}</button>
       </form>
       {open.length ? (
         <ul className="bs-shoplist">

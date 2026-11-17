@@ -27,7 +27,7 @@ const STEPS: Array<[string, React.ReactNode]> = [
 ];
 
 const FIXES: Array<[string, React.ReactNode]> = [
-  ["“App not installed” or “conflicts with an existing package”", <>An older version is on the phone. Long-press the Backstage icon › <strong>App info › Uninstall</strong>, then install again. Your tasks are safe: they live online, not on the phone.</>],
+  ["“App not installed” or “conflicts with an existing package”", <>Keep Backstage installed. The download may have a different signing key or an older version. Ask for a compatible update; uninstalling removes this phone&rsquo;s local app data and reminders.</>],
   ["Nothing happens when I tap the file", <>Open <strong>Settings › Apps › Special app access › Install unknown apps</strong>, pick your browser (Chrome) and allow it.</>],
   ["It says “No connection”", <>Backstage needs the internet to load. Check Wi-Fi or mobile data and tap <strong>Try again</strong>. Reminders already set still go off offline.</>],
   ["No reminders arrive", <>Settings › Apps › Backstage › <strong>Notifications</strong>: on. On Android 12+, also allow <strong>Alarms &amp; reminders</strong> so they arrive on time. Some phones (Samsung, Xiaomi) also need <strong>Battery › Unrestricted</strong> for Backstage.</>],
@@ -68,7 +68,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
                 {rel.size ? ` · ${(rel.size / 1_048_576).toFixed(1)} MB` : ""} · Android 6 or newer
               </p>
               <p className="appdl__small">
-                Already installed? You don&rsquo;t need to download again for new features: the app updates itself the next time you open it.
+                Already installed? New screens and features arrive when the live site is updated. Backstage checks when you reopen it and waits while you edit. If an Android app update is available, it offers a download for you to approve. Keep the app installed.
               </p>
             </div>
             <figure className="appdl__qr">

@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-11-17",
+    "title": "Simpler tasks, personal Finance and safer app updates",
+    "items": [
+      "Quick task capture with dates, priorities, projects and a preview before adding several tasks",
+      "Refreshed desktop and mobile pages with search, filters and list or board views",
+      "Finance: each person has private income, expenses, monthly budgets and CSV exports, separate from shared wedding budgets; requires the one-time Finance setup",
+      "Installed apps check for new screens on resume and wait while you edit or save",
+      "Android downloads are checked against the published app signing certificate before release"
+    ]
+  },
+  {
     "date": "2026-11-12",
     "title": "Wedding: To-dos, Calendar and Guests",
     "items": [

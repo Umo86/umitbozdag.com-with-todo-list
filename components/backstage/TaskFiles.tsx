@@ -51,10 +51,23 @@ export default function TaskFiles({ bs, taskId }: { bs: Backstage; taskId: strin
   const [asking, setAsking] = useState<string | null>(null); // "delete this one?"
   const [viewing, setViewing] = useState<TaskFile | null>(null);
   const [over, setOver] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const urlFor = (id: string, download = false) => bs.preview ? previewUrls[id] : fileUrl(id, download);
+  useEffect(() => {
+    if (!bs.preview) return;
+    let cancelled = false;
+    const urls: Record<string, string> = {};
+    Promise.all(bs.files.filter(f => f.task_id === taskId).map(async f => { const url = await bs.fileLink(f.id); if (url) urls[f.id] = url; })).then(() => {
+      if (cancelled) Object.values(urls).forEach(URL.revokeObjectURL);
+      else setPreviewUrls(urls);
+    });
+    return () => { cancelled = true; Object.values(urls).forEach(URL.revokeObjectURL); };
+  }, [bs.preview, bs.files, bs.fileLink, taskId]);
   const alive = useRef(true);
   useEffect(
-    () => () => {
-      alive.current = false;
+    () => {
+      alive.current = true;
+      return () => { alive.current = false; };
     },
     []
   );
@@ -74,6 +87,13 @@ export default function TaskFiles({ bs, taskId }: { bs: Backstage; taskId: strin
 
   /** Open a file: photos here; the rest in a new tab, or (in the app) through the phone's browser. */
   const open = async (f: TaskFile, download = false) => {
+    if (bs.preview) {
+      const url = previewUrls[f.id] ?? await bs.fileLink(f.id);
+      if (!url) return;
+      if (isPicture(f) && !download) { setPreviewUrls(prev => ({ ...prev, [f.id]: url })); setViewing(f); }
+      else { const link = document.createElement("a"); link.href = url; link.download = f.name; link.click(); }
+      return;
+    }
     if (isPicture(f) && !download) return setViewing(f);
     if (isApp()) {
       const url = await bs.fileLink(f.id);
@@ -122,7 +142,7 @@ export default function TaskFiles({ bs, taskId }: { bs: Backstage; taskId: strin
               <button type="button" className="open" onClick={() => void open(f)} title={`Open ${f.name}`}>
                 {isPicture(f) && f.size < 4 * 1048576 ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img className="thumb" src={fileUrl(f.id)} alt="" loading="lazy" />
+                  <img className="thumb" src={urlFor(f.id)} alt="" loading="lazy" />
                 ) : (
                   <KindBadge name={f.name} mime={f.mime} />
                 )}
@@ -186,7 +206,7 @@ export default function TaskFiles({ bs, taskId }: { bs: Backstage; taskId: strin
         createPortal(
           <div className="bs-lightbox" role="dialog" aria-modal="true" aria-label={viewing.name} onClick={() => setViewing(null)} onMouseDown={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={fileUrl(viewing.id)} alt={viewing.name} onClick={(e) => e.stopPropagation()} />
+            <img src={urlFor(viewing.id)} alt={viewing.name} onClick={(e) => e.stopPropagation()} />
             <div className="bar" onClick={(e) => e.stopPropagation()}>
               <span>{viewing.name}</span>
               <button type="button" onClick={() => void open(viewing, true)}>

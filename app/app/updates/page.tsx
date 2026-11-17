@@ -46,7 +46,7 @@ export default async function UpdatesPage({ searchParams }: { searchParams: Prom
               {rel.published
                 ? `, built ${new Date(rel.published).toLocaleString("en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })}`
                 : ""}
-              . Already installed? It updates itself the next time you open it.
+              . New screens arrive automatically from the live site. Android app updates are offered inside Backstage and need your approval to install. Keep the existing app installed.
             </p>
           </div>
         </section>

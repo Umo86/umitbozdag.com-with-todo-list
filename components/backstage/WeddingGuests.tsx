@@ -7,32 +7,11 @@
 // "Kaya family x4" is four. Either of you can add to either list, and every
 // line shows who added it.
 import { useMemo, useRef, useState } from "react";
+import { readGuestLine as readLine } from "@/lib/guest-line";
 import type { Backstage } from "./useBackstage";
 import { colorOf, nameOf, type Me, type Person, type UserId, type WeddingGuest } from "./types";
 
 const PEOPLE_MAX = 50;
-
-/** The same reading of a line as the server's, to count and to spot repeats before sending. */
-function readLine(line: string): { name: string; people: number } | null {
-  let name = line
-    .replace(/^\s*(?:[-*•–]|\d{1,4}[.)])\s+/, "")
-    .replace(/\s+/g, " ")
-    .replace(/[,;.]+$/, "")
-    .trim();
-  if (!name) return null;
-  let people = 1;
-  const plus = /\s*\+\s*(\d{1,2})$/.exec(name);
-  const times = /(?:\s+[x×]\s*(\d{1,2})|\s*\((\d{1,2})\)|\s+(\d{1,2}))$/i.exec(name);
-  if (plus) {
-    people = 1 + Number(plus[1]);
-    name = name.slice(0, plus.index).trim();
-  } else if (times) {
-    people = Number(times[1] ?? times[2] ?? times[3]);
-    name = name.slice(0, times.index).trim();
-  }
-  if (!name) return null;
-  return { name, people: Math.min(PEOPLE_MAX, Math.max(1, people)) };
-}
 
 export const headcount = (list: WeddingGuest[]) => list.reduce((n, g) => n + g.people, 0);
 

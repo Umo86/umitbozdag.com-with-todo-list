@@ -50,7 +50,7 @@ export default function Settings({ bs, me, space, onClose, onHelp }: { bs: Backs
         </button>
 
         <h3 className="bs-sub">Reminders and notifications</h3>
-        {isApp() ? (
+        {bs.preview ? <p className="bs-hint">Notifications need the live service. In this preview you can set task reminders and test their controls without sending device notifications.</p> : isApp() ? (
           <>
             <p className="bs-hint">
               Reminders are set on this phone, so they go off even when the app is closed.{" "}

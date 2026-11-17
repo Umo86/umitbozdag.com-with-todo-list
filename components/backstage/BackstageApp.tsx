@@ -5,7 +5,13 @@
 // the sections sit in a bottom tab bar; inside the Android app it also keeps
 // the phone's reminders in step and handles the back button (see native.ts).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseTask, ymd } from "@/lib/parse";
+import { localToIso, parseTask, ymd, type Draft } from "@/lib/parse";
+import { visibleTasks } from "@/lib/task-view";
+import QuickCapture from "./QuickCapture";
+import TaskToolbar, { DEFAULT_FILTERS, type TaskFilters } from "./TaskToolbar";
+import { resetPreview } from "./previewStore";
+import { useDialogFocus } from "./useDialogFocus";
+import { useAppUpdates } from "./useAppUpdates";
 import Board, { dragState } from "./Board";
 import Calendar from "./Calendar";
 import UsHub, { nextSaturday, type UsSection } from "./UsHub";
@@ -15,6 +21,7 @@ import { MatchAlert, lastWeekChampion, MOODS, nextYearly, type GameMatch } from 
 import { VideoGift, VideoSender, VideoWaiting, type VideoIn, type VideoOut } from "./OneTimeVideo";
 import { Help, shouldWelcome, Welcome, WhatsNew, shouldShowNew } from "./Help";
 import Dashboard from "./Dashboard";
+import Finance from "./Finance";
 import EventSheet from "./EventSheet";
 import Gate from "./Gate";
 import Messages from "./Messages";
@@ -28,11 +35,11 @@ import { BUZZ, buzz, isApp, listen, prepareNotifications, registerPush, syncRemi
 import { forMe, nameOf, type WeddingTab, type Assignee, type ChatMessage, type ListName, type Space } from "./types";
 import { useBackstage } from "./useBackstage";
 
-type View = "today" | "mine" | "joint" | "wedding" | "calendar" | "us" | "messages";
+type View = "today" | "mine" | "joint" | "wedding" | "calendar" | "us" | "messages" | "finance";
 type Sheet =
   | { kind: "task"; id: string }
   | { kind: "event"; id?: string; day?: string; preset?: { title: string; time: string; joint?: boolean; wedding?: boolean } }
-  | { kind: "new-task" }
+  | { kind: "new-task"; draft?: Draft; title?: string }
   | { kind: "projects" }
   | { kind: "settings" }
   | { kind: "help" }
@@ -42,7 +49,7 @@ type Sheet =
 const SPACE_KEY = "backstage:space";
 // what each side of Backstage holds: Work shows nothing personal
 const WORK_VIEWS: View[] = ["today", "mine", "calendar"];
-const PERSONAL_ONLY: View[] = ["joint", "wedding", "us", "messages"];
+const PERSONAL_ONLY: View[] = ["joint", "wedding", "us", "messages", "finance"];
 const VIEW_KEY = "backstage:view";
 const SEEN_KEY = "backstage:reminded";
 
@@ -74,8 +81,9 @@ function useNarrow() {
   return narrow;
 }
 
-export default function BackstageApp() {
-  const bs = useBackstage();
+export default function BackstageApp({ preview = false }: { preview?: boolean }) {
+  useDialogFocus();
+  const bs = useBackstage(preview);
   const { phase, me, tasks, projects, events, users } = bs;
   const narrow = useNarrow();
   const [viewState, setViewState] = useState<View>("today");
@@ -88,6 +96,9 @@ export default function BackstageApp() {
   // Joint, Wedding, Us and Messages can never show on the Work side
   const view: View = space === "work" && !WORK_VIEWS.includes(viewState) ? "today" : viewState;
   const [project, setProject] = useState<string | null>(null);
+  const [taskFilters, setTaskFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
+  const [taskLayout, setTaskLayout] = useState<"list" | "board">("list");
+  const [captureRevision, setCaptureRevision] = useState(0);
   const [jointFor, setJointFor] = useState<"all" | "me" | "other">("all");
   const [wedTab, setWedTab] = useState<WeddingTab>("todos"); // Wedding: to-dos, its calendar, or the guest names
   const [wedArea, setWedArea] = useState<string | null>(null); // the wedding area being looked at
@@ -112,6 +123,7 @@ export default function BackstageApp() {
     setSpaceState(sp);
     remember(SPACE_KEY, sp);
     setProject(null);
+    setTaskFilters(DEFAULT_FILTERS);
     setSheet(null);
     setViewState((v) => {
       const next = sp === "work" && !WORK_VIEWS.includes(v) ? "today" : v;
@@ -126,19 +138,21 @@ export default function BackstageApp() {
     let sp = recall<Space | null>(SPACE_KEY, null);
     if (sp !== "work" && sp !== "personal") sp = isApp() ? "personal" : "work";
     let v = recall<View>(VIEW_KEY, "today");
-    if (!["today", "mine", "joint", "wedding", "calendar", "us", "messages"].includes(v)) v = "today";
+    if (!["today", "mine", "joint", "wedding", "calendar", "us", "messages", "finance"].includes(v)) v = "today";
     seen.current = new Set(recall<string[]>(SEEN_KEY, []));
     const q = new URLSearchParams(window.location.search);
     if (q.has("capture") || q.has("add")) setSheet({ kind: "new-task" });
     const qv = q.get("view");
-    if (qv && ["today", "mine", "joint", "wedding", "calendar", "us"].includes(qv)) {
+    if (qv && ["today", "mine", "joint", "wedding", "calendar", "us", "finance"].includes(qv)) {
       v = qv as View;
       if (PERSONAL_ONLY.includes(v)) sp = "personal"; // a notification about something personal was tapped
     }
     if (sp === "work" && !WORK_VIEWS.includes(v)) v = "today";
     setSpaceState(sp);
     setViewState(v);
-    if (q.has("view") || q.has("capture") || q.has("add")) window.history.replaceState(null, "", "/backstage");
+    remember(SPACE_KEY, sp);
+    remember(VIEW_KEY, v);
+    if (q.has("view") || q.has("capture") || q.has("add")) window.history.replaceState(null, "", preview ? "/backstage/preview" : "/backstage");
   }, []);
 
   // ——— in-page reminders (browser): check every half minute ———
@@ -220,7 +234,10 @@ export default function BackstageApp() {
         setViewState("today");
         if (path === "add") setSheet({ kind: "new-task" });
       },
-      onResume: () => void live.current.refresh(),
+      onResume: () => {
+        void live.current.refresh();
+        window.dispatchEvent(new Event("backstage:resume"));
+      },
       onBack: () => {
         if (live.current.sheet) {
           setSheet(null);
@@ -257,44 +274,7 @@ export default function BackstageApp() {
 
   // ——— always the latest version: reload when a new one goes live ———
   // (also inside the Android app, which loads this site live)
-  const [updateReady, setUpdateReady] = useState(false);
-  useEffect(() => {
-    const mine = process.env.NEXT_PUBLIC_BUILD_ID;
-    if (!mine) return;
-    let stop = false;
-    const check = async () => {
-      if (stop || !navigator.onLine) return;
-      try {
-        const r = await fetch("/api/backstage/version", { cache: "no-store" });
-        const v = (await r.json()) as { build?: string };
-        if (!v.build || v.build === mine) return;
-        // nothing half-typed open: reload straight away (once per version,
-        // so a stubborn cache can't cause a loop); otherwise offer it
-        let tried = "";
-        try {
-          tried = sessionStorage.getItem("backstage:reloaded-for") ?? "";
-          sessionStorage.setItem("backstage:reloaded-for", v.build);
-        } catch {
-          /* fine */
-        }
-        if (!live.current.sheet && tried !== v.build) window.location.reload();
-        else setUpdateReady(true);
-      } catch {
-        /* try again later */
-      }
-    };
-    void check();
-    const timer = setInterval(check, 5 * 60_000);
-    const onVis = () => !document.hidden && void check();
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("focus", onVis);
-    return () => {
-      stop = true;
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("focus", onVis);
-    };
-  }, []);
+  const updates = useAppUpdates({ preview, saving: bs.isSaving, dragging: () => dragState.on, sheet: !!sheet, say: bs.say });
 
   // ——— browsers: offer notifications once ———
   const [askPush, setAskPush] = useState(false);
@@ -320,7 +300,7 @@ export default function BackstageApp() {
 
   // ——— welcome, once per person per device ———
   useEffect(() => {
-    if (phase.kind !== "app" || !me || space !== "personal") return;
+    if (phase.kind !== "app" || !me || space !== "personal" || preview) return;
     if (shouldWelcome(me)) setSheet((s) => s ?? { kind: "welcome" });
     else if (shouldShowNew()) setSheet((s) => s ?? { kind: "whatsnew" });
   }, [phase.kind, me, space]);
@@ -406,7 +386,7 @@ export default function BackstageApp() {
   const playingRef = useRef(false);
   playingRef.current = videoPlaying;
   useEffect(() => {
-    if (phase.kind !== "app" || !me) return;
+    if (phase.kind !== "app" || !me || preview) return;
     const otherId = users.find((u) => u.id !== me.id)?.id;
     if (!otherId) return;
     let stop = false;
@@ -494,7 +474,7 @@ export default function BackstageApp() {
   const pulseLive = useRef({ isSaving: bs.isSaving, say: bs.say });
   pulseLive.current = { isSaving: bs.isSaving, say: bs.say };
   useEffect(() => {
-    if (phase.kind !== "app" || !me) return;
+    if (phase.kind !== "app" || !me || preview) return;
     const otherName = users.find((u) => u.id !== me.id)?.name ?? "The other person";
     type Pulse = { v: string; u: string; c: string; x: string };
     let last: Pulse | null = null;
@@ -598,8 +578,8 @@ export default function BackstageApp() {
     [tasks, me, list]
   );
   const mineShown = useMemo(
-    () => (project ? mineInList.filter((t) => t.project_id === project) : mineInList),
-    [mineInList, project]
+    () => visibleTasks(project ? mineInList.filter((t) => t.project_id === project) : mineInList, taskFilters, ymd(new Date())),
+    [mineInList, project, taskFilters]
   );
   // Wedding planning is its own joint section; the everyday joint list is everything else.
   const wedding = useMemo(() => tasks.filter((t) => t.wedding), [tasks]);
@@ -607,14 +587,14 @@ export default function BackstageApp() {
   const joint = useMemo(() => tasks.filter((t) => t.owner === "joint" && !t.wedding), [tasks]);
   const jointShown = useMemo(
     () =>
-      joint.filter((t) =>
+      visibleTasks(joint.filter((t) =>
         jointFor === "all"
           ? true
           : jointFor === "me"
             ? !t.assignee || t.assignee === "both" || t.assignee === me?.id
             : !t.assignee || t.assignee === "both" || (t.assignee !== me?.id)
-      ),
-    [joint, jointFor, me]
+      ), taskFilters, ymd(new Date())),
+    [joint, jointFor, me, taskFilters]
   );
   const myProjects = projects.filter((p) => p.owner === me?.id || p.owner === "joint");
   const spaceProjects = myProjects.filter((p) => p.list === space);
@@ -639,10 +619,10 @@ export default function BackstageApp() {
   const openEvent = sheet?.kind === "event" && sheet.id ? events.find((e) => e.id === sheet.id) : undefined;
 
   // Whatever is typed into an "Add…" box is one task, however long it is.
-  const addTyped = (text: string, owner: "mine" | "joint" | "wedding", areaId: string | null = null, forWho: Assignee | null = null) => {
+  const addTyped = async (text: string, owner: "mine" | "joint" | "wedding", areaId: string | null = null, forWho: Assignee | null = null) => {
     const d = parseTask(text, { projects: spaceProjects, others: personal ? users.filter((u) => u.id !== me.id) : [] });
-    if (!d) return;
-    void bs.addDrafts(
+    if (!d) return false;
+    const count = await bs.addDrafts(
       [
         {
           ...d,
@@ -659,6 +639,7 @@ export default function BackstageApp() {
       ],
       list
     );
+    return count === 1;
   };
 
   // The + button says what it adds where you are, and adds that.
@@ -696,10 +677,21 @@ export default function BackstageApp() {
     setSheet(view === "calendar" ? { kind: "event", day: ymd(new Date()) } : { kind: "new-task" });
   };
 
+  const captureContext = view === "wedding" ? (wedAreaNow?.name ? `Wedding · ${wedAreaNow.name}` : "Wedding") : view === "joint" ? "Joint" : personal ? "Personal" : "Work";
+  const captureStorageKey = view === "wedding" ? `backstage:${preview ? "preview:" : ""}capture:${me.id}:wedding:${wedArea || "all"}` : `backstage:${preview ? "preview:" : ""}capture:${me.id}:${space}:${view}:${project || "all"}`;
+  const showCapture = view === "today" || view === "mine" || view === "joint" && jointTab === "todos";
+  const addCaptured = async (d: Draft) => {
+    const shared = personal && (view === "joint" || view === "wedding" || d.joint);
+    const task = await bs.addTask({ title: d.title, list: space, owner: shared ? "joint" : me.id, assignee: shared ? d.assignee ?? "both" : null, wedding: view === "wedding", area_id: view === "wedding" ? wedArea : null, project_id: d.project_id ?? (view === "mine" ? project : null), priority: d.priority, due_date: d.due_date, remind_at: localToIso(d.remind_local), repeat: d.repeat });
+    return !!task;
+  };
+  const taskTools = (count: number) => <TaskToolbar value={taskFilters} onChange={setTaskFilters} layout={narrow ? "list" : taskLayout} onLayout={layout => { setTaskLayout(layout); if (layout === "board") setTaskFilters(f => ({ ...f, order: "manual" })); }} count={count} />;
+
   const NAV: Array<{ id: View; label: string; n?: number; icon: React.ReactNode }> = personal
     ? [
         { id: "today", label: "Today", icon: <IconToday /> },
         { id: "mine", label: "My tasks", n: openCount("personal"), icon: <IconCheck /> },
+        { id: "finance", label: "Finance", icon: <span className="bs-finance-nav-icon" aria-hidden="true">£</span> },
         { id: "joint", label: "Joint", n: jointOpen, icon: <IconJoint /> },
         { id: "wedding", label: "Wedding", n: weddingOpen, icon: <IconRing /> },
         { id: "calendar", label: "Calendar", icon: <IconCal /> },
@@ -712,7 +704,8 @@ export default function BackstageApp() {
       ];
 
   return (
-    <div className="bs-app" data-view={view} data-space={space} data-me={me.id}>
+    <div className="bs-app" data-view={view} data-space={space} data-me={me.id} data-preview={preview || undefined}>
+      {preview && <div className="bs-preview-banner"><span><strong>Test version</strong> · Sample data saved in this browser. Your real data stays separate.</span><div className="bs-preview-actions"><label>Preview user<select aria-label="Preview user" value={me.id} onChange={e => { setSheet(null); void bs.signIn(e.target.value, "preview"); }}><option value="umit">Umit</option><option value="dilfiraz">Dilfiraz</option></select></label><a href="/backstage/preview/mobile" target="_top">Phone view</a><button onClick={() => { if (window.confirm("Reset the sample tasks and preview changes?")) { resetPreview(); window.location.reload(); } }}>Reset preview</button></div></div>}
       <header className="bs-head">
         <div className="bs-title">
           <h1>Backstage</h1>
@@ -734,7 +727,7 @@ export default function BackstageApp() {
           ))}
         </nav>
         <div className="who">
-          <button className="bs-add" onClick={addHere}>
+          <button className="bs-add" hidden={view === "finance"} onClick={addHere}>
             + {addWord}
           </button>
           {me.admin && personal && (
@@ -799,13 +792,20 @@ export default function BackstageApp() {
         </div>
       )}
 
-      {updateReady && (
+      {updates.webReady && (
         <div className="bs-due" role="status">
           <strong>New version ready</strong>
-          <span>Backstage has been updated.</span>
-          <button className="btn small" onClick={() => window.location.reload()}>
+          <span>Save or close anything you’re editing to apply the update.</span>
+          <button className="btn small" onClick={updates.applyUpdate}>
             Update now
           </button>
+        </div>
+      )}
+      {updates.appBuild && (
+        <div className="bs-due" role="status">
+          <strong>Android update available</strong>
+          <span>Build {updates.appBuild} is ready. Download it and approve the update on your phone. Keep Backstage installed.</span>
+          <a className="btn small" href="/app/download" target="_blank" rel="noopener noreferrer">Download update</a>
         </div>
       )}
       {askPush && !sheet && personal && (
@@ -831,7 +831,14 @@ export default function BackstageApp() {
         </div>
       )}
 
-      <main className="bs-main">
+      <div className="bs-body">
+      <nav className="bs-desktop-nav" aria-label="Workspace sections">
+        <p className="bs-nav-label">Your {personal ? "personal" : "work"} space</p>
+        {NAV.map(n => <button key={n.id} aria-current={view === n.id ? "page" : undefined} onClick={() => setView(n.id)}>{n.icon}<span>{n.label}</span>{!!n.n && <small>{n.n}</small>}</button>)}
+        <div className="bs-nav-bottom"><button onClick={() => setSheet({ kind: "projects" })}><IconWork /><span>Manage projects</span></button><button onClick={() => setSheet({ kind: "help" })}><span aria-hidden="true">?</span><span>Help & shortcuts</span></button></div>
+      </nav>
+      <main className="bs-main" id="backstage-main">
+        {showCapture && <QuickCapture key={`${space}:${view}:${project ?? "all"}:${captureRevision}`} context={captureContext} storageKey={captureStorageKey} projects={spaceProjects} users={personal ? users : []} defaultProject={view === "mine" ? project : null} onAdd={addCaptured} onDetails={(draft, title) => setSheet({ kind: "new-task", draft: draft ?? undefined, title })} />}
         {view === "today" && (
           <Dashboard
             space={space}
@@ -861,7 +868,7 @@ export default function BackstageApp() {
                 />
               ) : null
             }
-            side={personal && me.admin && other ? <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} /> : null}
+            side={personal && me.admin && other ? preview ? <div className="bs-preview-note">Video delivery and device notifications need the live service. Everything you edit here uses sample data.</div> : <VideoSender toName={other.name} out={videoOut} onChanged={() => quickCheck.current()} say={bs.say} /> : null}
             bs={bs}
             users={users}
             onWedding={() => setView("wedding")}
@@ -897,8 +904,11 @@ export default function BackstageApp() {
                 </button>
               </div>
             </div>
-            {narrow ? (
+            {taskTools(mineShown.length)}
+            {narrow || taskLayout === "list" ? (
               <TaskList
+                showAdd={false}
+                preserveOrder
                 tasks={mineShown}
                 projects={projects}
                 me={me.id}
@@ -910,6 +920,7 @@ export default function BackstageApp() {
               />
             ) : (
               <Board
+                showAdd={false}
                 key={list}
                 addWhat={personal ? "a personal task" : "a work task"}
                 tasks={mineShown}
@@ -958,8 +969,10 @@ export default function BackstageApp() {
             </div>
             {jointTab === "shopping" ? (
               <Shopping bs={bs} me={me} />
-            ) : narrow ? (
+            ) : <>{taskTools(jointShown.length)}{narrow || taskLayout === "list" ? (
               <TaskList
+                showAdd={false}
+                preserveOrder
                 tasks={jointShown}
                 projects={projects}
                 me={me.id}
@@ -971,6 +984,7 @@ export default function BackstageApp() {
               />
             ) : (
               <Board
+                showAdd={false}
                 key="joint"
                 addWhat="a joint to-do"
                 tasks={jointShown}
@@ -981,12 +995,13 @@ export default function BackstageApp() {
                 onDelete={bs.deleteTask}
                 onOpen={(id) => setSheet({ kind: "task", id })}
               />
-            )}
+            )}</>}
           </>
         )}
 
         {view === "wedding" && (
           <WeddingView
+            key={`wedding:${captureRevision}`}
             bs={bs}
             me={me}
             users={users}
@@ -1002,6 +1017,7 @@ export default function BackstageApp() {
             onOpenEvent={(id) => setSheet({ kind: "event", id })}
             onAdd={(t, areaId, forWho) => addTyped(t, "wedding", areaId, forWho)}
             onNewDate={(day) => setSheet({ kind: "event", day: day ?? ymd(new Date()), preset: { title: "", time: "12:00", wedding: true } })}
+            onNewTask={(draft, title, assignee) => setSheet({ kind: "new-task", title, draft: draft ? { ...draft, assignee: draft.assignee ?? assignee } : undefined })}
           />
         )}
 
@@ -1021,6 +1037,7 @@ export default function BackstageApp() {
 
         {view === "us" && (
           <UsHub
+            key={me.id}
             bs={bs}
             me={me}
             users={users}
@@ -1030,8 +1047,10 @@ export default function BackstageApp() {
           />
         )}
 
+        {view === "finance" && personal && <Finance key={me.id} bs={bs} me={me} />}
         {view === "messages" && me.admin && <Messages bs={bs} messages={bs.messages} />}
       </main>
+      </div>
 
       <nav className="bs-bottom" aria-label="Sections" style={{ ["--cols" as string]: NAV.length }}>
         {NAV.map((n) => (
@@ -1045,7 +1064,7 @@ export default function BackstageApp() {
         ))}
       </nav>
 
-      {!sheet && view !== "messages" && !(view === "us" && usSection === "chat") && (
+      {!sheet && !showCapture && !(view === "wedding" && wedTab === "todos") && view !== "finance" && view !== "messages" && !(view === "us" && usSection === "chat") && (
         <div className="bs-fabs">
           <button
             className="bs-fab plus"
@@ -1090,6 +1109,9 @@ export default function BackstageApp() {
       )}
       {sheet?.kind === "new-task" && (
         <NewTask
+          onCreated={() => { if (sheet.draft || sheet.title) { try { localStorage.removeItem(captureStorageKey); } catch {} setCaptureRevision(n => n + 1); } }}
+          initialDraft={sheet.draft}
+          initialTitle={sheet.title}
           bs={bs}
           me={me}
           users={users}

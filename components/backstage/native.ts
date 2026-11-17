@@ -11,7 +11,7 @@
 // - push notifications (Firebase Cloud Messaging): hearts, messages and joint
 //   to-dos reach the phone while the app is closed
 import { Capacitor } from "@capacitor/core";
-import { occurrences } from "./calendar";
+import { occurrences } from "./calendar-utils";
 import { forMe, type CalEvent, type Task, type UserId } from "./types";
 
 export const isApp = () => typeof window !== "undefined" && Capacitor.isNativePlatform();

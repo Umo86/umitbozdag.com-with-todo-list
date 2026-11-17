@@ -8,7 +8,7 @@
 // project deadlines.
 import { useMemo, useState } from "react";
 import { ymd } from "@/lib/parse";
-import { hhmm, itemsByDay, parseDay, type DayItem } from "./calendar";
+import { hhmm, itemsByDay, parseDay, type DayItem } from "./calendar-utils";
 import { BUSY, WEDDING, colorOf, nameOf, softOf, type CalEvent, type Me, type Person, type Project, type Space, type Task } from "./types";
 
 const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

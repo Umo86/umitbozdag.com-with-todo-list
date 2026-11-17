@@ -109,7 +109,9 @@ export default function EventSheet({
   }, [onClose]);
 
   const save = async () => {
+    if (busy) return;
     if (!title.trim()) return setErr("Give the event a name.");
+    if (!date || !allDay && (!from || !to)) return setErr("Choose a date and the start and end times.");
     const startsAt = new Date(`${date}T${from}`);
     let endsAt = new Date(`${date}T${to}`);
     if (!allDay && endsAt <= startsAt) endsAt = new Date(endsAt.getTime() + 86_400_000); // past midnight
