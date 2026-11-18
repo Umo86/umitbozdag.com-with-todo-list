@@ -12,6 +12,7 @@ const api = (path, method = "GET", body, user = "umit") => request(path, { metho
 
 test("money is parsed to integer pence without rounding or exponent notation", () => {
   assert.equal(parsePence("0.10") + parsePence("0.20"), 30);
+  assert.equal(parsePence(".50"), 50); assert.equal(parsePence(".5"), 50); assert.equal(parsePence("."), null);
   assert.equal(parsePence("£1,234.50"), 123450); assert.equal(parsePence("12.3"), 1230); assert.equal(parsePence("0"), 0);
   for (const invalid of ["1.234", "1e3", "-5", "NaN", "", "12,34", "Infinity", "100000001"]) assert.equal(parsePence(invalid), null, invalid);
 });

@@ -1,6 +1,17 @@
 [
   {
     "date": "2026-11-18",
+    "title": "Quicker, simpler personal Finance",
+    "items": [
+      "Add Expense and Income directly, enter the amount first, and leave the name blank to use its category",
+      "Save several entries in a row with Add another, with date and notes available when needed",
+      "Editing an entry into another month takes you to that month",
+      "Finance refreshes when the Android app resumes; CSV export in the app supports copying into a spreadsheet",
+      "One-time Enable Finance adds only its new private tables; existing Backstage records stay intact"
+    ]
+  },
+  {
+    "date": "2026-11-18",
     "title": "Android screen fit and compatible update checks",
     "items": [
       "Phone navigation stays inside the visible app screen while the page scrolls separately",

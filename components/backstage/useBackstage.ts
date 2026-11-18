@@ -51,9 +51,11 @@ export type Phase =
 
 class ApiError extends Error {
   status: number;
+  code: string | undefined;
   constructor(status: number, body: Record<string, unknown>) {
     super(String(body.error ?? "Something went wrong."));
     this.status = status;
+    this.code = typeof body.code === "string" ? body.code : undefined;
   }
 }
 

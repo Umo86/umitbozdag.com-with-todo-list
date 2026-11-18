@@ -21,7 +21,8 @@ export function shiftMonth(month: string, offset: number) {
   return date.toISOString().slice(0, 7);
 }
 export function parsePence(value: string): number | null {
-  const clean = value.trim().replace(/^£\s*/, "");
+  let clean = value.trim().replace(/^£\s*/, "");
+  if (/^\.\d{1,2}$/.test(clean)) clean = "0" + clean;
   if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(clean)) return null;
   const [whole, fraction = ""] = clean.replace(/,/g, "").split(".");
   const amount = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
