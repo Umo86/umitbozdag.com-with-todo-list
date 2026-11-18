@@ -713,6 +713,7 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
 
   return (
     <div className="bs-app" data-view={view} data-space={space} data-me={me.id} data-preview={preview || undefined} data-keyboard={keyboard || undefined}>
+      <div className="bs-page">
       {preview && <div className="bs-preview-banner"><span><strong>Test version</strong> · Sample data saved in this browser. Your real data stays separate.</span><div className="bs-preview-actions"><label>Preview user<select aria-label="Preview user" value={me.id} onChange={e => { setSheet(null); void bs.signIn(e.target.value, "preview"); }}><option value="umit">Umit</option><option value="dilfiraz">Dilfiraz</option></select></label><a href="/backstage/preview/mobile" target="_top">Phone view</a><button onClick={() => { if (window.confirm("Reset the sample tasks and preview changes?")) { resetPreview(); window.location.reload(); } }}>Reset preview</button></div></div>}
       <header className="bs-head">
         <div className="bs-title">
@@ -1058,6 +1059,7 @@ export default function BackstageApp({ preview = false }: { preview?: boolean })
         {view === "finance" && personal && <Finance key={me.id} bs={bs} me={me} />}
         {view === "messages" && me.admin && <Messages bs={bs} messages={bs.messages} />}
       </main>
+      </div>
       </div>
 
       <nav className="bs-bottom" aria-label="Sections" style={{ ["--cols" as string]: mobileNav.primary.length + (mobileNav.more.length ? 1 : 0) }}>

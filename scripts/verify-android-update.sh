@@ -25,3 +25,11 @@ if [ "$new_version" -le "$(version "$old")" ]; then
   exit 1
 fi
 echo "Verified: same app, same signing certificate, newer version."
+old_version="$(version "$old")"
+chain_start="$(printf '%s' "$release_data" | jq -r '.body // ""' | sed -n 's/^Compatible updates from build \([0-9]*\).*$/\1/p' | head -1)"
+chain_start="${chain_start:-$old_version}"
+if ! [[ "$chain_start" =~ ^[0-9]+$ ]] || [ "$chain_start" -gt "$old_version" ] || [ "$chain_start" -le 0 ]; then
+  echo "::error::Invalid compatibility metadata in the published release."
+  exit 1
+fi
+echo "COMPATIBLE_FROM_BUILD=$chain_start" >> "$GITHUB_ENV"

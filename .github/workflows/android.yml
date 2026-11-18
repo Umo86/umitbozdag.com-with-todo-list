@@ -79,6 +79,8 @@ jobs:
           node -e '
             const c = require("./lib/changelog.json")[0] || { title: "Update", items: [] };
             const lines = [`Build ${process.env.VERSION_CODE} · ${c.title}`, "", ...c.items.map((i) => "- " + i), "", `From ${process.env.GITHUB_SHA.slice(0, 7)}. Download Backstage.apk on your phone and open it to install.`];
+            if (!process.env.COMPATIBLE_FROM_BUILD) throw new Error("Compatibility verification is required before publication");
+            lines.push("", `Compatible updates from build ${process.env.COMPATIBLE_FROM_BUILD}`);
             require("fs").writeFileSync("notes.md", lines.join("\n"));
           '
           # Upload an immutable build first. Never delete the working download.
@@ -99,7 +101,9 @@ jobs:
       - name: Publish the build log (failed builds only)
         if: failure()
         run: |
-          touch build.log
+          if [ ! -s build.log ]; then
+            printf 'Build %s stopped before APK compilation. Check the workflow steps for the missing signing key or setup failure.\n' "$VERSION_CODE" > build.log
+          fi
           gh release delete android-build-log --yes --cleanup-tag || true
           gh release create android-build-log build.log \
             --title "Android build log (failed)" \

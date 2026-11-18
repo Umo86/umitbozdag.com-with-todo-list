@@ -2,7 +2,9 @@
 
 The Android app opens `https://umitbozdag.com` in Capacitor. Deploying the website delivers the same task and Finance screens to existing installations. The app checks the web build on startup, every minute while visible, on reconnect, and on Android resume. It waits if a dialog, changed form, active editor, save or drag is in progress. The Update now button uses the same guard. No storage or database is cleared by a web refresh.
 
-Native updates are separate: `App.getInfo().build` is compared with the published APK build. A newer build offers **Download update**; the user downloads it and approves installation in Android. This does not silently install an APK or use Google Play. Reminders and push registration retain their existing code paths.
+Native updates are separate: `App.getInfo().build` is compared with the published APK build and its verified compatibility range. Only a newer build in that signing chain offers **Download update**; legacy APKs without compatibility metadata never trigger the prompt. The user downloads it and approves installation in Android. This does not silently install an APK or use Google Play. Reminders and push registration retain their existing code paths.
+
+The phone layout uses a viewport-height shell with a separately scrolling page and navigation outside that scroll area. Settings > Check this device reports screen dimensions, zoom, installed build and reminder permissions on-device only; it does not transmit diagnostics or change settings.
 
 ## Safe Android releases
 

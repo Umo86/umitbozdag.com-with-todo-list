@@ -1,5 +1,15 @@
 [
   {
+    "date": "2026-11-18",
+    "title": "Android screen fit and compatible update checks",
+    "items": [
+      "Phone navigation stays inside the visible app screen while the page scrolls separately",
+      "Long task titles and dashboard cards wrap within the phone width",
+      "Android update prompts only appear for builds with a verified compatible signing history",
+      "Settings includes a read-only device check for screen size, installed version and reminder permissions"
+    ]
+  },
+  {
     "date": "2026-11-17",
     "title": "A layout that fits the Android app",
     "items": [

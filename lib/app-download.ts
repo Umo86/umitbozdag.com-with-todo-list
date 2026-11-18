@@ -3,7 +3,7 @@
 export const APK_URL =
   "https://github.com/Umo86/umitbozdag.com-with-todo-list/releases/download/android-latest/Backstage.apk";
 
-export type AppRelease = { build: number | null; published: string | null; size: number | null };
+export type AppRelease = { build: number | null; published: string | null; size: number | null; compatibleFromBuild: number | null };
 
 /** The newest app build GitHub has published (checked every 5 minutes). */
 export async function latestRelease(): Promise<AppRelease> {
@@ -17,8 +17,9 @@ export async function latestRelease(): Promise<AppRelease> {
     const apk = d.assets?.find((asset) => asset.name === "Backstage.apk" && asset.state === "uploaded");
     if (!apk) throw new Error("No published APK");
     const m = /build (\d+)/i.exec(`${d.name ?? ""} ${d.body ?? ""}`);
-    return { build: m ? Number(m[1]) : null, published: d.published_at ?? null, size: apk.size ?? null };
+    const compatible = /Compatible updates from build (\d+)/.exec(d.body ?? "");
+    return { build: m ? Number(m[1]) : null, published: d.published_at ?? null, size: apk.size ?? null, compatibleFromBuild: compatible ? Number(compatible[1]) : null };
   } catch {
-    return { build: null, published: null, size: null };
+    return { build: null, published: null, size: null, compatibleFromBuild: null };
   }
 }

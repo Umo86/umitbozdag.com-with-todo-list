@@ -7,6 +7,7 @@ import { exactAlarms, forgetPush, hasPush, isApp, openExactAlarmSetting, prepare
 import { disablePush, enablePush, pushState, type PushState } from "./push";
 import type { Me, Space } from "./types";
 import type { Backstage } from "./useBackstage";
+import DeviceCheck from "./DeviceCheck";
 
 export default function Settings({ bs, me, space, onClose, onHelp }: { bs: Backstage; me: Me; space: Space; onClose: () => void; onHelp: () => void }) {
   const [exact, setExact] = useState<"granted" | "denied" | "n/a">("n/a");
@@ -49,6 +50,7 @@ export default function Settings({ bs, me, space, onClose, onHelp }: { bs: Backs
           How Backstage works, tips and fixes
         </button>
 
+        <DeviceCheck exact={exact} />
         <h3 className="bs-sub">Reminders and notifications</h3>
         {bs.preview ? <p className="bs-hint">Notifications need the live service. In this preview you can set task reminders and test their controls without sending device notifications.</p> : isApp() ? (
           <>

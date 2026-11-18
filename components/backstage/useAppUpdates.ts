@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { canRefreshApp, newerAppBuild } from "@/lib/app-updates";
+import { canRefreshApp, compatibleAppUpdate } from "@/lib/app-updates";
 import { isApp } from "./native";
 
 export function useAppUpdates(options: { preview: boolean; saving: () => boolean; dragging: () => boolean; sheet: boolean; say: (message: string) => void }) {
@@ -66,8 +66,8 @@ export function useAppUpdates(options: { preview: boolean; saving: () => boolean
           if (!installed) installed = (await (await import("@capacitor/app")).App.getInfo()).build;
           const response = await fetch("/api/backstage/app-release", { cache: "no-store" });
           if (response.ok && !stopped) {
-            const release = await response.json() as { build: number | null };
-            setAppBuild(newerAppBuild(installed, release.build) ? release.build : null);
+            const release = await response.json() as { build: number | null; compatibleFromBuild: number | null };
+            setAppBuild(compatibleAppUpdate(installed, release.build, release.compatibleFromBuild) ? release.build : null);
           }
         }
       } catch { /* release service unavailable: leave the installed app working */ }
